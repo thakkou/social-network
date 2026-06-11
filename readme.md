@@ -1,3 +1,5 @@
+# social-network
+
 ➜  social-network npm create t3-app@latest web
 
 > npx
@@ -78,3 +80,11 @@ Choose Yes if users need accounts/login.
 ================================================
 
 go run ./cmd/server
+
+
+==================================================
+
+1. add types/css.d.ts
+2. add icons library:
+  @import "@tabler/icons-webfont/dist/tabler-icons.min.css";
+  npm install @tabler/icons-webfont
