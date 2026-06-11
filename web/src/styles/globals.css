@@ -6,6 +6,7 @@
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
+/* maybe used for light mode ! */
 /* *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--font-mono,'JetBrains Mono',monospace);background:var(--color-background-tertiary);font-size:13px}
 .screen{display:none}
@@ -97,6 +98,7 @@ body{font-family:'JetBrains Mono',monospace,'Courier New',monospace;background:#
 .msg-bubble-me{background:#2e1e24;border:0.5px solid #7a3050;padding:6px 10px;font-size:12px;margin-left:auto;max-width:70%;color:#e0789a;align-self:flex-end}
 .msg-bubble-them{background:#2e2b27;border:0.5px solid #3a3733;padding:6px 10px;font-size:12px;max-width:70%;color:#e8e4dc;align-self:flex-start}
 .event-card{border:0.5px solid #3a3733;background:#2e2b27;padding:0.75rem}
+.code-card{border:0.5px solid #3a3733;background:#2e2b27;padding:0.5rem}
 .form-row{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
 .form-label{font-size:11px;color:#a09c94;letter-spacing:0.03em}
 .notif-item{padding:8px 10px;border-left:2px solid;margin-bottom:6px;font-size:12px}
