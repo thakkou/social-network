@@ -4,6 +4,8 @@ import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 
 import Header from "./_components/Header";
+import Sidebar from "./_components/Sidebar";
+import Sidebar2 from "./_components/Sidebar2";
 
 export const metadata: Metadata = {
   title: "Create T3 App",
@@ -25,8 +27,10 @@ export default function RootLayout({
         <main>
           <h2 className="sr-only">Social network full UI — all screens including auth, feed, profile, groups, chat, and notifications</h2>
           <div id="app">
-            <Header></Header>
-            {children}
+            <Header /> {/* does it appear on login and register ?! */}
+            <div className="screen active"> {/* + screen id */}
+              {children}
+            </div>
           </div>
         </main>
       </body>
