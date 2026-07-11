@@ -1,10 +1,9 @@
-// app/(public)/layout.tsx
 export default function PublicLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns:'1fr 1fr', minHeight:'560px' }}>
-      {children}
+    <div className="screen active"> {/* + screen id */}
+      <div style={{ display: 'grid', gridTemplateColumns:'1fr 1fr', minHeight:'560px' }}>
+        {children}
+      </div>
     </div>
   );
 }
-
-{/* <main className="auth-layout"> */}

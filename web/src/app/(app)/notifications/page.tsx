@@ -1,37 +1,3 @@
-// sidebar
-
-// {/* <aside className="sidebar">
-//   <p className="sec-label">navigate</p>
-//   {/* <div className="navlink" onClick={ showScreen('feed') }><i className="ti ti-home" style={{ fontSize:'14px' }} aria-hidden="true"></i> feed</div>
-//   <div className="navlink" onClick={ showScreen('profile') }><i className="ti ti-user" style={{ fontSize:'14px' }} aria-hidden="true"></i> profile</div>
-//   <div className="navlink" onClick={ showScreen('groups') }><i className="ti ti-users" style={{ fontSize:'14px' }} aria-hidden="true"></i> groups</div>
-//   <div className="navlink" onClick={ showScreen('chat') }><i className="ti ti-message" style={{ fontSize:'14px' }} aria-hidden="true"></i> messages</div>
-//   <div className="navlink active" onClick={ showScreen('notifications') }><i className="ti ti-bell" style={{ fontSize:'14px' }} aria-hidden="true"></i> notifications</div> */}
-// </aside> */}
-
-// right sidebar :
-
-// {/* <aside className="sidebar2">
-//   <p className="sec-label" style={{ padding:0, marginBottom:'8px' }}>messages</p>
-//   <div style={{ fontSize:'11px', color:'var(--color-text-secondary)', marginBottom:'8px' }}>private messages are separate from notifications</div>
-//   {/* <div style={{ border:'0.5px solid var(--color-border-tertiary)', padding:'8px', background:'var(--color-background-secondary)', marginBottom:'6px', cursor: 'pointer' }} onClick={ showScreen('chat') }>
-//     <div style={{ display: 'flex', alignItems: 'center', gap:'6px', marginBottom:'3px' }}>
-//       <div className="av" style={{ width:'20px', height:'20px', background:'#FBEAF0', color:'#993556', fontSize:'9px' }}>SR</div>
-//       <span style={{ fontSize:'11px', fontWeight:500, color:'var(--color-text-primary)' }}>Selin R.</span>
-//       <span className="notif-dot" style={{ marginLeft: 'auto' }}>2</span>
-//     </div>
-//     <p style={{ fontSize:'11px', color:'var(--color-text-secondary)', paddingLeft:'26px' }}>just merged it, take a look</p>
-//   </div>
-//   <div style={{ border:'0.5px solid var(--color-border-tertiary)', padding:'8px', background:'var(--color-background-secondary)', cursor: 'pointer' }} onClick={ showScreen('chat') }>
-//     <div style={{ display: 'flex', alignItems: 'center', gap:'6px', marginBottom:'3px' }}>
-//       <div className="av" style={{ width:'20px', height:'20px', background:'#E1F5EE', color:'#0F6E56', fontSize:'9px' }}>JM</div>
-//       <span style={{ fontSize:'11px', fontWeight:500, color:'var(--color-text-primary)' }}>Jonas M.</span>
-//     </div>
-//     <p style={{ fontSize:'11px', color:'var(--color-text-secondary)', paddingLeft:'26px' }}>great work on the auth layer</p>
-//   </div> */}
-//   {/* <div style={{ textAlign: 'center', marginTop:'8px' }}><button className="btn btn-p" style={{ fontSize:'10px', width: '100%' }} onClick={ showScreen('chat') }>open messages →</button></div> */}
-// </aside> */}
-
 export default function Notifications() {
   return (
     <main className="main">
