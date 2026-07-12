@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	database "01social/pkg/db"
+	db "01social/pkg/db/sqlite"
 	"01social/pkg/utilities"
 )
 
@@ -28,7 +28,7 @@ func CheckSessionCookie(handler http.HandlerFunc, requiresAuth bool) http.Handle
 
 		// Check session in database
 		var expiryTime time.Time
-		err = database.Database.QueryRow(
+		err = db.Database.QueryRow(
 			"SELECT expires_at FROM sessions WHERE id = ?",
 			cookie.Value,
 		).Scan(&expiryTime)

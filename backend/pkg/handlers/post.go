@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	database "01social/pkg/db"
+	db "01social/pkg/db/sqlite"
 	"01social/pkg/models"
 	"01social/pkg/utilities"
 	"01social/pkg/ws"
@@ -24,7 +24,7 @@ func enrichPost(p *models.Post, userId int) error {
 	// =========================
 	// USER INFO
 	// =========================
-	if err := database.Database.QueryRow(
+	if err := db.Database.QueryRow(
 		"SELECT nickname FROM users WHERE id = ?",
 		p.UserId,
 	).Scan(&p.Nickname); err != nil {
@@ -45,7 +45,7 @@ func enrichPost(p *models.Post, userId int) error {
 	// =========================
 	var isLike int
 
-	err = database.Database.QueryRow(`
+	err = db.Database.QueryRow(`
 		SELECT is_like
 		FROM POST_REACTIONS
 		WHERE user_id = ? AND post_id = ?
@@ -135,7 +135,7 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tx, err := database.Database.Begin()
+	tx, err := db.Database.Begin()
 	if err != nil {
 		utilities.WriteJSON(w, http.StatusInternalServerError, "DB error", nil)
 		return
@@ -414,7 +414,7 @@ func GetFilteredPosts(
 	query += " ORDER BY p.created_at DESC, p.id DESC LIMIT ?"
 	args = append(args, limit)
 
-	rows, err := database.Database.Query(query, args...)
+	rows, err := db.Database.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -442,7 +442,7 @@ func GetFilteredPosts(
 // =========================
 
 func DeletePost(postId, userId int) error {
-	tx, err := database.Database.Begin()
+	tx, err := db.Database.Begin()
 	if err != nil {
 		return err
 	}
@@ -472,7 +472,7 @@ func DeletePost(postId, userId int) error {
 func GetPost(postID int) (models.Post, error) {
 	var p models.Post
 
-	err := database.Database.QueryRow(`
+	err := db.Database.QueryRow(`
 		SELECT id, user_id, created_at, title, text
 		FROM posts
 		WHERE id = ?
@@ -491,7 +491,7 @@ func GetPost(postID int) (models.Post, error) {
 func GetPostBasic(postID int) (models.Post, error) {
 	var p models.Post
 
-	err := database.Database.QueryRow(`
+	err := db.Database.QueryRow(`
 		SELECT id, user_id, created_at, title, text
 		FROM posts
 		WHERE id = ?
@@ -510,7 +510,7 @@ func GetPostBasic(postID int) (models.Post, error) {
 func GetUserReaction(userId, postId int) (int, error) {
 	var reaction int
 
-	err := database.Database.QueryRow(`
+	err := db.Database.QueryRow(`
 		SELECT is_like
 		FROM POST_REACTIONS
 		WHERE user_id = ? AND post_id = ?

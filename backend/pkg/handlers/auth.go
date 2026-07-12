@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	database "01social/pkg/db"
+	db "01social/pkg/db/sqlite"
 	"01social/pkg/models"
 	"01social/pkg/utilities"
 	"01social/pkg/ws"
@@ -56,7 +56,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		hashedPassword sql.NullString
 	)
 
-	err = database.Database.QueryRow(
+	err = db.Database.QueryRow(
 		`SELECT id, nickname, password
 		 FROM users
 		 WHERE email = ? OR nickname = ?`,
@@ -87,7 +87,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Remove old sessions
-	_, err = database.Database.Exec(
+	_, err = db.Database.Exec(
 		"DELETE FROM sessions WHERE user_id = ?",
 		userID,
 	)
@@ -100,7 +100,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	sessionID := uuid.New().String()
 	expiration := time.Now().Add(24 * time.Hour)
 
-	_, err = database.Database.Exec(
+	_, err = db.Database.Exec(
 		"INSERT INTO sessions (id, expires_at, user_id) VALUES (?, ?, ?)",
 		sessionID,
 		expiration,
@@ -254,7 +254,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 	// Check email exists
 	var emailExists bool
-	err = database.Database.QueryRow(
+	err = db.Database.QueryRow(
 		"SELECT EXISTS(SELECT 1 FROM users WHERE email = ?)",
 		user.Email,
 	).Scan(&emailExists)
@@ -270,7 +270,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 	// Check nickname exists
 	var nicknameExists bool
-	err = database.Database.QueryRow(
+	err = db.Database.QueryRow(
 		"SELECT EXISTS(SELECT 1 FROM users WHERE nickname = ? COLLATE NOCASE)",
 		user.Nickname,
 	).Scan(&nicknameExists)
@@ -292,7 +292,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Insert user
-	_, err = database.Database.Exec(
+	_, err = db.Database.Exec(
 		`INSERT INTO users (nickname, firstname, lastname, age, gender, email, password)
 		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		user.Nickname,

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	database "01social/pkg/db"
+	db "01social/pkg/db/sqlite"
 	"01social/pkg/models"
 	"01social/pkg/utilities"
 )
@@ -71,12 +71,12 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var nickname string
-	err = database.Database.QueryRow(
+	err = db.Database.QueryRow(
 		"SELECT nickname FROM users WHERE id = ?",
 		userId,
 	).Scan(&nickname)
 
-	result, err := database.Database.Exec(
+	result, err := db.Database.Exec(
 		"INSERT INTO comments (user_id, post_id, created_at, text) VALUES (?, ?, ?, ?)",
 		userId,
 		postIntId,
@@ -237,7 +237,7 @@ func GetCommentsByPostWithPagination(postId, limit, lastID int) ([]models.Commen
 	query += " ORDER BY id DESC LIMIT ?"
 	args = append(args, limit)
 
-	rows, err := database.Database.Query(query, args...)
+	rows, err := db.Database.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("getCommentsByPost error: %v", err)
 	}
@@ -250,7 +250,7 @@ func GetCommentsByPostWithPagination(postId, limit, lastID int) ([]models.Commen
 		}
 
 		// get username
-		if err := database.Database.QueryRow(
+		if err := db.Database.QueryRow(
 			"SELECT u.nickname FROM users u INNER JOIN comments c ON c.user_id = u.id WHERE c.id = ?",
 			c.Id,
 		).Scan(&c.Nickname); err != nil {
@@ -276,7 +276,7 @@ func GetCommentsByPostWithPagination(postId, limit, lastID int) ([]models.Commen
 
 // DeleteComment
 func DeleteComment(commentId, userId int) error {
-	tx, err := database.Database.Begin()
+	tx, err := db.Database.Begin()
 	if err != nil {
 		return err
 	}

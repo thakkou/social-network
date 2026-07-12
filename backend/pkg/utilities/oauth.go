@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"net/url"
 
-	database "01social/pkg/db"
+	db "01social/pkg/db/sqlite"
 	"01social/pkg/models"
 )
 
@@ -153,7 +153,7 @@ func FetchGithubUserEmail(accessToken string) (string, error) {
 
 // DeleteSession
 func DeleteSession(sessionId string) error {
-	_, err := database.Database.Exec(
+	_, err := db.Database.Exec(
 		"DELETE FROM sessions WHERE id = ?",
 		sessionId) // returns result
 	return err
@@ -162,7 +162,7 @@ func DeleteSession(sessionId string) error {
 // GetUserIDFromCookie
 func GetUserIDFromCookie(sessionID string) (int, error) {
 	var userID int
-	err := database.Database.QueryRow(`
+	err := db.Database.QueryRow(`
 		SELECT user_id
 		FROM SESSIONS
 		WHERE id = ?

@@ -1,7 +1,7 @@
 package models
 
 import (
-	database "01social/pkg/db"
+	db "01social/pkg/db/sqlite"
 )
 
 type User struct {
@@ -29,7 +29,7 @@ type User struct {
 // GetUser
 func GetUser(sessionId string) (User, error) {
 	var user User
-	err := database.Database.QueryRow(
+	err := db.Database.QueryRow(
 		"SELECT u.id, u.name, u.email FROM USERS u INNER JOIN SESSIONS s ON s.user_id = u.id WHERE s.id = ? AND s.expires_at > DATETIME('now')",
 		sessionId,
 	).Scan(&user.Id, &user.Name, &user.Email)

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	database "01social/pkg/db"
+	db "01social/pkg/db/sqlite"
 	"01social/pkg/utilities"
 	"01social/pkg/ws"
 )
@@ -112,7 +112,7 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 	// -------------------------
 	// Start transaction
 	// -------------------------
-	tx, err := database.Database.Begin()
+	tx, err := db.Database.Begin()
 	if err != nil {
 		// fmt.Println("[DB] begin transaction error:", err)
 		utilities.WriteJSON(w, 500, "db error", nil)
@@ -337,7 +337,7 @@ func GetConversation(w http.ResponseWriter, r *http.Request) {
 	// =========================
 	// 1. USERS WITH CONVERSATION
 	// =========================
-	rows, err := database.Database.Query(`
+	rows, err := db.Database.Query(`
 		SELECT 
 		    c.id,
 			u.id, u.nickname, u.firstname, u.lastname, u.age, u.gender,
@@ -399,7 +399,7 @@ func GetConversation(w http.ResponseWriter, r *http.Request) {
 		// UNREAD MESSAGES
 		// =========================
 		var unreadCount int
-		_ = database.Database.QueryRow(`
+		_ = db.Database.QueryRow(`
 			SELECT COUNT(*)
 			FROM MESSAGES
 			WHERE conversation_id = ?
@@ -445,7 +445,7 @@ func GetConversation(w http.ResponseWriter, r *http.Request) {
 	// =========================
 	// 2. USERS WITHOUT CONVERSATION
 	// =========================
-	rows2, err := database.Database.Query(`
+	rows2, err := db.Database.Query(`
 		SELECT u.id, u.nickname, u.firstname, u.lastname, u.age, u.gender
 		FROM USERS u
 		WHERE u.id != ?
@@ -547,7 +547,7 @@ func GetConversationByID(w http.ResponseWriter, r *http.Request) {
 	// VERIFY USER BELONGS TO CONVERSATION
 	// -------------------------
 	var convID int
-	err = database.Database.QueryRow(`
+	err = db.Database.QueryRow(`
 		SELECT id
 		FROM CONVERSATIONS
 		WHERE id = ?
@@ -566,7 +566,7 @@ func GetConversationByID(w http.ResponseWriter, r *http.Request) {
 	// -------------------------
 	// GET MESSAGES (PAGINATED)
 	// -------------------------
-	rows, err := database.Database.Query(`
+	rows, err := db.Database.Query(`
 		SELECT id, sender_id, text, created_at
 		FROM MESSAGES
 		WHERE conversation_id = ?

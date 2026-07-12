@@ -3,13 +3,13 @@ package handlers
 import (
 	"fmt"
 
-	database "01social/pkg/db"
+	db "01social/pkg/db/sqlite"
 )
 
 func GetCategoriesByPost(postId int) ([]string, error) {
 	var categories []string
 
-	rows, err := database.Database.Query(`
+	rows, err := db.Database.Query(`
 		SELECT c.name
 		FROM category c
 		JOIN post_category pc ON c.id = pc.category_id

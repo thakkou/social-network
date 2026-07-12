@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	database "01social/pkg/db"
+	db "01social/pkg/db/sqlite"
 	"01social/pkg/utilities"
 )
 
@@ -27,7 +27,7 @@ func GetUsersById(w http.ResponseWriter, r *http.Request) {
 	WHERE id = ?
 	`
 
-	err := database.Database.QueryRow(query, id).Scan(
+	err := db.Database.QueryRow(query, id).Scan(
 		&user.ID,
 		&user.Nickname,
 		&user.Firstname,
@@ -54,12 +54,12 @@ func GetUsernameByToken(w http.ResponseWriter, r *http.Request) {
 
 	var userId, nickname, lastSeen string
 
-	database.Database.QueryRow( // returns error
+	db.Database.QueryRow( // returns error
 		"SELECT user_id FROM sessions WHERE id = ?",
 		cookie.Value,
 	).Scan(&userId)
 
-	database.Database.QueryRow(
+	db.Database.QueryRow(
 		"SELECT nickname,last_seen FROM users WHERE id = ?",
 		userId,
 	).Scan(&nickname, &lastSeen)

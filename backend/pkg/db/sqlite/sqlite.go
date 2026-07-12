@@ -1,4 +1,4 @@
-package database
+package sqlite
 
 import (
 	"database/sql"
@@ -20,19 +20,19 @@ func Init(refresh bool) error {
 		}
 
 		// Delete the database
-		_ = os.Remove("./pkg/database/forum.db")
+		_ = os.Remove("./pkg/db/sn.db")
 	}
 
-	Database, err = sql.Open("sqlite3", "./pkg/database/forum.db?_foreign_keys=on")
+	Database, err = sql.Open("sqlite3", "./pkg/db/sn.db?_foreign_keys=on")
 	if err != nil {
-		return fmt.Errorf("can't open/create forum.db: %v", err)
+		return fmt.Errorf("can't open/create sn.db: %v", err)
 	}
 
 	if err := Database.Ping(); err != nil {
 		return fmt.Errorf("can't connect to database: %v", err)
 	}
 
-	schema, err := os.ReadFile("./pkg/database/schema.sql")
+	schema, err := os.ReadFile("./pkg/db/migrations/sqlite/schema.sql")
 	if err != nil {
 		return fmt.Errorf("can't read schema: %v", err)
 	}
