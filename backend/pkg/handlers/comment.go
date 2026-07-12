@@ -1,0 +1,302 @@
+package handlers
+
+import (
+	"database/sql"
+	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
+	database "01social/pkg/db"
+	"01social/pkg/models"
+	"01social/pkg/utilities"
+)
+
+// CreateComment
+func CreateComment(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/api/comments/create" {
+		utilities.WriteJSON(w, http.StatusNotFound, "Page not found", nil)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+		return
+	}
+	type CommentReq struct {
+		PostId any    `json:"postId"`
+		Text   string `json:"text"`
+	}
+
+	// Content type (optional but fine to keep)
+	if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+		utilities.WriteJSON(w, http.StatusBadRequest, "Content-Type must be application/json", nil)
+		return
+	}
+
+	// ✅ REPLACED PART (clean)
+	comment, err := utilities.ReadJSONRequest[CommentReq](r)
+	if err != nil {
+		utilities.WriteJSON(w, http.StatusBadRequest, "invalid request body", nil)
+		return
+	}
+	postId := comment.PostId
+	text := comment.Text
+
+	if text == "" {
+		utilities.WriteJSON(w, http.StatusBadRequest, "Comment cannot be empty", nil)
+		return
+	}
+
+	if postId == "" {
+		utilities.WriteJSON(w, http.StatusBadRequest, "Invalid post", nil)
+		return
+	}
+	if len(text) > 1000 {
+		utilities.WriteJSON(w, http.StatusBadRequest, "Comment cannot exceed 1000 characters", nil)
+		return
+	}
+
+	postIntId, err := utilities.ToInt(postId)
+	if err != nil {
+		utilities.WriteJSON(w, http.StatusBadRequest, "Invalid post ID", nil)
+		return
+	}
+
+	cookie, _ := r.Cookie("session_id")
+	userId, err := utilities.GetUserIDFromCookie(cookie.Value)
+	if err != nil {
+		utilities.WriteJSON(w, http.StatusUnauthorized, "Invalid or expired session", nil)
+		return
+	}
+	var nickname string
+	err = database.Database.QueryRow(
+		"SELECT nickname FROM users WHERE id = ?",
+		userId,
+	).Scan(&nickname)
+
+	result, err := database.Database.Exec(
+		"INSERT INTO comments (user_id, post_id, created_at, text) VALUES (?, ?, ?, ?)",
+		userId,
+		postIntId,
+		time.Now(),
+		text,
+	)
+	if err != nil {
+		fmt.Println("errors", err)
+		utilities.WriteJSON(w, http.StatusInternalServerError, "Could not create comment", nil)
+		return
+	}
+
+	commentID, err := result.LastInsertId()
+	if err != nil {
+		utilities.WriteJSON(w, http.StatusInternalServerError, "Could not retrieve comment ID", nil)
+		return
+	}
+	type Res struct {
+		ID        int64     `json:"id"`
+		Text      string    `json:"text"`
+		PostID    int       `json:"postId"`
+		UserID    int       `json:"userId"`
+		CreatedAt time.Time `json:"createdAt"`
+		Nickname  string    `json:"nickname"`
+	}
+	res := Res{
+		ID:        commentID,
+		Text:      text,
+		PostID:    postIntId,
+		UserID:    userId,
+		CreatedAt: time.Now(),
+		Nickname:  nickname,
+	}
+
+	utilities.WriteJSON(w, http.StatusCreated, "message created successfully", res)
+}
+
+// CommentResolver
+func CommentResolver(w http.ResponseWriter, r *http.Request) {
+	endpoint := r.PathValue("endpoint")
+
+	cookie, err := r.Cookie("session_id")
+	if err != nil {
+		utilities.WriteJSON(w, http.StatusUnauthorized, "Not logged in", nil)
+		return
+	}
+
+	userId, err := utilities.GetUserIDFromCookie(cookie.Value)
+	if err != nil {
+		utilities.WriteJSON(w, http.StatusUnauthorized, "Invalid session", nil)
+		return
+	}
+
+	if err != nil {
+		utilities.WriteJSON(w, http.StatusInternalServerError, "Could not retrieve user", nil)
+		return
+	}
+
+	commentId, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		utilities.WriteJSON(w, http.StatusBadRequest, "Invalid comment ID", nil)
+		return
+	}
+
+	switch endpoint {
+	case "like":
+		if r.Method != http.MethodPost {
+			utilities.WriteJSON(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+			return
+		}
+		if status, err := ReactToComment(userId, commentId, 1); err != nil {
+			utilities.WriteJSON(w, status, "Could not react to comment", nil)
+			return
+		}
+
+		likes, dislikes, err := GetReactionsByComment(commentId)
+		if err != nil {
+			utilities.WriteJSON(w, 500, "Could not get reactions", nil)
+			return
+		}
+
+		reaction, err := GetUserCommentReaction(userId, commentId)
+		if err != nil {
+			utilities.WriteJSON(w, 500, "Could not get user reaction", nil)
+			return
+		}
+
+		utilities.WriteJSON(w, http.StatusOK, "liked", map[string]any{
+			"commentId":    commentId,
+			"likes":        likes,
+			"dislikes":     dislikes,
+			"userReaction": reaction,
+		})
+	case "dislike":
+		if r.Method != http.MethodPost {
+			utilities.WriteJSON(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+			return
+		}
+		if status, err := ReactToComment(userId, commentId, -1); err != nil {
+			utilities.WriteJSON(w, status, "Could not react to comment", nil)
+			return
+		}
+		likes, dislikes, err := GetReactionsByComment(commentId)
+		if err != nil {
+			utilities.WriteJSON(w, 500, "Could not get reactions", nil)
+			return
+		}
+
+		reaction, err := GetUserCommentReaction(userId, commentId)
+		if err != nil {
+			utilities.WriteJSON(w, 500, "Could not get user reaction", nil)
+			return
+		}
+
+		utilities.WriteJSON(w, http.StatusOK, "disliked", map[string]any{
+			"commentId":    commentId,
+			"likes":        likes,
+			"dislikes":     dislikes,
+			"userReaction": reaction,
+		})
+	case "delete":
+		if r.Method != http.MethodDelete {
+			utilities.WriteJSON(w, http.StatusMethodNotAllowed, "Method not allowed", nil)
+			return
+		}
+		if err := DeleteComment(commentId, userId); err != nil {
+			fmt.Println("error deleting comment", commentId, err)
+			utilities.WriteJSON(w, http.StatusBadRequest, err.Error(), nil)
+			return
+		}
+		utilities.WriteJSON(w, http.StatusOK, "Comment deleted successfully", nil)
+
+	default:
+		utilities.WriteJSON(w, http.StatusNotFound, "Unknown endpoint", nil)
+	}
+}
+
+// GetCommentsByPost
+func GetCommentsByPost(postId int) ([]models.Comment, error) {
+	return GetCommentsByPostWithPagination(postId, 0, 0)
+}
+
+func GetCommentsByPostWithPagination(postId, limit, lastID int) ([]models.Comment, error) {
+	var comments []models.Comment
+
+	if limit <= 0 {
+		limit = 10
+	}
+
+	query := `SELECT id, user_id, created_at, text FROM Comments WHERE post_id = ?`
+	args := []any{postId}
+
+	if lastID > 0 {
+		query += " AND id < ?"
+		args = append(args, lastID)
+	}
+
+	query += " ORDER BY id DESC LIMIT ?"
+	args = append(args, limit)
+
+	rows, err := database.Database.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("getCommentsByPost error: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var c models.Comment
+		if err := rows.Scan(&c.Id, &c.UserId, &c.Created_at, &c.Text); err != nil {
+			return nil, fmt.Errorf("getCommentsByPost scan error: %v", err)
+		}
+
+		// get username
+		if err := database.Database.QueryRow(
+			"SELECT u.nickname FROM users u INNER JOIN comments c ON c.user_id = u.id WHERE c.id = ?",
+			c.Id,
+		).Scan(&c.Nickname); err != nil {
+			return nil, fmt.Errorf("getCommentsByPost username error: %v", err)
+		}
+
+		// get timeago
+		c.TimeAgo = utilities.TimeAgo(c.Created_at)
+
+		// get reactions
+		if c.LikeCount, c.DislikeCount, err = GetReactionsByComment(c.Id); err != nil {
+			return nil, err
+		}
+
+		comments = append(comments, c)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("getCommentsByPost rows error: %v", err)
+	}
+	return comments, nil
+}
+
+// DeleteComment
+func DeleteComment(commentId, userId int) error {
+	tx, err := database.Database.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var dbUserId int
+	err = tx.QueryRow("SELECT user_id FROM comments WHERE id = ?", commentId).Scan(&dbUserId)
+	if err == sql.ErrNoRows {
+		return fmt.Errorf("comment not found")
+	}
+	if err != nil {
+		return err
+	}
+	if dbUserId != userId {
+		return fmt.Errorf("not your comment")
+	}
+
+	_, err = tx.Exec("DELETE FROM comments WHERE id = ?", commentId)
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
+}
