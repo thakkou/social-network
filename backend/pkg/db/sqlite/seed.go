@@ -9,10 +9,8 @@ import (
 
 type seedUser struct {
 	Nickname  string
-	FirstName string
-	LastName  string
-	Age       int
-	Gender    string
+	Firstname string
+	Lastname  string
 	Email     string
 }
 
@@ -28,27 +26,27 @@ func RefreshAndSeed(db *sql.DB) error {
 	// --------------------------------------------------
 
 	users := []seedUser{
-		{"john_doe", "John", "Doe", 25, "male", "john_doe@example.com"},
-		{"john_doe1", "John", "Doe", 26, "male", "john_doe1@example1.com"},
-		{"john_doe2", "John", "Doe", 27, "male", "john_doe2@example2.com"},
-		{"john_doe3", "John", "Doe", 28, "male", "john_doe3@example3.com"},
-		{"john_doe4", "John", "Doe", 29, "male", "john_doe4@example4.com"},
-		{"jane_doe", "Jane", "Doe", 24, "female", "jane_doe@example.com"},
-		{"alice_smith", "Alice", "Smith", 30, "female", "alice@example.com"},
-		{"bob_jones", "Bob", "Jones", 32, "male", "bob@example.com"},
+		{"john_doe", "John", "Doe", "john_doe@example.com"},
+		{"john_doe1", "John", "Doe", "john_doe1@example1.com"},
+		{"john_doe2", "John", "Doe", "john_doe2@example2.com"},
+		{"john_doe3", "John", "Doe", "john_doe3@example3.com"},
+		{"john_doe4", "John", "Doe", "john_doe4@example4.com"},
+		{"jane_doe", "Jane", "Doe", "jane_doe@example.com"},
+		{"alice_smith", "Alice", "Smith", "alice@example.com"},
+		{"bob_jones", "Bob", "Jones", "bob@example.com"},
 
-		{"emma_wilson", "Emma", "Wilson", 22, "female", "emma@example.com"},
-		{"liam_brown", "Liam", "Brown", 31, "male", "liam@example.com"},
-		{"olivia_taylor", "Olivia", "Taylor", 27, "female", "olivia@example.com"},
-		{"noah_miller", "Noah", "Miller", 35, "male", "noah@example.com"},
-		{"ava_davis", "Ava", "Davis", 26, "female", "ava@example.com"},
-		{"ethan_white", "Ethan", "White", 29, "male", "ethan@example.com"},
-		{"mia_clark", "Mia", "Clark", 24, "female", "mia@example.com"},
-		{"lucas_hall", "Lucas", "Hall", 33, "male", "lucas@example.com"},
-		{"sophia_lewis", "Sophia", "Lewis", 28, "female", "sophia@example.com"},
-		{"james_walker", "James", "Walker", 36, "male", "james@example.com"},
-		{"charlotte_young", "Charlotte", "Young", 23, "female", "charlotte@example.com"},
-		{"henry_king", "Henry", "King", 34, "male", "henry@example.com"},
+		{"emma_wilson", "Emma", "Wilson", "emma@example.com"},
+		{"liam_brown", "Liam", "Brown", "liam@example.com"},
+		{"olivia_taylor", "Olivia", "Taylor", "olivia@example.com"},
+		{"noah_miller", "Noah", "Miller", "noah@example.com"},
+		{"ava_davis", "Ava", "Davis", "ava@example.com"},
+		{"ethan_white", "Ethan", "White", "ethan@example.com"},
+		{"mia_clark", "Mia", "Clark", "mia@example.com"},
+		{"lucas_hall", "Lucas", "Hall", "lucas@example.com"},
+		{"sophia_lewis", "Sophia", "Lewis", "sophia@example.com"},
+		{"james_walker", "James", "Walker", "james@example.com"},
+		{"charlotte_young", "Charlotte", "Young", "charlotte@example.com"},
+		{"henry_king", "Henry", "King", "henry@example.com"},
 	}
 
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
@@ -59,7 +57,7 @@ func RefreshAndSeed(db *sql.DB) error {
 
 	stmt, err := tx.Prepare(`
 	INSERT INTO USERS
-	(nickname, firstname, lastname, age, gender, email, password, last_seen)
+	(nickname, firstname, lastname, email, password, last_seen)
 	VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
 	`)
 	if err != nil {
@@ -70,10 +68,8 @@ func RefreshAndSeed(db *sql.DB) error {
 	for _, u := range users {
 		_, err := stmt.Exec(
 			u.Nickname,
-			u.FirstName,
-			u.LastName,
-			u.Age,
-			u.Gender,
+			u.Firstname,
+			u.Lastname,
 			u.Email,
 			string(passwordHash),
 		)

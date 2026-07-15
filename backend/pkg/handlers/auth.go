@@ -2,8 +2,12 @@ package handlers
 
 import (
 	"database/sql"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -35,7 +39,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type LoginModel struct {
-		Identifier string `json:"identifier"`
+		Identifier string `json:"identifier"` // "identifier"
 		Password   string `json:"password"`
 	}
 
@@ -51,18 +55,18 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		userID         int
-		nickname       string
-		hashedPassword sql.NullString
+		userID                                                           int
+		firstname, lastname, email, birthDate, nickname, aboutme, avatar string
+		hashedPassword                                                   sql.NullString
 	)
 
-	err = db.Database.QueryRow(
-		`SELECT id, nickname, password
+	err = db.Database.QueryRow( // + created at
+		`SELECT id, firstname, lastname, email, password, birthdate, nickname, aboutme, avatar
 		 FROM users
 		 WHERE email = ? OR nickname = ?`,
 		userLog.Identifier,
 		userLog.Identifier,
-	).Scan(&userID, &nickname, &hashedPassword)
+	).Scan(&userID, &firstname, &lastname, &email, &hashedPassword, &birthDate, &nickname, &aboutme, &avatar)
 	if err != nil {
 		log.Printf("[LOGIN] User not found: %q (%v)", userLog.Identifier, err)
 
@@ -121,8 +125,16 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	})
 
 	utilities.WriteJSON(w, http.StatusOK, "Login Success", map[string]any{
-		"user_id":  userID,
-		"nickname": nickname,
+		"id": userID, // ==> not needed
+		// "createdAt":
+		"firstname": firstname,
+		"lastname":  lastname,
+		"email":     email,
+		"birthdate": birthDate,
+		"nickname":  nickname, // nickname can be empty, so should pass first and last name instead !
+		"aboutme":   aboutme,
+		"avatar":    avatar,
+		"token":     sessionID,
 	})
 }
 
@@ -171,36 +183,69 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Content type (optional but fine to keep)
-	if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
-		utilities.WriteJSON(w, http.StatusBadRequest, "Content-Type must be application/json", nil)
-		return
-	}
-	// ✅ REPLACED PART (clean)
-	user, err := utilities.ReadJSONRequest[models.User](r)
-	if err != nil {
-		utilities.WriteJSON(w, http.StatusBadRequest, "invalid request body", nil)
-		return
+	// if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+	// 	utilities.WriteJSON(w, http.StatusBadRequest, "Content-Type must be application/json", nil)
+	// 	return
+	// }
+
+	// added to handle avatar !
+	// err := r.ParseMultipartForm(5 << 20) // 5MB max
+	// if err != nil {
+	// 	utilities.WriteJSON(w, http.StatusBadRequest, "invalid request body", nil)
+	// 	return
+	// }
+	///
+
+	r.Body = http.MaxBytesReader(w, r.Body, 2<<20) // 2 MB hardcoded
+
+	user := models.User{
+		Firstname: strings.TrimSpace(r.FormValue("firstname")),
+		Lastname:  strings.TrimSpace(r.FormValue("lastname")),
+		Email:     strings.ToLower(strings.TrimSpace(r.FormValue("email"))),
+		Password:  r.FormValue("password"),
+		BirthDate: strings.TrimSpace(r.FormValue("birthDate")),
+		Nickname:  strings.TrimSpace(r.FormValue("nickname")),
+		AboutMe:   r.FormValue("aboutme"),
 	}
 
-	// Normalize input
-	user.Nickname = strings.TrimSpace(user.Nickname)
-	user.FirstName = strings.TrimSpace(user.FirstName)
-	user.LastName = strings.TrimSpace(user.LastName)
-	user.Gender = strings.TrimSpace(user.Gender)
-	user.Email = strings.ToLower(strings.TrimSpace(user.Email))
+	// ✅ REPLACED PART (clean)
+	// user, err := utilities.ReadJSONRequest[models.User](r)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	utilities.WriteJSON(w, http.StatusBadRequest, "invalid request body", nil)
+	// 	return
+	// }
+
+	// // Normalize input
+	// user.Firstname = strings.TrimSpace(user.Firstname)
+	// user.Lastname = strings.TrimSpace(user.Lastname)
+	// user.Email = strings.ToLower(strings.TrimSpace(user.Email))
+	// user.BirthDate = strings.TrimSpace(user.BirthDate)
+	// // -- optional
+	// user.Nickname = strings.TrimSpace(user.Nickname)
+	// user.AboutMe = strings.TrimSpace(user.AboutMe)
+
+	const maxAvatarSize int64 = 1 << 20 // 1 MB
+
+	err := r.ParseMultipartForm(maxAvatarSize)
+	// ParseMultipartForm sets the in-memory buffer limit.
+	// If the file exceeds that limit, Go silently spills the overflow to a temp file on disk.
+	if err != nil {
+		fmt.Println(err)
+		utilities.WriteJSON(w, http.StatusBadRequest, "Max max size is 1Mb.", nil)
+		return
+	}
 
 	// Check required fields
 	fields := []struct {
 		Name  string
 		Value string
 	}{
-		{"nickname", user.Nickname},
-		{"first_name", user.FirstName},
-		{"last_name", user.LastName},
-		{"gender", user.Gender},
+		{"firstname", user.Firstname},
+		{"lastname", user.Lastname},
 		{"email", user.Email},
 		{"password", user.Password},
-		{"confirm_password", user.ConfirmPassword},
+		{"birthdate", user.BirthDate},
 	}
 
 	for _, field := range fields {
@@ -209,30 +254,15 @@ func Register(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	// Validate fields
-	// Validate fields one by one
-	if !utilities.IsValidName(user.Nickname) {
-		utilities.WriteJSON(w, http.StatusBadRequest, "invalid nickname: use only letters (2-50 characters)", nil)
-		return
-	}
 
-	if !utilities.IsValidName(user.FirstName) {
+	// Validate fields
+	if !utilities.IsValidName(user.Firstname) {
 		utilities.WriteJSON(w, http.StatusBadRequest, "invalid first name: use only letters (2-50 characters)", nil)
 		return
 	}
 
-	if !utilities.IsValidName(user.LastName) {
+	if !utilities.IsValidName(user.Lastname) {
 		utilities.WriteJSON(w, http.StatusBadRequest, "invalid last name: use only letters (2-50 characters)", nil)
-		return
-	}
-
-	if !utilities.IsValidAge(user.Age) {
-		utilities.WriteJSON(w, http.StatusBadRequest, "invalid age: must be between 1 and 99", nil)
-		return
-	}
-
-	if !utilities.IsValidGender(user.Gender) {
-		utilities.WriteJSON(w, http.StatusBadRequest, "invalid gender: must be 'Male' or 'Female'", nil)
 		return
 	}
 
@@ -246,9 +276,19 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Confirm password
-	if user.Password != user.ConfirmPassword {
-		utilities.WriteJSON(w, http.StatusBadRequest, "password not confirmed", nil)
+	if !utilities.IsValidBirthDate(user.BirthDate) {
+		utilities.WriteJSON(w, http.StatusBadRequest, "invalid birth date", nil)
+		return
+	}
+
+	// add optional
+	if user.Nickname != "" && !utilities.IsValidName(user.Nickname) {
+		utilities.WriteJSON(w, http.StatusBadRequest, "invalid nickname: use only letters (2-50 characters)", nil)
+		return
+	}
+
+	if user.AboutMe != "" && !utilities.IsValidDescription(user.AboutMe) {
+		utilities.WriteJSON(w, http.StatusBadRequest, "invalid 'about me': use 2048 characters or less", nil)
 		return
 	}
 
@@ -262,26 +302,26 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		utilities.WriteJSON(w, http.StatusInternalServerError, "internal server error", nil)
 		return
 	}
-
 	if emailExists {
 		utilities.WriteJSON(w, http.StatusBadRequest, "email already exists", nil)
 		return
 	}
 
-	// Check nickname exists
-	var nicknameExists bool
-	err = db.Database.QueryRow(
-		"SELECT EXISTS(SELECT 1 FROM users WHERE nickname = ? COLLATE NOCASE)",
-		user.Nickname,
-	).Scan(&nicknameExists)
-	if err != nil {
-		utilities.WriteJSON(w, http.StatusInternalServerError, "internal server error", nil)
-		return
-	}
-
-	if nicknameExists {
-		utilities.WriteJSON(w, http.StatusBadRequest, "username already taken", nil)
-		return
+	// Check nickname exists (add optional)
+	if user.Nickname != "" {
+		var nicknameExists bool
+		err = db.Database.QueryRow(
+			"SELECT EXISTS(SELECT 1 FROM users WHERE nickname = ? COLLATE NOCASE)",
+			user.Nickname,
+		).Scan(&nicknameExists)
+		if err != nil {
+			utilities.WriteJSON(w, http.StatusInternalServerError, "internal server error", nil)
+			return
+		}
+		if nicknameExists {
+			utilities.WriteJSON(w, http.StatusBadRequest, "username already taken", nil)
+			return
+		}
 	}
 
 	// Hash password
@@ -291,29 +331,65 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// store avatar:
+	var avatarPath string
+	file, header, err := r.FormFile("avatar")
+	if err == nil { // avatar is optional — err != nil just means none was sent
+		defer file.Close()
+
+		ext := filepath.Ext(header.Filename)
+		if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".gif" {
+			http.Error(w, "invalid file type", http.StatusBadRequest)
+			return
+		}
+
+		filename := fmt.Sprintf("%s%s", uuid.NewString(), ext)
+		if err := os.MkdirAll("uploads/avatars", os.ModePerm); err != nil {
+			log.Fatal("failed to create upload directory:", err)
+		}
+		dst, err := os.Create(filepath.Join("uploads/avatars", filename))
+		if err != nil {
+			http.Error(w, "could not save file", http.StatusInternalServerError)
+			return
+		}
+		defer dst.Close()
+
+		if _, err := io.Copy(dst, file); err != nil {
+			http.Error(w, "could not save file", http.StatusInternalServerError)
+			return
+		}
+
+		avatarPath = "/uploads/avatars/" + filename
+	} else {
+		fmt.Println(err)
+		fmt.Println("No image uploaded, continuing without it")
+	}
+
 	// Insert user
 	_, err = db.Database.Exec(
-		`INSERT INTO users (nickname, firstname, lastname, age, gender, email, password)
-		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		user.Nickname,
-		user.FirstName,
-		user.LastName,
-		user.Age,
-		user.Gender,
+		`INSERT INTO users (firstname, lastname, email, password, birthdate, nickname, aboutme, avatar)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		user.Firstname,
+		user.Lastname,
 		user.Email,
 		string(hashedPassword),
+		user.BirthDate,
+		user.Nickname,
+		user.AboutMe,
+		avatarPath,
 	)
 	if err != nil {
 		utilities.WriteJSON(w, http.StatusInternalServerError, "internal server error", nil)
+		fmt.Println(err)
 		return
 	}
-	type RegisterResponse struct {
-		Nickname string `json:"nickname"`
-		Email    string `json:"email"`
+	type RegisterResponse struct { // needed only here !!!?
+		// Nickname string `json:"nickname"`
+		Email string `json:"email"`
 	}
 	response := RegisterResponse{
-		Nickname: user.Nickname,
-		Email:    user.Email,
+		// Nickname: user.Nickname,
+		Email: user.Email,
 	}
 
 	utilities.WriteJSON(w, http.StatusOK, "registration success", response)

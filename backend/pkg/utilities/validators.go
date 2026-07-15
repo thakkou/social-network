@@ -26,38 +26,15 @@ func IsValidPassword(password string) bool {
 	return len(password) >= 6 && len(password) <= 25
 }
 
-func IsValidAge(age any) bool {
-	var a int
-
-	switch v := age.(type) {
-	case int:
-		a = v
-
-	case int64:
-		a = int(v)
-
-	case float64:
-		a = int(v)
-
-	case string:
-		// try convert string → int
-		parsed, err := strconv.Atoi(strings.TrimSpace(v))
-		if err != nil {
-			return false
-		}
-		a = parsed
-
-	default:
-		return false
-	}
-
-	return a >= 1 && a <= 99
+// IsValidBirthDate
+func IsValidBirthDate(birthdate string) bool {
+	re := regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
+	return re.MatchString(birthdate)
 }
 
-// IsValidGender
-func IsValidGender(gender string) bool {
-	gender = strings.ToLower(gender)
-	return gender == "male" || gender == "female"
+// IsValidDescription
+func IsValidDescription(description string) bool {
+	return len(description) <= 2048
 }
 
 func ToInt(v any) (int, error) {

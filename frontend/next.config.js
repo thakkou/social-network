@@ -5,6 +5,15 @@
 import "./src/env.js";
 
 /** @type {import("next").NextConfig} */
-const config = {};
+const config = {
+    async rewrites() {
+    return [
+      {
+        source: "/uploads/:path*",
+        destination: `${process.env.GO_BACKEND_URL}/uploads/:path*`,
+      },
+    ];
+  },
+};
 
 export default config;

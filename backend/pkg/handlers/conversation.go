@@ -23,8 +23,6 @@ type User struct {
 	Nickname  string `json:"nickname"`
 	Firstname string `json:"firstname"`
 	Lastname  string `json:"lastname"`
-	Age       int    `json:"age"`
-	Gender    string `json:"gender"`
 }
 
 type Profile struct {
@@ -32,8 +30,6 @@ type Profile struct {
 	Nickname  string `json:"nickname"`
 	Firstname string `json:"firstname"`
 	Lastname  string `json:"lastname"`
-	Age       int    `json:"age"`
-	Gender    string `json:"gender"`
 }
 
 type ConversationPreview struct {
@@ -340,7 +336,7 @@ func GetConversation(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Database.Query(`
 		SELECT 
 		    c.id,
-			u.id, u.nickname, u.firstname, u.lastname, u.age, u.gender,
+			u.id, u.nickname, u.firstname, u.lastname,
 			u.last_seen,
 			c.last_message,
 			c.last_message_at
@@ -376,8 +372,6 @@ func GetConversation(w http.ResponseWriter, r *http.Request) {
 			&u.Nickname,
 			&u.Firstname,
 			&u.Lastname,
-			&u.Age,
-			&u.Gender,
 			&lastSeen,
 			&lastMsg,
 			&lastDate,
@@ -446,7 +440,7 @@ func GetConversation(w http.ResponseWriter, r *http.Request) {
 	// 2. USERS WITHOUT CONVERSATION
 	// =========================
 	rows2, err := db.Database.Query(`
-		SELECT u.id, u.nickname, u.firstname, u.lastname, u.age, u.gender
+		SELECT u.id, u.nickname, u.firstname, u.lastname
 		FROM USERS u
 		WHERE u.id != ?
 		AND u.id NOT IN (
@@ -475,8 +469,6 @@ func GetConversation(w http.ResponseWriter, r *http.Request) {
 			&u.Nickname,
 			&u.Firstname,
 			&u.Lastname,
-			&u.Age,
-			&u.Gender,
 		)
 		if err != nil {
 			http.Error(w, err.Error(), 500)

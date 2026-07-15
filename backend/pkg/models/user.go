@@ -1,38 +1,22 @@
 package models
 
-import (
-	db "01social/pkg/db/sqlite"
-)
-
 type User struct {
 	Id int
-	// register
-	Password        string `json:"password"`
-	Login           string `json:"login"`
-	Name            string `json:"name"`
-	ConfirmPassword string `json:"confirm_password"`
-	Nickname        string `json:"nickname"`
-	// github + (google requires other apis => 'name')
-	FirstName string `json:"first_name"` // google
-	LastName  string `json:"last_name"`  // google
-	Age       any    `json:"age"`
-	Gender    string `json:"gender"`
+
+	// sanitize all data in frontend and auth.go
+	Firstname string `json:"firstname"` // seed.go
+	Lastname  string `json:"lastname"`  // seed.go
 	Email     string `json:"email"`
+	Password  string `json:"password"`
+	BirthDate string `json:"birthDate"` // seed.go
+	Nickname  string `json:"nickname"`  // opt
+	AboutMe   string `json:"aboutme"`   // opt
+	// Avatar type? `json:"avatar"` // opt
 
-	Message string // (NOT STORED)
-	// google oauth
-
+	// OAUTH
+	// github + (google requires other apis => 'name')
+	// Message string // (NOT STORED) ???
+	// Login string `json:"login"` // oauth
 	// Picture string `json:"picture"`    // gmail picture: sometimes cannot be loaded!
 	// Avatar  string `json:"avatar_url"` // github avatar
-}
-
-// GetUser
-func GetUser(sessionId string) (User, error) {
-	var user User
-	err := db.Database.QueryRow(
-		"SELECT u.id, u.name, u.email FROM USERS u INNER JOIN SESSIONS s ON s.user_id = u.id WHERE s.id = ? AND s.expires_at > DATETIME('now')",
-		sessionId,
-	).Scan(&user.Id, &user.Name, &user.Email)
-
-	return user, err
 }

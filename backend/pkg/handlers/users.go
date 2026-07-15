@@ -20,9 +20,7 @@ func GetUsersById(w http.ResponseWriter, r *http.Request) {
 		id,
 		nickname,
 		firstname,
-		lastname,
-		age,
-		gender
+		lastname
 	FROM USERS
 	WHERE id = ?
 	`
@@ -32,8 +30,6 @@ func GetUsersById(w http.ResponseWriter, r *http.Request) {
 		&user.Nickname,
 		&user.Firstname,
 		&user.Lastname,
-		&user.Age,
-		&user.Gender,
 	)
 
 	if err == sql.ErrNoRows {

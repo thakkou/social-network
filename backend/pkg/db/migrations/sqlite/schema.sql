@@ -1,16 +1,18 @@
 -- USERS
 CREATE TABLE IF NOT EXISTS USERS (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nickname TEXT NOT NULL UNIQUE,
- 
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
     firstname TEXT NOT NULL,
     lastname TEXT NOT NULL,
-    age INTEGER NOT NULL,
-    gender TEXT NOT NULL,
-
     email TEXT NOT NULL UNIQUE,
-    password TEXT ,
+    password TEXT NOT NULL, -- remove NOT NULL (or do something) for oauth
+    birthdate TEXT NOT NULL,
+    nickname TEXT UNIQUE, -- optional
+    aboutme TEXT, -- optional (may need larger text !)
+    avatar TEXT, -- nullable, stores "/uploads/avatars/xxx.png"
+
+    -- not used
     last_seen DATETIME
 );
 
