@@ -11,6 +11,7 @@ type User struct {
 	BirthDate string `json:"birthDate"` // seed.go
 	Nickname  string `json:"nickname"`  // opt
 	AboutMe   string `json:"aboutme"`   // opt
+
 	// Avatar type? `json:"avatar"` // opt
 
 	// OAUTH

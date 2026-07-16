@@ -8,10 +8,10 @@ import Link from "next/link";
 const devMode = true;
 
 const testUsers = [
-  { label: "user1 (alice)", identifier: "alice@example.com", password: "Password123!" },
-  { label: "user2 (bob)", identifier: "bob@example.com", password: "Password123!" },
-  { label: "user3 (chloe)", identifier: "chloe@example.com", password: "Password123!" },
-  { label: "user4 (farid)", identifier: "farid@example.com", password: "Password123!" },
+  { label: "user1 (alice)", identifier: "alice@example.com", password: "password123" },
+  { label: "user2 (bob)", identifier: "bob@example.com", password: "password123" },
+  { label: "user3 (chloe)", identifier: "chloe@example.com", password: "password123" },
+  { label: "user4 (farid)", identifier: "farid@example.com", password: "password123" },
 ];
 
 export default function Login() {

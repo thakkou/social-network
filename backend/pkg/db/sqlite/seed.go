@@ -168,14 +168,14 @@ func seedUsers(db *sql.DB, hashedPW string) ([]int, error) {
 		Private                                    int
 	}
 	users := []seedUser{
-		{"Alice", "Martin", "alice@example.com", "password123", "Coffee & code.", "1996-04-12", "/uploads/avatars/alice.png", 0},
-		{"Bob", "Nguyen", "bob@example.com", "password123", "Traveling the world.", "1994-08-23", "", 0},
-		{"Chloe", "Dubois", "chloe@example.com", "password123", "", "1999-01-05", "", 1}, // private
-		{"David", "Smith", "david@example.com", "password123", "Full-stack dev.", "1990-11-30", "", 0},
-		{"Emma", "Wilson", "emma@example.com", "password123", "Photography enthusiast.", "1997-06-18", "", 1}, // private
-		{"Farid", "El Amrani", "farid@example.com", "password123", "Backend > frontend, fight me.", "1993-03-09", "", 0},
-		{"Grace", "Lee", "grace@example.com", "password123", "", "2000-09-27", "", 0},
-		{"Hugo", "Costa", "hugo@example.com", "password123", "Music producer.", "1995-12-14", "", 0},
+		{"Alice", "Martin", "alice@example.com", "ali_m", "Coffee & code.", "1996-04-12", "/uploads/seeder/avatars/avatar.jpeg", 0},
+		{"Bob", "Nguyen", "bob@example.com", "", "Traveling the world.", "1994-08-23", "/uploads/seeder/avatars/lofi.jpeg", 0},
+		{"Chloe", "Dubois", "chloe@example.com", "Chloe", "", "1999-01-05", "/uploads/seeder/avatars/goat.jpg", 1}, // private
+		{"David", "Smith", "david@example.com", "david", "Full-stack dev.", "1990-11-30", "", 0},
+		{"Emma", "Wilson", "emma@example.com", "", "Photography enthusiast.", "1997-06-18", "", 1}, // private
+		{"Farid", "El Amrani", "farid@example.com", "", "Backend > frontend, fight me.", "1993-03-09", "/uploads/seeder/avatars/lofi.jpeg", 0},
+		{"Grace", "Lee", "grace@example.com", "", "", "2000-09-27", "", 0},
+		{"Hugo", "Costa", "hugo@example.com", "costa77", "Music producer.", "1995-12-14", "", 0},
 	}
 
 	ids := make([]int, 0, len(users))
