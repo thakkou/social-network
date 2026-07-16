@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 )
 
@@ -102,4 +103,18 @@ func (r *UserRepository) IsEmailOrNicknameTaken(email, nickname string) (bool, b
 func (r *UserRepository) UpdatePrivacy(userID int, isPrivate int) error {
 	_, err := r.DB.Exec("UPDATE USERS SET is_private = ? WHERE id = ?", isPrivate, userID)
 	return err
+}
+
+func (r *UserRepository) IsPrivateUser(userID int) (bool, error) {
+	var isPrivate int
+
+	err := r.DB.QueryRow(
+		"SELECT is_private FROM USERS WHERE id = ?",
+		userID,
+	).Scan(&isPrivate)
+	if err != nil {
+		return false, err
+	}
+	fmt.Println("is", isPrivate)
+	return isPrivate == 1, nil
 }

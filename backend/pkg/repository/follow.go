@@ -73,3 +73,16 @@ func (r *FollowRepository) scanUsers(rows *sql.Rows) ([]User, error) {
 	}
 	return users, nil
 }
+
+func (r *FollowRepository) FollowUser(user1ID, user2ID int) error {
+	query := `
+		INSERT INTO FOLLOWS (follower_id, following_id, status)
+		VALUES (?, ?, 'pending')
+		ON CONFLICT(follower_id, following_id)
+		DO UPDATE SET status = 'pending'
+	`
+
+	_, err := r.DB.Exec(query, user1ID, user2ID)
+
+	return err
+}
