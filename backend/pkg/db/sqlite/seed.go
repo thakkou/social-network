@@ -34,7 +34,7 @@ func Run(db *sql.DB) error {
 		return fmt.Errorf("reset: %w", err)
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte("Password123!"), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("hash password: %w", err)
 	}
@@ -168,14 +168,14 @@ func seedUsers(db *sql.DB, hashedPW string) ([]int, error) {
 		Private                                    int
 	}
 	users := []seedUser{
-		{"Alice", "Martin", "alice@example.com", "alice_m", "Coffee & code.", "1996-04-12", "/uploads/avatars/alice.png", 0},
-		{"Bob", "Nguyen", "bob@example.com", "bobn", "Traveling the world.", "1994-08-23", "", 0},
-		{"Chloe", "Dubois", "chloe@example.com", "chloed", "", "1999-01-05", "", 1}, // private
-		{"David", "Smith", "david@example.com", "", "Full-stack dev.", "1990-11-30", "", 0},
-		{"Emma", "Wilson", "emma@example.com", "emmaw", "Photography enthusiast.", "1997-06-18", "", 1}, // private
-		{"Farid", "El Amrani", "farid@example.com", "farid_ea", "Backend > frontend, fight me.", "1993-03-09", "", 0},
-		{"Grace", "Lee", "grace@example.com", "", "", "2000-09-27", "", 0},
-		{"Hugo", "Costa", "hugo@example.com", "hugoc", "Music producer.", "1995-12-14", "", 0},
+		{"Alice", "Martin", "alice@example.com", "password123", "Coffee & code.", "1996-04-12", "/uploads/avatars/alice.png", 0},
+		{"Bob", "Nguyen", "bob@example.com", "password123", "Traveling the world.", "1994-08-23", "", 0},
+		{"Chloe", "Dubois", "chloe@example.com", "password123", "", "1999-01-05", "", 1}, // private
+		{"David", "Smith", "david@example.com", "password123", "Full-stack dev.", "1990-11-30", "", 0},
+		{"Emma", "Wilson", "emma@example.com", "password123", "Photography enthusiast.", "1997-06-18", "", 1}, // private
+		{"Farid", "El Amrani", "farid@example.com", "password123", "Backend > frontend, fight me.", "1993-03-09", "", 0},
+		{"Grace", "Lee", "grace@example.com", "password123", "", "2000-09-27", "", 0},
+		{"Hugo", "Costa", "hugo@example.com", "password123", "Music producer.", "1995-12-14", "", 0},
 	}
 
 	ids := make([]int, 0, len(users))
