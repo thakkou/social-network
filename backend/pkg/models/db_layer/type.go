@@ -1,4 +1,4 @@
-package dblayer
+package dbModal
 
 import "time"
 

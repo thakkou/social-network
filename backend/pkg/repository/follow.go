@@ -37,7 +37,7 @@ func (r *FollowRepository) Unfollow(followerID, followingID int) error {
 	return err
 }
 
-func (r *FollowRepository) GetFollowers(userID string) ([]User, error) {
+func (r *FollowRepository) GetFollowers(userID int) ([]User, error) {
 	query := `SELECT u.id, u.firstname, u.lastname, u.nickname, u.avatar FROM USERS u
 	          JOIN FOLLOWS f ON u.id = f.follower_id WHERE f.following_id = ? AND f.status = 'accepted'`
 	rows, err := r.DB.Query(query, userID)
@@ -48,7 +48,7 @@ func (r *FollowRepository) GetFollowers(userID string) ([]User, error) {
 	return r.scanUsers(rows)
 }
 
-func (r *FollowRepository) GetFollowing(userID string) ([]User, error) {
+func (r *FollowRepository) GetFollowing(userID int) ([]User, error) {
 	query := `SELECT u.id, u.firstname, u.lastname, u.nickname, u.avatar FROM USERS u
 	          JOIN FOLLOWS f ON u.id = f.following_id WHERE f.follower_id = ? AND f.status = 'accepted'`
 	rows, err := r.DB.Query(query, userID)
@@ -75,20 +75,21 @@ func (r *FollowRepository) scanUsers(rows *sql.Rows) ([]User, error) {
 }
 
 // true if user1 follow user2
-func (r *FollowRepository) IsFollowing(user1ID, user2ID int) (bool, error) {
-	var exists bool
+func (r *FollowRepository) GetFollowStatus(user1ID, user2ID int) (string, error) {
+	var status string
 
 	query := `
-		SELECT EXISTS(
-			SELECT 1
-			FROM FOLLOWS
-			WHERE follower_id = ?
-			AND following_id = ?
-			AND status = 'accepted'
-		)
+		SELECT status
+		FROM FOLLOWS
+		WHERE follower_id = ?
+		AND following_id = ?
 	`
 
-	err := r.DB.QueryRow(query, user1ID, user2ID).Scan(&exists)
+	err := r.DB.QueryRow(query, user1ID, user2ID).Scan(&status)
 
-	return exists, err
+	if err == sql.ErrNoRows {
+		return "none", nil
+	}
+
+	return status, err
 }

@@ -8,16 +8,12 @@ import (
 
 	db "01social/pkg/db/sqlite"
 	"01social/pkg/middlewares"
+	repModal "01social/pkg/models/representation"
 	"01social/pkg/repository"
+	"01social/pkg/representation"
 	"01social/pkg/utilities"
 )
 
-/*
-data gets
--see first and last name,is_private
-followed him or public
---see following,followers posts
-*/
 func GetProfile(w http.ResponseWriter, r *http.Request) {
 	// Check method
 	if r.Method != http.MethodGet {
@@ -66,26 +62,35 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 	followRepo := repository.NewFollowRepository(db.Database)
 	profileRepo := repository.NewProfileRepository(db.Database)
 
-	isFlollowing, err := followRepo.IsFollowing(userID, profileId)
+	followStatus, err := followRepo.GetFollowStatus(userID, profileId)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
 	}
 	var user *repository.User
+	var profileRes repModal.ProfileResponse
 
-	if isFlollowing {
+	if followStatus == "accepted" {
 		fmt.Println("user following the profile")
 	}
-	if !private || isFlollowing {
+	if !private || followStatus == "accepted" {
 
 		user, err = profileRepo.GetProfile(profileId, false)
 
+		following, _ := followRepo.GetFollowing(profileId)
+		fmt.Println("user ", profileId, "follow", following, len(following))
+		followers, _ := followRepo.GetFollowers(profileId)
+		fmt.Println("user ", profileId, "followers", followers, len(followers))
+
 		fmt.Println("have right to get the data")
+
+		profileRes = representation.UserToProfileResponse(user, followers, following, followStatus)
+
 	} else {
 		user, err = profileRepo.GetProfile(profileId, true)
-
+		profileRes = representation.UserToProfileResponse(user, nil, nil, followStatus)
 		fmt.Println("get only public data")
 	}
 
-	utilities.WriteJSON(w, http.StatusForbidden, "IDs are different", user)
+	utilities.WriteJSON(w, http.StatusForbidden, "IDs are different", profileRes)
 }
