@@ -63,6 +63,29 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 	} else {
 		fmt.Println("This user is public")
 	}
+	followRepo := repository.NewFollowRepository(db.Database)
+	profileRepo := repository.NewProfileRepository(db.Database)
 
-	utilities.WriteJSON(w, http.StatusForbidden, "IDs are different", nil)
+	isFlollowing, err := followRepo.IsFollowing(userID, profileId)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	var user *repository.User
+
+	if isFlollowing {
+		fmt.Println("user following the profile")
+	}
+	if !private || isFlollowing {
+
+		user, err = profileRepo.GetProfile(profileId, false)
+
+		fmt.Println("have right to get the data")
+	} else {
+		user, err = profileRepo.GetProfile(profileId, true)
+
+		fmt.Println("get only public data")
+	}
+
+	utilities.WriteJSON(w, http.StatusForbidden, "IDs are different", user)
 }

@@ -74,15 +74,21 @@ func (r *FollowRepository) scanUsers(rows *sql.Rows) ([]User, error) {
 	return users, nil
 }
 
-func (r *FollowRepository) FollowUser(user1ID, user2ID int) error {
+// true if user1 follow user2
+func (r *FollowRepository) IsFollowing(user1ID, user2ID int) (bool, error) {
+	var exists bool
+
 	query := `
-		INSERT INTO FOLLOWS (follower_id, following_id, status)
-		VALUES (?, ?, 'pending')
-		ON CONFLICT(follower_id, following_id)
-		DO UPDATE SET status = 'pending'
+		SELECT EXISTS(
+			SELECT 1
+			FROM FOLLOWS
+			WHERE follower_id = ?
+			AND following_id = ?
+			AND status = 'accepted'
+		)
 	`
 
-	_, err := r.DB.Exec(query, user1ID, user2ID)
+	err := r.DB.QueryRow(query, user1ID, user2ID).Scan(&exists)
 
-	return err
+	return exists, err
 }
