@@ -1,4 +1,27 @@
-package models
+package representation
+
+type Post struct {
+	ID    int
+	Title string
+}
+type ProfileResponse struct {
+	ID        int    `json:"id"`
+	Firstname string `json:"firstname"`
+	Lastname  string `json:"lastname"`
+	Nickname  string `json:"nickname"`
+	Avatar    string `json:"avatar"`
+	AboutMe   string `json:"aboutme"`
+
+	IsPrivate bool `json:"is_private"`
+
+	FollowingStatus string `json:"following_status"`
+
+	Followers int `json:"followers"`
+	Following int `json:"following"`
+	Posts     int `json:"posts"`
+
+	PostsList []Post `json:"posts"`
+}
 
 type User struct {
 	Id int

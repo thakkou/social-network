@@ -12,7 +12,7 @@ import (
 	"time"
 
 	db "01social/pkg/db/sqlite"
-	"01social/pkg/models"
+	dblayer "01social/pkg/models/db_layer"
 	"01social/pkg/repository" // Import your new repo package
 	"01social/pkg/utilities"
 	"01social/pkg/ws"
@@ -183,7 +183,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := models.User{
+	user := dblayer.User{
 		Firstname: strings.TrimSpace(r.FormValue("firstname")),
 		Lastname:  strings.TrimSpace(r.FormValue("lastname")),
 		Email:     strings.ToLower(strings.TrimSpace(r.FormValue("email"))),

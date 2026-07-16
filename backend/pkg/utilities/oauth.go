@@ -9,8 +9,9 @@ import (
 	"net/http"
 	"net/url"
 
+	dblayer "01social/pkg/models/db_layer"
+
 	db "01social/pkg/db/sqlite"
-	"01social/pkg/models"
 )
 
 type TokenResponse struct {
@@ -100,7 +101,7 @@ func ExchangeCode(provider, tokenURL, client_id, client_secret, code string) (*T
 	// return &t, nil
 }
 
-func FetchUserInfo(userInfoURL, accessToken string) (*models.User, error) {
+func FetchUserInfo(userInfoURL, accessToken string) (*dblayer.User, error) {
 	req, _ := http.NewRequest("GET", userInfoURL, nil)
 	// for github: The /user endpoint returns email ONLY IF it is public
 	req.Header.Set("Authorization", "Bearer "+accessToken)
@@ -118,7 +119,7 @@ func FetchUserInfo(userInfoURL, accessToken string) (*models.User, error) {
 
 	userBody, _ := io.ReadAll(userResp.Body)
 
-	var user models.User
+	var user dblayer.User
 	json.Unmarshal(userBody, &user)
 	return &user, nil
 }

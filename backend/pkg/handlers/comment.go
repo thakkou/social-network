@@ -9,7 +9,7 @@ import (
 	"time"
 
 	db "01social/pkg/db/sqlite"
-	"01social/pkg/models"
+	dblayer "01social/pkg/models/db_layer"
 	"01social/pkg/utilities"
 )
 
@@ -215,12 +215,12 @@ func CommentResolver(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetCommentsByPost
-func GetCommentsByPost(postId int) ([]models.Comment, error) {
+func GetCommentsByPost(postId int) ([]dblayer.Comment, error) {
 	return GetCommentsByPostWithPagination(postId, 0, 0)
 }
 
-func GetCommentsByPostWithPagination(postId, limit, lastID int) ([]models.Comment, error) {
-	var comments []models.Comment
+func GetCommentsByPostWithPagination(postId, limit, lastID int) ([]dblayer.Comment, error) {
+	var comments []dblayer.Comment
 
 	if limit <= 0 {
 		limit = 10
@@ -244,7 +244,7 @@ func GetCommentsByPostWithPagination(postId, limit, lastID int) ([]models.Commen
 	defer rows.Close()
 
 	for rows.Next() {
-		var c models.Comment
+		var c dblayer.Comment
 		if err := rows.Scan(&c.Id, &c.UserId, &c.Created_at, &c.Text); err != nil {
 			return nil, fmt.Errorf("getCommentsByPost scan error: %v", err)
 		}

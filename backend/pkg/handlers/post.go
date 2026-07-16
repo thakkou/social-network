@@ -9,7 +9,7 @@ import (
 	"time"
 
 	db "01social/pkg/db/sqlite"
-	"01social/pkg/models"
+	dblayer "01social/pkg/models/db_layer"
 	"01social/pkg/utilities"
 	"01social/pkg/ws"
 )
@@ -18,7 +18,7 @@ import (
 // CORE POST ENRICHMENT
 // =========================
 
-func enrichPost(p *models.Post, userId int) error {
+func enrichPost(p *dblayer.Post, userId int) error {
 	p.TimeAgo = utilities.TimeAgo(p.Created_at)
 
 	// =========================
@@ -66,7 +66,7 @@ func enrichPost(p *models.Post, userId int) error {
 	return err
 }
 
-func enrichPostWithComments(p *models.Post, userId int) error {
+func enrichPostWithComments(p *dblayer.Post, userId int) error {
 	if err := enrichPost(p, userId); err != nil {
 		return err
 	}
@@ -80,8 +80,8 @@ func enrichPostWithComments(p *models.Post, userId int) error {
 	return nil
 }
 
-func scanPost(row *sql.Rows) (models.Post, error) {
-	var p models.Post
+func scanPost(row *sql.Rows) (dblayer.Post, error) {
+	var p dblayer.Post
 	err := row.Scan(&p.Id, &p.UserId, &p.Created_at, &p.Title, &p.Text)
 	return p, err
 }
@@ -369,7 +369,7 @@ func GetFilteredPosts(
 	likedByMe, postedByMe bool,
 	limit int,
 	lastID int, // Replaced offset with lastID
-) ([]models.Post, error) {
+) ([]dblayer.Post, error) {
 	query := `
         SELECT DISTINCT p.id, p.user_id, p.created_at, p.title, p.text
         FROM posts p
@@ -420,7 +420,7 @@ func GetFilteredPosts(
 	}
 	defer rows.Close()
 
-	var posts []models.Post
+	var posts []dblayer.Post
 	for rows.Next() {
 		p, err := scanPost(rows)
 		if err != nil {
@@ -469,8 +469,8 @@ func DeletePost(postId, userId int) error {
 // SINGLE POST FETCH
 // =========================
 
-func GetPost(postID int) (models.Post, error) {
-	var p models.Post
+func GetPost(postID int) (dblayer.Post, error) {
+	var p dblayer.Post
 
 	err := db.Database.QueryRow(`
 		SELECT id, user_id, created_at, title, text
@@ -488,8 +488,8 @@ func GetPost(postID int) (models.Post, error) {
 	return p, nil
 }
 
-func GetPostBasic(postID int) (models.Post, error) {
-	var p models.Post
+func GetPostBasic(postID int) (dblayer.Post, error) {
+	var p dblayer.Post
 
 	err := db.Database.QueryRow(`
 		SELECT id, user_id, created_at, title, text
