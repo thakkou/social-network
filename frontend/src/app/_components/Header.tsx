@@ -5,7 +5,8 @@ import { auth } from "~/server/auth";
 
 export default async function Header() {
   const session = await auth();
-  const avatar = session?.user.avatar;
+  console.log("the session",session)
+  const avatar = session?.user?.avatar;
   // console.log(avatar)
   return (
     <div className="nav">
