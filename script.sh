@@ -32,6 +32,12 @@ echo "Starting backend..."
 
 (
     cd backend
+
+    if [ "$MODE" = "init" ]; then
+        echo "Running go mod tidy..."
+        go mod tidy
+    fi
+
     if [ "$MODE" = "refresh" ] || [ "$MODE" = "init" ]; then
         go run . -r
     else
