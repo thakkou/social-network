@@ -14,6 +14,7 @@ func Init(refresh bool) error {
 	var err error
 
 	if refresh {
+		fmt.Println("refresh the db")
 		// Close existing connection if any
 		if Database != nil {
 			Database.Close()
@@ -42,7 +43,7 @@ func Init(refresh bool) error {
 	}
 
 	if refresh {
-		if err := RefreshAndSeed(Database); err != nil {
+		if err := Run(Database); err != nil {
 			return fmt.Errorf("seed failed: %v", err)
 		}
 	}
