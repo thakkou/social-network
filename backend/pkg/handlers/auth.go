@@ -211,7 +211,6 @@ func Register(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
 	if !utilities.IsValidName(user.Firstname) || !utilities.IsValidName(user.Lastname) ||
 		!utilities.IsValidEmail(user.Email) || !utilities.IsValidPassword(user.Password) ||
 		!utilities.IsValidBirthDate(user.BirthDate) {

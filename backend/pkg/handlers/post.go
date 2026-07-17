@@ -1,18 +1,36 @@
 package handlers
 
 import (
-	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
-	"strings"
-	"time"
 
 	db "01social/pkg/db/sqlite"
+	"01social/pkg/middlewares"
 	dblayer "01social/pkg/models/db_layer"
+	"01social/pkg/repository"
 	"01social/pkg/utilities"
-	"01social/pkg/ws"
 )
+
+// =========================
+// REPOSITORIES
+// =========================
+//
+// Call InitRepositories() once at startup, after db.Database has been
+// opened/assigned (e.g. right after sql.Open in main()). Building these at
+// package-var init time would risk capturing a nil *sql.DB if db.Database
+// isn't set until later.
+
+var (
+	postRepo     *repository.PostRepository
+	categoryRepo *repository.CategoryRepository
+)
+
+func InitRepositories() {
+	postRepo = repository.NewPostRepository(db.Database)
+	categoryRepo = repository.NewCategoryRepository(db.Database)
+}
 
 // =========================
 // CORE POST ENRICHMENT
@@ -21,9 +39,10 @@ import (
 func enrichPost(p *dblayer.Post, userId int) error {
 	p.TimeAgo = utilities.TimeAgo(p.Created_at)
 
-	// =========================
 	// USER INFO
-	// =========================
+	// NOTE: nickname lookup isn't part of PostRepository/CategoryRepository
+	// (it's user data, not post data). Left as a direct query for now; move
+	// this into a UserRepository if/when one exists.
 	if err := db.Database.QueryRow(
 		"SELECT nickname FROM users WHERE id = ?",
 		p.UserId,
@@ -31,59 +50,36 @@ func enrichPost(p *dblayer.Post, userId int) error {
 		return err
 	}
 
-	// =========================
 	// REACTIONS COUNT
-	// =========================
 	var err error
-	p.LikeCount, p.DislikeCount, err = GetReactionsByPost(p.Id)
+	p.LikeCount, p.DislikeCount, err = postRepo.GetReactionCounts(p.Id)
 	if err != nil {
 		return err
 	}
 
-	// =========================
-	// USER REACTION (IMPORTANT)
-	// =========================
-	var isLike int
-
-	err = db.Database.QueryRow(`
-		SELECT is_like
-		FROM POST_REACTIONS
-		WHERE user_id = ? AND post_id = ?
-	`, userId, p.Id).Scan(&isLike)
-
-	if err == sql.ErrNoRows {
-		p.IsLiked = 0 // no reaction
-	} else if err != nil {
+	// USER REACTION
+	p.IsLiked, err = postRepo.GetUserReaction(userId, p.Id)
+	if err != nil {
 		return err
-	} else {
-		p.IsLiked = isLike // 1 or -1
 	}
 
-	// =========================
 	// CATEGORIES
-	// =========================
-	p.Categories, err = GetCategoriesByPost(p.Id)
+	p.Categories, err = categoryRepo.GetNamesByPost(p.Id)
 	return err
 }
 
 func enrichPostWithComments(p *dblayer.Post, userId int) error {
-	if err := enrichPost(p, userId); err != nil {
-		return err
-	}
+	// if err := enrichPost(p, userId); err != nil {
+	// 	return err
+	// }
 
-	comments, err := GetCommentsByPost(p.Id)
-	if err != nil {
-		return err
-	}
+	// comments, err := postRepo.GetCommentsByPost(p.Id)
+	// if err != nil {
+	// 	return err
+	// }
 
-	p.Comments = comments
+	// p.Comments = toDBLayerComments(comments)
 	return nil
-}
-
-func scanPost(row *sql.Rows) (dblayer.Post, error) {
-	var p dblayer.Post
-	err := row.Scan(&p.Id, &p.UserId, &p.Created_at, &p.Title, &p.Text)
-	return p, err
 }
 
 // =========================
@@ -101,88 +97,63 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type Post struct {
-		Title      string   `json:"title"`
-		Text       string   `json:"text"`
-		Categories []string `json:"categories"`
-	}
-
-	post, err := utilities.ReadJSONRequest[Post](r)
+	err := r.ParseMultipartForm(10 << 20) // 10 MB
 	if err != nil {
-		utilities.WriteJSON(w, http.StatusBadRequest, "invalid request body", nil)
+		utilities.WriteJSON(w, http.StatusBadRequest, "Invalid form data", nil)
 		return
 	}
+	userID, ok := middlewares.GetUserID(r)
+	if !ok {
+		utilities.WriteJSON(w, 403, "ononon", nil)
+	}
 
-	if post.Title == "" || post.Text == "" {
+	title := r.FormValue("title")
+	text := r.FormValue("text")
+	privacy := r.FormValue("privacy")
+	categories := r.MultipartForm.Value["categories"]
+
+	if title == "" || text == "" {
 		utilities.WriteJSON(w, http.StatusBadRequest, "Title and text cannot be empty", nil)
 		return
 	}
 
-	if len(post.Title) > 255 || len(post.Text) > 1000 {
-		utilities.WriteJSON(w, http.StatusBadRequest, "Title too long", nil)
+	if len(title) > 255 || len(text) > 1000 {
+		utilities.WriteJSON(w, http.StatusBadRequest, "Title or text too long", nil)
 		return
 	}
 
-	if len(post.Categories) == 0 {
+	if len(categories) == 0 {
 		utilities.WriteJSON(w, http.StatusBadRequest, "At least one category required", nil)
 		return
 	}
 
-	cookie, _ := r.Cookie("session_id")
-	userId, err := utilities.GetUserIDFromCookie(cookie.Value)
+	if privacy == "" {
+		utilities.WriteJSON(w, http.StatusBadRequest, "Privacy is required", nil)
+		return
+	}
+
+	categoryIDs, err := categoryRepo.GetIDsByNames(categories)
 	if err != nil {
-		utilities.WriteJSON(w, http.StatusUnauthorized, "Invalid session", nil)
+		utilities.WriteJSON(w, http.StatusBadRequest, err.Error(), nil)
 		return
 	}
 
-	tx, err := db.Database.Begin()
-	if err != nil {
-		utilities.WriteJSON(w, http.StatusInternalServerError, "DB error", nil)
-		return
-	}
-	defer tx.Rollback()
+	// Optional image upload
+	var imagePath string
 
-	res, err := tx.Exec(
-		"INSERT INTO posts (user_id, created_at, title, text) VALUES (?, ?, ?, ?)",
-		userId, time.Now(), post.Title, post.Text,
-	)
-	if err != nil {
-		utilities.WriteJSON(w, http.StatusInternalServerError, "Create failed", nil)
-		return
+	file, _, err := r.FormFile("image")
+	if err == nil {
+		defer file.Close()
+
+		log.Println("image uploaded")
+
+		path := "/uploads/image.png"
+		imagePath = path
 	}
 
-	postID, _ := res.LastInsertId()
+	fmt.Println("image path", imagePath, userID, categoryIDs)
 
-	for _, c := range post.Categories {
-		var catID int
-		if err := tx.QueryRow("SELECT id FROM category WHERE name = ?", c).Scan(&catID); err != nil {
-			utilities.WriteJSON(w, http.StatusBadRequest, "Invalid category: "+c, nil)
-			return
-		}
-
-		_, err := tx.Exec(
-			"INSERT INTO post_category (post_id, category_id) VALUES (?, ?)",
-			postID, catID,
-		)
-		if err != nil {
-			utilities.WriteJSON(w, http.StatusInternalServerError, "category link failed", nil)
-			return
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		utilities.WriteJSON(w, http.StatusInternalServerError, "commit failed", nil)
-		return
-	}
-	createdPost, err := GetPost(int(postID))
-
-	go ws.BroadcastExcept(strconv.Itoa(userId), "new_post", createdPost)
-	if err != nil {
-		utilities.WriteJSON(w, http.StatusInternalServerError, "could not fetch created post", nil)
-		return
-	}
-
-	utilities.WriteJSON(w, 200, "post created successfully", createdPost)
+	utilities.WriteJSON(w, http.StatusOK, "creat handleres3", nil)
 }
 
 // =========================
@@ -221,8 +192,8 @@ func PostResolver(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		likes, dislikes, _ := GetReactionsByPost(postId)
-		reaction, _ := GetUserReaction(userId, postId)
+		likes, dislikes, _ := postRepo.GetReactionCounts(postId)
+		reaction, _ := postRepo.GetUserReaction(userId, postId)
 
 		utilities.WriteJSON(w, 200, "liked", map[string]any{
 			"postId":   postId,
@@ -245,8 +216,8 @@ func PostResolver(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		likes, dislikes, _ := GetReactionsByPost(postId)
-		reaction, _ := GetUserReaction(userId, postId)
+		likes, dislikes, _ := postRepo.GetReactionCounts(postId)
+		reaction, _ := postRepo.GetUserReaction(userId, postId)
 
 		utilities.WriteJSON(w, 200, "disliked", map[string]any{
 			"postId":   postId,
@@ -264,7 +235,7 @@ func PostResolver(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := DeletePost(postId, userId); err != nil {
+		if err := postRepo.DeletePost(postId, userId); err != nil {
 			utilities.WriteJSON(w, 403, err.Error(), nil)
 			return
 		}
@@ -281,53 +252,57 @@ func PostResolver(w http.ResponseWriter, r *http.Request) {
 // =========================
 // GET POSTS
 // =========================
-
 func GetPosts(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		utilities.WriteJSON(w, 405, "Method not allowed", nil)
-		return
-	}
-
-	_ = r.ParseForm()
-
-	categories := r.Form["categories"]
-	liked := r.FormValue("my-liked-posts") == "true"
-	byMe := r.FormValue("my-creat-posts") == "true"
-
-	limit := 30
-	lastID := 0
-
-	if l := r.FormValue("limit"); l != "" {
-		if v, err := strconv.Atoi(l); err == nil && v > 0 {
-			limit = v
-		}
-	}
-	if id := r.FormValue("lastId"); id != "" {
-		if v, err := strconv.Atoi(id); err == nil && v > 0 {
-			lastID = v
-		}
-	}
-
-	var userID int
-	if cookie, err := r.Cookie("session_id"); err == nil {
-		userID, _ = utilities.GetUserIDFromCookie(cookie.Value)
-	}
-
-	posts, err := GetFilteredPosts(userID, categories, liked, byMe, limit, lastID)
-	if err != nil {
-		utilities.WriteJSON(w, 500, "error", nil)
-		return
-	}
-
-	utilities.WriteJSON(w, 200, "ok", posts)
 }
+
+// later i will update it
+// func GetPosts(w http.ResponseWriter, r *http.Request) {
+
+// 	if r.Method != http.MethodGet {
+// 		utilities.WriteJSON(w, 405, "Method not allowed", nil)
+// 		return
+// 	}
+
+// 	_ = r.ParseForm()
+
+// 	categories := r.Form["categories"]
+// 	liked := r.FormValue("my-liked-posts") == "true"
+// 	byMe := r.FormValue("my-creat-posts") == "true"
+
+// 	limit := 30
+// 	lastID := 0
+
+// 	if l := r.FormValue("limit"); l != "" {
+// 		if v, err := strconv.Atoi(l); err == nil && v > 0 {
+// 			limit = v
+// 		}
+// 	}
+// 	if id := r.FormValue("lastId"); id != "" {
+// 		if v, err := strconv.Atoi(id); err == nil && v > 0 {
+// 			lastID = v
+// 		}
+// 	}
+
+// 	var userID int
+// 	if cookie, err := r.Cookie("session_id"); err == nil {
+// 		userID, _ = utilities.GetUserIDFromCookie(cookie.Value)
+// 	}
+
+// 	posts, err := GetFilteredPosts(userID, categories, liked, byMe, limit, lastID)
+// 	if err != nil {
+// 		utilities.WriteJSON(w, 500, "error", nil)
+// 		return
+// 	}
+
+// 	utilities.WriteJSON(w, 200, "ok", posts)
+// }
 
 // =========================
 // SINGLE POST
 // =========================
 
 func GetPostById(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
+	_, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		utilities.WriteJSON(w, 400, "Invalid ID", nil)
 		return
@@ -346,179 +321,16 @@ func GetPostById(w http.ResponseWriter, r *http.Request) {
 			lastID = v
 		}
 	}
+	fmt.Println("li", limit, lastID)
 
-	post, err := GetPostBasic(id)
-	if err != nil {
-		utilities.WriteJSON(w, 404, "Not found", nil)
-		return
-	}
+	// post, err := GetPostBasic(id)
+	// if err != nil {
+	// 	utilities.WriteJSON(w, 404, "Not found", nil)
+	// 	return
+	// }
 
-	comments, _ := GetCommentsByPostWithPagination(id, limit, lastID)
-	post.Comments = comments
+	// comments, _ := postRepo.GetCommentsByPostPaginated(id, limit, lastID)
+	// post.Comments = toDBLayerComments(comments)
 
-	utilities.WriteJSON(w, 200, "ok", post)
-}
-
-// =========================
-// FILTERED POSTS
-// =========================
-
-func GetFilteredPosts(
-	userID int,
-	categories []string,
-	likedByMe, postedByMe bool,
-	limit int,
-	lastID int, // Replaced offset with lastID
-) ([]dblayer.Post, error) {
-	query := `
-        SELECT DISTINCT p.id, p.user_id, p.created_at, p.title, p.text
-        FROM posts p
-        LEFT JOIN post_category pc ON p.id = pc.post_id
-        LEFT JOIN category c ON pc.category_id = c.id
-    `
-
-	var cond []string
-	var args []any
-
-	if len(categories) > 0 {
-		ph := []string{}
-		for _, c := range categories {
-			ph = append(ph, "?")
-			args = append(args, c)
-		}
-		cond = append(cond, "c.name IN ("+strings.Join(ph, ",")+")")
-	}
-
-	if postedByMe {
-		cond = append(cond, "p.user_id = ?")
-		args = append(args, userID)
-	}
-
-	if likedByMe {
-		query += " JOIN post_reactions pr ON p.id = pr.post_id "
-		cond = append(cond, "pr.user_id = ? AND pr.is_like = 1")
-		args = append(args, userID)
-	}
-
-	// CRITICAL: Filter out posts we have already seen
-	if lastID > 0 {
-		cond = append(cond, "p.id < ?")
-		args = append(args, lastID)
-	}
-
-	if len(cond) > 0 {
-		query += " WHERE " + strings.Join(cond, " AND ")
-	}
-
-	// Removed OFFSET keyword entirely
-	query += " ORDER BY p.created_at DESC, p.id DESC LIMIT ?"
-	args = append(args, limit)
-
-	rows, err := db.Database.Query(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var posts []dblayer.Post
-	for rows.Next() {
-		p, err := scanPost(rows)
-		if err != nil {
-			return nil, err
-		}
-
-		if err := enrichPost(&p, userID); err != nil {
-			return nil, err
-		}
-
-		posts = append(posts, p)
-	}
-
-	return posts, rows.Err()
-}
-
-// =========================
-// DELETE POST
-// =========================
-
-func DeletePost(postId, userId int) error {
-	tx, err := db.Database.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	var owner int
-	err = tx.QueryRow("SELECT user_id FROM posts WHERE id = ?", postId).Scan(&owner)
-	if err == sql.ErrNoRows {
-		return fmt.Errorf("post not found")
-	}
-	if owner != userId {
-		return fmt.Errorf("not your post")
-	}
-
-	_, err = tx.Exec("DELETE FROM posts WHERE id = ?", postId)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit()
-}
-
-// =========================
-// SINGLE POST FETCH
-// =========================
-
-func GetPost(postID int) (dblayer.Post, error) {
-	var p dblayer.Post
-
-	err := db.Database.QueryRow(`
-		SELECT id, user_id, created_at, title, text
-		FROM posts
-		WHERE id = ?
-	`, postID).Scan(&p.Id, &p.UserId, &p.Created_at, &p.Title, &p.Text)
-	if err != nil {
-		return p, err
-	}
-
-	if err := enrichPostWithComments(&p, p.UserId); err != nil {
-		return p, err
-	}
-
-	return p, nil
-}
-
-func GetPostBasic(postID int) (dblayer.Post, error) {
-	var p dblayer.Post
-
-	err := db.Database.QueryRow(`
-		SELECT id, user_id, created_at, title, text
-		FROM posts
-		WHERE id = ?
-	`, postID).Scan(&p.Id, &p.UserId, &p.Created_at, &p.Title, &p.Text)
-	if err != nil {
-		return p, err
-	}
-
-	if err := enrichPost(&p, p.UserId); err != nil {
-		return p, err
-	}
-
-	return p, nil
-}
-
-func GetUserReaction(userId, postId int) (int, error) {
-	var reaction int
-
-	err := db.Database.QueryRow(`
-		SELECT is_like
-		FROM POST_REACTIONS
-		WHERE user_id = ? AND post_id = ?
-	`, userId, postId).Scan(&reaction)
-
-	if err == sql.ErrNoRows {
-		return 0, nil // no reaction
-	}
-
-	return reaction, err
+	utilities.WriteJSON(w, 200, "ok", nil)
 }
