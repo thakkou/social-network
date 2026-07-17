@@ -30,6 +30,8 @@ var (
 func InitRepositories() {
 	postRepo = repository.NewPostRepository(db.Database)
 	categoryRepo = repository.NewCategoryRepository(db.Database)
+
+	log.Println("Repositories initialized")
 }
 
 // =========================
@@ -87,6 +89,8 @@ func enrichPostWithComments(p *dblayer.Post, userId int) error {
 // =========================
 
 func CreatePost(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("start creating a posts")
+
 	if r.URL.Path != "/api/posts/create" {
 		utilities.WriteJSON(w, http.StatusNotFound, "Page Not Found", nil)
 		return
@@ -102,15 +106,25 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		utilities.WriteJSON(w, http.StatusBadRequest, "Invalid form data", nil)
 		return
 	}
+
 	userID, ok := middlewares.GetUserID(r)
 	if !ok {
 		utilities.WriteJSON(w, 403, "ononon", nil)
+		return
 	}
 
 	title := r.FormValue("title")
 	text := r.FormValue("text")
 	privacy := r.FormValue("privacy")
 	categories := r.MultipartForm.Value["categories"]
+
+	// Debug incoming post data
+	log.Println("========== CREATE POST ==========")
+	log.Printf("UserID: %d", userID)
+	log.Printf("Title: %q", title)
+	log.Printf("Text Length: %d", len(text))
+	log.Printf("Privacy: %q", privacy)
+	log.Printf("Categories: %v", categories)
 
 	if title == "" || text == "" {
 		utilities.WriteJSON(w, http.StatusBadRequest, "Title and text cannot be empty", nil)
@@ -138,18 +152,35 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("Category IDs: %v", categoryIDs)
+
 	// Optional image upload
 	var imagePath string
+	hasImage := false
 
 	file, _, err := r.FormFile("image")
 	if err == nil {
 		defer file.Close()
 
+		hasImage = true
 		log.Println("image uploaded")
 
 		path := "/uploads/image.png"
 		imagePath = path
+	} else {
+		log.Println("no image uploaded")
 	}
+
+	// Final post data check
+	log.Println("----- Final Post Data -----")
+	log.Printf("UserID      : %d", userID)
+	log.Printf("Title       : %s", title)
+	log.Printf("Privacy     : %s", privacy)
+	log.Printf("Has Image   : %t", hasImage)
+	log.Printf("Image Path  : %s", imagePath)
+	log.Printf("Categories  : %v", categories)
+	log.Printf("Category IDs: %v", categoryIDs)
+	log.Println("============================")
 
 	fmt.Println("image path", imagePath, userID, categoryIDs)
 

@@ -13,50 +13,63 @@ func NewProfileRepository(db *sql.DB) *ProfileRepository {
 	return &ProfileRepository{DB: db}
 }
 
-// GetProfile returns limited or full profile
-func (r *ProfileRepository) GetProfile(userID int, greedy bool) (*User, error) {
+// GetPublicProfile returns only the fields visible to everyone.
+func (r *ProfileRepository) GetPublicProfile(userID int) (*User, error) {
 	var u User
 
-	if greedy {
-		query := `
-			SELECT id, firstname, lastname, nickname, is_private
-			FROM USERS
-			WHERE id = ?
-		`
+	query := `
+        SELECT
+            id,
+            firstname,
+            lastname,
+            nickname,
+            avatar,
+            is_private
+        FROM USERS
+        WHERE id = ?
+    `
 
-		var nickname sql.NullString
+	var nickname, avatar sql.NullString
 
-		err := r.DB.QueryRow(query, userID).Scan(
-			&u.ID,
-			&u.Firstname,
-			&u.Lastname,
-			&nickname,
-			&u.IsPrivate,
-		)
-		if err != nil {
-			return nil, err
+	err := r.DB.QueryRow(query, userID).Scan(
+		&u.ID,
+		&u.Firstname,
+		&u.Lastname,
+		&nickname,
+		&avatar,
+		&u.IsPrivate,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Printf("[PROFILE] user %d not found", userID)
 		}
-
-		u.Nickname = nickname.String
-
-		return &u, nil
+		return nil, err
 	}
 
+	u.Nickname = nickname.String
+	u.Avatar = avatar.String
+
+	return &u, nil
+}
+
+// GetProfile returns the complete profile.
+func (r *ProfileRepository) GetProfile(userID int) (*User, error) {
+	var u User
 	query := `
-		SELECT 
-			id,
-			created_at,
-			firstname,
-			lastname,
-			email,
-			birthdate,
-			nickname,
-			aboutme,
-			avatar,
-			is_private
-		FROM USERS
-		WHERE id = ?
-	`
+        SELECT
+            id,
+            created_at,
+            firstname,
+            lastname,
+            email,
+            birthdate,
+            nickname,
+            aboutme,
+            avatar,
+            is_private
+        FROM USERS
+        WHERE id = ?
+    `
 
 	var nickname, aboutme, avatar sql.NullString
 
@@ -73,11 +86,9 @@ func (r *ProfileRepository) GetProfile(userID int, greedy bool) (*User, error) {
 		&u.IsPrivate,
 	)
 	if err != nil {
-
 		if err == sql.ErrNoRows {
 			log.Printf("[PROFILE] user %d not found", userID)
 		}
-
 		return nil, err
 	}
 

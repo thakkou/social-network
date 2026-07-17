@@ -6,9 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	db "01social/pkg/db/sqlite"
 	"01social/pkg/middlewares"
-	"01social/pkg/repository"
 	"01social/pkg/utilities"
 )
 
@@ -102,15 +100,12 @@ func FollowResolver(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Current user:", userID)
 	fmt.Println("Target user:", targetID)
 
-	userRepo := repository.NewUserRepository(db.Database)
-	followRepo := repository.NewFollowRepository(db.Database)
-
 	switch resolver {
 
 	case "follow":
 
 		// Check if target user is private
-		isPrivate, err := userRepo.IsPrivateUser(targetID)
+		isPrivate, err := Repos.User.IsPrivateUser(targetID)
 		if err != nil {
 			utilities.WriteJSON(
 				w,
@@ -128,7 +123,7 @@ func FollowResolver(w http.ResponseWriter, r *http.Request) {
 			status = "pending"
 		}
 
-		err = followRepo.Follow(
+		err = Repos.Follow.Follow(
 			userID,
 			targetID,
 			status,
@@ -153,7 +148,7 @@ func FollowResolver(w http.ResponseWriter, r *http.Request) {
 
 	case "unfollow":
 
-		err := followRepo.Unfollow(
+		err := Repos.Follow.Unfollow(
 			userID,
 			targetID,
 		)
@@ -179,7 +174,7 @@ func FollowResolver(w http.ResponseWriter, r *http.Request) {
 
 		// targetID is the requester
 		// userID is the owner accepting
-		err := followRepo.AcceptFollow(
+		err := Repos.Follow.AcceptFollow(
 			targetID,
 			userID,
 		)
@@ -205,7 +200,7 @@ func FollowResolver(w http.ResponseWriter, r *http.Request) {
 
 		// targetID is the requester
 		// userID is the owner rejecting
-		err := followRepo.RejectFollow(
+		err := Repos.Follow.RejectFollow(
 			targetID,
 			userID,
 		)

@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	db "01social/pkg/db/sqlite"
 	dblayer "01social/pkg/models/db_layer"
 	"01social/pkg/repository" // Import your new repo package
 	"01social/pkg/utilities"
@@ -56,11 +55,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create Repository using your global db connection
-	userRepo := repository.NewUserRepository(db.Database)
-
 	// REPLACED: Raw query with repository GetByIdentifier
-	dbUser, err := userRepo.GetByIdentifier(userLog.Identifier)
+	dbUser, err := Repos.User.GetByIdentifier(userLog.Identifier)
 	if err != nil {
 		log.Printf("[LOGIN] User lookup failed for identifier %q: %v", userLog.Identifier, err)
 		utilities.WriteJSON(w, http.StatusUnauthorized, "Invalid email/username or password.", nil)
@@ -77,7 +73,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// REPLACED: Raw delete with repository DeleteSessionsByUserID
-	err = userRepo.DeleteSessionsByUserID(dbUser.ID)
+	err = Repos.User.DeleteSessionsByUserID(dbUser.ID)
 	if err != nil {
 		log.Printf("[LOGIN] Failed to clear old sessions for user ID %d: %v", dbUser.ID, err)
 		utilities.WriteJSON(w, http.StatusInternalServerError, "Internal Server Error", nil)
@@ -95,7 +91,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// REPLACED: Raw insert with repository CreateSession
-	err = userRepo.CreateSession(session)
+	err = Repos.User.CreateSession(session)
 	if err != nil {
 		log.Printf("[LOGIN] Failed to write new session to DB for user ID %d: %v", dbUser.ID, err)
 		utilities.WriteJSON(w, http.StatusInternalServerError, "Internal Server Error", nil)
@@ -142,10 +138,9 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create Repository using your global db connection
-	userRepo := repository.NewUserRepository(db.Database)
 
 	// REPLACED: utilities.DeleteSession with repository DeleteSessionByID
-	err = userRepo.DeleteSessionByID(cookie.Value)
+	err = Repos.User.DeleteSessionByID(cookie.Value)
 	if err != nil {
 		log.Printf("[LOGOUT] Failed to delete session %s from database: %v", cookie.Value, err)
 	}
@@ -232,10 +227,9 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create Repository using your global db connection
-	userRepo := repository.NewUserRepository(db.Database)
 
 	// REPLACED: Both raw EXISTS checks with your repository IsEmailOrNicknameTaken
-	emailExists, nicknameExists, err := userRepo.IsEmailOrNicknameTaken(user.Email, user.Nickname)
+	emailExists, nicknameExists, err := Repos.User.IsEmailOrNicknameTaken(user.Email, user.Nickname)
 	if err != nil {
 		log.Printf("[REGISTER] Unique constraints check query failed: %v", err)
 		utilities.WriteJSON(w, http.StatusInternalServerError, "internal server error", nil)
@@ -310,7 +304,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// REPLACED: Raw INSERT query with repository Create
-	err = userRepo.Create(repoUser)
+	err = Repos.User.Create(repoUser)
 	if err != nil {
 		log.Printf("[REGISTER] Failed writing new user records to DB: %v", err)
 		utilities.WriteJSON(w, http.StatusInternalServerError, "internal server error", nil)

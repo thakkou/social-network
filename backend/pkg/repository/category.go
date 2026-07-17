@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"fmt"
+	"log"
 )
 
 type Category struct {
@@ -47,7 +48,7 @@ func (r *CategoryRepository) GetByName(name string) (*Category, error) {
 	err := r.DB.QueryRow(`
 		SELECT id, name
 		FROM CATEGORY
-		WHERE name = ?
+		WHERE LOWER(TRIM(name)) = LOWER(TRIM(?))
 	`, name).Scan(&c.ID, &c.Name)
 	if err != nil {
 		return nil, err
@@ -62,16 +63,32 @@ func (r *CategoryRepository) GetByName(name string) (*Category, error) {
 func (r *CategoryRepository) GetIDsByNames(names []string) ([]int, error) {
 	ids := make([]int, 0, len(names))
 
+	log.Println("========== GET CATEGORY IDS ==========")
+	log.Printf("Number of categories received: %d", len(names))
+	log.Printf("Category names received: %v", names)
+
 	for _, name := range names {
+		log.Printf("Searching category by name: %q", name)
+
 		c, err := r.GetByName(name)
+
 		if err == sql.ErrNoRows {
+			log.Printf("Category not found: %q", name)
 			return nil, fmt.Errorf("invalid category: %s", name)
 		}
+
 		if err != nil {
+			log.Printf("Database error while searching %q: %v", name, err)
 			return nil, err
 		}
+
+		log.Printf("Category found - Name: %q, ID: %d", c.Name, c.ID)
+
 		ids = append(ids, c.ID)
 	}
+
+	log.Printf("Final category IDs: %v", ids)
+	log.Println("======================================")
 
 	return ids, nil
 }

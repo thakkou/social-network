@@ -8,6 +8,7 @@ import (
 
 	db "01social/pkg/db/sqlite"
 	"01social/pkg/handlers"
+	"01social/pkg/repository"
 	"01social/pkg/routes"
 	"01social/pkg/utilities"
 )
@@ -60,7 +61,9 @@ func main() {
 	if err := db.Init(refresh); err != nil {
 		log.Fatalf("Database initialization failed: %v", err)
 	}
-
+	// here init reposotory
+	repos := repository.NewRepositories(db.Database)
+	handlers.Init(repos)
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/ws", handlers.HandlerWs)
 	http.HandleFunc("/ws/test", handlers.TestBroadcast)

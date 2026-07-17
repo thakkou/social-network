@@ -1,11 +1,11 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
-	db "01social/pkg/db/sqlite"
 	"01social/pkg/middlewares"
 	"01social/pkg/repository"
 	"01social/pkg/representation"
@@ -39,15 +39,13 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 		utilities.WriteJSON(w, http.StatusUnauthorized, "not logged in", nil)
 		return
 	}
-
-	// Initialize repositories
-	userRepo := repository.NewUserRepository(db.Database)
-	followRepo := repository.NewFollowRepository(db.Database)
-	profileRepo := repository.NewProfileRepository(db.Database)
-	postRepo := repository.NewPostRepository(db.Database)
+	if userID == profileID {
+		utilities.WriteJSON(w, http.StatusUnauthorized, "u are the same in", nil)
+		return
+	}
 
 	// Check if the requested profile belongs to a private account
-	private, err := userRepo.IsPrivateUser(profileID)
+	private, err := Repos.User.IsPrivateUser(profileID)
 	if err != nil {
 		utilities.WriteJSON(w, http.StatusNotFound, "user not found", nil)
 		return
@@ -55,7 +53,7 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 
 	// Get the relationship status between current user and profile owner
 	// Possible values: accepted, pending, none
-	followStatus, err := followRepo.GetFollowStatus(userID, profileID)
+	followStatus, err := Repos.Follow.GetFollowStatus(userID, profileID)
 	if err != nil {
 		utilities.WriteJSON(w, http.StatusInternalServerError, "could not get follow status", nil)
 		return
@@ -70,9 +68,10 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 
 	// Fetch complete profile data or only public information
 	if canSeeFullProfile {
-		user, err = profileRepo.GetProfile(profileID, false)
+		fmt.Println("user", userID, "can see the full profile of", profileID)
+		user, err = Repos.Profile.GetProfile(profileID)
 	} else {
-		user, err = profileRepo.GetProfile(profileID, true)
+		user, err = Repos.Profile.GetPublicProfile(profileID)
 	}
 
 	if err != nil {
@@ -89,21 +88,21 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 	if canSeeFullProfile {
 
 		// Get users who follow this profile
-		followers, err = followRepo.GetFollowers(profileID)
+		followers, err = Repos.Follow.GetFollowers(profileID)
 		if err != nil {
 			utilities.WriteJSON(w, http.StatusInternalServerError, "failed to get followers", nil)
 			return
 		}
 
 		// Get users this profile follows
-		following, err = followRepo.GetFollowing(profileID)
+		following, err = Repos.Follow.GetFollowing(profileID)
 		if err != nil {
 			utilities.WriteJSON(w, http.StatusInternalServerError, "failed to get following", nil)
 			return
 		}
 		// get posts for this profile
-		// get posts for this profile
-		posts, err = postRepo.GetPostsUserID(profileID)
+
+		posts, err = Repos.Post.GetPostsUserID(profileID)
 		if err != nil {
 			utilities.WriteJSON(w, http.StatusInternalServerError, "failed to get posts", nil)
 			return

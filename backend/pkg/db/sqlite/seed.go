@@ -243,7 +243,14 @@ func seedPosts(db *sql.DB, u []int) ([]int, error) {
 		{u[1], "Weekend trip", "Just got back from the mountains 🏔️", "public"},
 		{u[3], "", "Debugging is 90% of my job today.", "almost_private"},
 		{u[5], "Go tip", "context.Context should be your first param, always.", "public"},
+
+		// Chloe (user 3)
 		{u[2], "Private thoughts", "Only a few people should see this.", "private"},
+		{u[2], "Morning routine", "Coffee, reading, then coding.", "public"},
+		{u[2], "Photography", "Took some beautiful sunset photos today.", "public"},
+		{u[2], "Weekend plans", "Thinking about hiking this weekend.", "almost_private"},
+		{u[2], "Learning Go", "Interfaces finally clicked today!", "public"},
+
 		{u[4], "New camera", "Testing out my new lens today.", "almost_private"},
 		{u[7], "New track", "Dropping a new beat this Friday 🎵", "public"},
 	}
@@ -339,7 +346,20 @@ func seedComments(db *sql.DB, u, postIDs []int) ([]int, error) {
 		{u[0], postIDs[1], "Looks amazing, take me next time!"},
 		{u[5], postIDs[3], "Solid tip, saved me a bug last week."},
 		{u[0], postIDs[4], "Thanks for sharing this with me."},
-		{u[1], postIDs[6], "Can't wait to hear it!"},
+		{u[1], postIDs[10], "Can't wait to hear it!"},
+
+		// Comments on Chloe's new posts
+		{u[0], postIDs[5], "That sounds like a productive morning!"},
+		{u[1], postIDs[5], "Coffee first is always the right choice ☕"},
+
+		{u[3], postIDs[6], "Would love to see those photos!"},
+		{u[5], postIDs[6], "Sunsets are the best 🌅"},
+
+		{u[0], postIDs[7], "Hope the weather stays nice!"},
+		{u[7], postIDs[7], "Enjoy your hike!"},
+
+		{u[1], postIDs[8], "Go interfaces are confusing at first 😄"},
+		{u[5], postIDs[8], "Wait until you discover generics!"},
 	}
 	query := `INSERT INTO COMMENTS (user_id, post_id, created_at, text) VALUES (?, ?, ?, ?)`
 	ids := make([]int, 0, len(comments))
