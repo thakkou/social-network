@@ -9,6 +9,7 @@ func UserToProfileResponse(
 	user *repository.User,
 	followers []repository.User,
 	following []repository.User,
+	posts []repository.Post,
 	followingStatus string,
 ) repModal.ProfileResponse {
 	response := repModal.ProfileResponse{
@@ -20,10 +21,10 @@ func UserToProfileResponse(
 		AboutMe:         user.AboutMe,
 		IsPrivate:       user.IsPrivate,
 		FollowingStatus: followingStatus,
-		Posts:           0,
-		PostsList:       []repModal.Post{},
-		Followers:       mapFollowUsers(followers),
-		Following:       mapFollowUsers(following),
+
+		Followers: mapFollowUsers(followers),
+		Following: mapFollowUsers(following),
+		Posts:     mapPosts(posts),
 	}
 
 	return response
@@ -38,6 +39,21 @@ func mapFollowUsers(users []repository.User) []repModal.UserFollow {
 			Firstname: user.Firstname,
 			Nickname:  user.Nickname,
 			Avatar:    user.Avatar,
+		})
+	}
+
+	return result
+}
+
+func mapPosts(posts []repository.Post) []repModal.Post {
+	result := make([]repModal.Post, 0)
+
+	for _, post := range posts {
+		result = append(result, repModal.Post{
+			ID:    post.ID,
+			Title: post.Title,
+			Text:  post.Text,
+			Image: post.Image,
 		})
 	}
 

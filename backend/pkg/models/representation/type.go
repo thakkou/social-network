@@ -4,6 +4,7 @@ type Post struct {
 	ID       int
 	Title    string
 	Text     string
+	Image    string
 	comment  int
 	like     int
 	dislike  int
@@ -24,9 +25,7 @@ type ProfileResponse struct {
 
 	Followers []UserFollow `json:"followers"`
 	Following []UserFollow `json:"following"`
-	Posts     int          `json:"posts"`
-
-	PostsList []Post `json:"posts"`
+	Posts     []Post       `json:"posts"`
 }
 
 type UserFollow struct {

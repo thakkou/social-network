@@ -39,6 +39,8 @@ func RegisterRoutes() {
 
 	// profiles
 	http.HandleFunc("/api/profile/{id}", middlewares.CheckSessionCookie(handlers.GetProfile, true))
+	// follow
+	http.HandleFunc("/api/follow/{resolver}/{id}", middlewares.CheckSessionCookie(handlers.FollowResolver, true))
 
 	// auth providers
 

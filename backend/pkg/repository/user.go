@@ -2,7 +2,6 @@ package repository
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 )
 
@@ -115,6 +114,5 @@ func (r *UserRepository) IsPrivateUser(userID int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	fmt.Println("is", isPrivate)
 	return isPrivate == 1, nil
 }
