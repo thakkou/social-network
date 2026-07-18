@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"log"
+	"strings"
 )
 
 type ProfileRepository struct {
@@ -97,4 +98,59 @@ func (r *ProfileRepository) GetProfile(userID int) (*User, error) {
 	u.Avatar = avatar.String
 
 	return &u, nil
+}
+
+// SearchProfiles searches users by first name, last name, nickname (username),
+// or full name.
+func (r *ProfileRepository) SearchProfiles(text string) ([]User, error) {
+	query := `
+	SELECT
+		id,
+		firstname,
+		lastname,
+		nickname,
+		avatar,
+		is_private
+	FROM USERS
+	WHERE
+		LOWER(firstname) LIKE LOWER(?)
+		OR LOWER(lastname) LIKE LOWER(?)
+		OR LOWER(COALESCE(nickname, '')) LIKE LOWER(?)
+		OR LOWER(firstname || ' ' || lastname) LIKE LOWER(?)
+	ORDER BY firstname, lastname
+	LIMIT 20
+	`
+
+	search := "%" + strings.TrimSpace(text) + "%"
+
+	rows, err := r.DB.Query(query, search, search, search, search)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []User
+
+	for rows.Next() {
+		var u User
+		var nickname, avatar sql.NullString
+
+		if err := rows.Scan(
+			&u.ID,
+			&u.Firstname,
+			&u.Lastname,
+			&nickname,
+			&avatar,
+			&u.IsPrivate,
+		); err != nil {
+			return nil, err
+		}
+
+		u.Nickname = nickname.String
+		u.Avatar = avatar.String
+
+		users = append(users, u)
+	}
+
+	return users, rows.Err()
 }

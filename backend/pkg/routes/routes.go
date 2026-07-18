@@ -36,6 +36,11 @@ func RegisterRoutes() {
 		"/api/me",
 		middlewares.CheckSessionCookie(handlers.GetUsernameByToken, true),
 	)
+	// this route is for finding gusers or groups
+	http.HandleFunc(
+		"/api/search",
+		middlewares.CheckSessionCookie(handlers.FindQuery, true),
+	)
 
 	// profiles
 	http.HandleFunc("/api/profile/", middlewares.CheckSessionCookie(handlers.GetProfile, true))

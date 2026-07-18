@@ -292,3 +292,51 @@ func (r *GroupRepository) RespondToEvent(eventID, userID int, status string) err
 	_, err := r.DB.Exec(query, eventID, userID, status, status)
 	return err
 }
+
+func (r *GroupRepository) SearchGroups(text string) ([]Group, error) {
+	query := `
+	SELECT
+		id,
+		creator_id,
+		title,
+		description,
+		created_at
+	FROM GROUPS
+	WHERE
+		title LIKE ?
+		OR description LIKE ?
+	ORDER BY created_at DESC
+	LIMIT 20
+	`
+
+	search := "%" + text + "%"
+
+	rows, err := r.DB.Query(query, search, search)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var groups []Group
+
+	for rows.Next() {
+		var g Group
+		var createdAt string
+
+		if err := rows.Scan(
+			&g.ID,
+			&g.CreatorID,
+			&g.Title,
+			&g.Description,
+			&createdAt,
+		); err != nil {
+			return nil, err
+		}
+
+		g.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
+
+		groups = append(groups, g)
+	}
+
+	return groups, rows.Err()
+}
