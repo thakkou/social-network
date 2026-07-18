@@ -21,10 +21,10 @@ func UserToProfileResponse(
 		AboutMe:         user.AboutMe,
 		IsPrivate:       user.IsPrivate,
 		FollowingStatus: followingStatus,
-
-		Followers: mapFollowUsers(followers),
-		Following: mapFollowUsers(following),
-		// Posts:     mapPosts(posts),
+		CreatedAt:       user.CreatedAt,
+		Followers:       mapFollowUsers(followers),
+		Following:       mapFollowUsers(following),
+		Posts:           mapPosts(posts, user.Nickname),
 	}
 
 	return response
@@ -45,26 +45,24 @@ func mapFollowUsers(users []repository.User) []repModal.UserFollow {
 	return result
 }
 
-// func mapPosts(posts []repository.Post, Nickname string) []repModal.PostResponse {
-// 	result := make([]repModal.PostResponse, 0)
+func mapPosts(posts []repository.Post, Nickname string) []repModal.PostResponse {
+	result := make([]repModal.PostResponse, 0)
 
-// 	for _, post := range posts {
-// 		result = append(result, repModal.PostResponse{
-// 			ID:           post.ID,
-// 			UserID:       post.UserID,
-// 			Nickname:     Nickname,
-// 			CreatedAt:    post.CreatedAt,
-// 			TimeAgo:      time.Time,
-// 			Title:        post.Title,
-// 			Text:         post.Text,
-// 			Image:        post.Image,
-// 			LikeCount:    post.LikeCount,
-// 			DislikeCount: post.DislikeCount,
-// 			IsLiked:      post.IsLiked,
-// 			Categories:   post.Categories,
-// 			// Comments: mapComments(post.Comments),
-// 		})
-// 	}
+	for _, post := range posts {
+		result = append(result, repModal.PostResponse{
+			ID:           post.ID,
+			UserID:       post.UserID,
+			Nickname:     Nickname,
+			CreatedAt:    post.CreatedAt,
+			Title:        post.Title,
+			Text:         post.Text,
+			Image:        post.Image,
+			LikeCount:    0,
+			DislikeCount: 0,
+			IsLiked:      0,
+			// Comments: mapComments(post.Comments),
+		})
+	}
 
-// 	return result
-// }
+	return result
+}

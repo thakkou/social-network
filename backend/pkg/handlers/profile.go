@@ -107,6 +107,7 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 			utilities.WriteJSON(w, http.StatusInternalServerError, "failed to get posts", nil)
 			return
 		}
+		fmt.Println("posts", posts)
 	}
 
 	// Convert database models into API response model

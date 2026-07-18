@@ -64,65 +64,65 @@ func RegisterRoutes() {
 		),
 	)
 
-	http.HandleFunc(
-		"/api/posts/{id}",
-		middlewares.RateLimit(
-			middlewares.CheckSessionCookie(handlers.GetPostById, true),
+	// http.HandleFunc(
+	// 	"/api/posts/{id}",
+	// 	middlewares.RateLimit(
+	// 		middlewares.CheckSessionCookie(handlers.GetPostById, true),
 
-			3*time.Second,
-		),
-	)
+	// 		3*time.Second,
+	// 	),
+	// )
 
-	http.HandleFunc(
-		"/api/posts/create",
-		middlewares.RateLimit(
-			middlewares.CheckSessionCookie(handlers.CreatePost, true),
-			3*time.Second,
-		),
-	)
+	// http.HandleFunc(
+	// 	"/api/posts/create",
+	// 	middlewares.RateLimit(
+	// 		middlewares.CheckSessionCookie(handlers.CreatePost, true),
+	// 		3*time.Second,
+	// 	),
+	// )
 
-	// this resolver for liking,disliking,delete
-	http.HandleFunc(
-		"/api/posts/{id}/{endpoint}",
-		middlewares.RateLimit(
+	// // this resolver for liking,disliking,delete
+	// http.HandleFunc(
+	// 	"/api/posts/{id}/{endpoint}",
+	// 	middlewares.RateLimit(
 
-			middlewares.CheckSessionCookie(handlers.PostResolver, true), 250*time.Millisecond),
-	)
+	// 		middlewares.CheckSessionCookie(handlers.PostResolver, true), 250*time.Millisecond),
+	// )
 
-	// comments
+	// // comments
 
-	http.HandleFunc(
-		"/api/comments/create",
-		middlewares.RateLimit(
-			middlewares.CheckSessionCookie(handlers.CreateComment, true),
-			250*time.Millisecond,
-		),
-	)
+	// http.HandleFunc(
+	// 	"/api/comments/create",
+	// 	middlewares.RateLimit(
+	// 		middlewares.CheckSessionCookie(handlers.CreateComment, true),
+	// 		250*time.Millisecond,
+	// 	),
+	// )
 
-	// this resolver for liking,disliking,delete
-	http.HandleFunc(
-		"/api/comments/{id}/{endpoint}",
-		middlewares.RateLimit(
+	// // this resolver for liking,disliking,delete
+	// http.HandleFunc(
+	// 	"/api/comments/{id}/{endpoint}",
+	// 	middlewares.RateLimit(
 
-			middlewares.CheckSessionCookie(handlers.CommentResolver, true), 500*time.Millisecond),
-	)
+	// 		middlewares.CheckSessionCookie(handlers.CommentResolver, true), 500*time.Millisecond),
+	// )
 
-	// user routes
-	http.HandleFunc(
-		"/api/conversations",
-		middlewares.RateLimit(
-			middlewares.CheckSessionCookie(handlers.GetConversation, true),
-			3*time.Second,
-		),
-	)
+	// // user routes
+	// http.HandleFunc(
+	// 	"/api/conversations",
+	// 	middlewares.RateLimit(
+	// 		middlewares.CheckSessionCookie(handlers.GetConversation, true),
+	// 		3*time.Second,
+	// 	),
+	// )
 
-	http.HandleFunc(
-		"/api/conversation/{convID}",
-		middlewares.RateLimit(
-			middlewares.CheckSessionCookie(handlers.GetConversationByID, true),
-			3*time.Second,
-		),
-	)
+	// http.HandleFunc(
+	// 	"/api/conversation/{convID}",
+	// 	middlewares.RateLimit(
+	// 		middlewares.CheckSessionCookie(handlers.GetConversationByID, true),
+	// 		3*time.Second,
+	// 	),
+	// )
 
 	// http.HandleFunc(
 	// 	"/api/users/{id}",
@@ -132,11 +132,11 @@ func RegisterRoutes() {
 	// 	),
 	// )
 	// conversation and message conversation
-	http.HandleFunc(
-		"/api/messages",
-		middlewares.RateLimit(
-			middlewares.CheckSessionCookie(handlers.SendMessage, true),
-			100*time.Millisecond,
-		),
-	)
+	// http.HandleFunc(
+	// 	"/api/messages",
+	// 	middlewares.RateLimit(
+	// 		middlewares.CheckSessionCookie(handlers.SendMessage, true),
+	// 		100*time.Millisecond,
+	// 	),
+	// )
 }

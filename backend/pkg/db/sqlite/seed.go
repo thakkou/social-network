@@ -245,10 +245,10 @@ func seedPosts(db *sql.DB, u []int) ([]int, error) {
 		{u[5], "Go tip", "context.Context should be your first param, always.", "public"},
 
 		// Chloe (user 3)
-		{u[2], "Private thoughts", "Only a few people should see this.", "private"},
-		{u[2], "Morning routine", "Coffee, reading, then coding.", "public"},
-		{u[2], "Photography", "Took some beautiful sunset photos today.", "public"},
-		{u[2], "Weekend plans", "Thinking about hiking this weekend.", "almost_private"},
+		{u[1], "Private thoughts", "Only a few people should see this.", "private"},
+		{u[1], "Morning routine", "Coffee, reading, then coding.", "public"},
+		{u[1], "Photography", "Took some beautiful sunset photos today.", "public"},
+		{u[1], "Weekend plans", "Thinking about hiking this weekend.", "almost_private"},
 		{u[2], "Learning Go", "Interfaces finally clicked today!", "public"},
 
 		{u[4], "New camera", "Testing out my new lens today.", "almost_private"},

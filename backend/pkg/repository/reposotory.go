@@ -10,6 +10,7 @@ type Repositories struct {
 	Group    *GroupRepository
 	Follow   *FollowRepository
 	Profile  *ProfileRepository
+	Reaction *ReactionRepository
 }
 
 func NewRepositories(db *sql.DB) *Repositories {
@@ -21,5 +22,6 @@ func NewRepositories(db *sql.DB) *Repositories {
 		Group:    NewGroupRepository(db),
 		Follow:   NewFollowRepository(db),
 		Profile:  NewProfileRepository(db),
+		Reaction: NewReactionRepository(db),
 	}
 }

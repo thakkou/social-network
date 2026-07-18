@@ -41,14 +41,14 @@ type Comment struct {
 type POST_detaille struct{}
 
 type ProfileResponse struct {
-	ID        int    `json:"id"`
-	Firstname string `json:"firstname"`
-	Lastname  string `json:"lastname"`
-	Nickname  string `json:"nickname"`
-	Avatar    string `json:"avatar"`
-	AboutMe   string `json:"aboutme"`
-
-	IsPrivate int `json:"is_private"`
+	ID        int       `json:"id"`
+	Firstname string    `json:"firstname"`
+	Lastname  string    `json:"lastname"`
+	Nickname  string    `json:"nickname"`
+	Avatar    string    `json:"avatar"`
+	AboutMe   string    `json:"aboutme"`
+	CreatedAt time.Time `json:"created_at"`
+	IsPrivate int       `json:"is_private"`
 
 	FollowingStatus string `json:"following_status"`
 
