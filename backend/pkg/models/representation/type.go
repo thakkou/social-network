@@ -60,6 +60,8 @@ type ProfileResponse struct {
 type UserFollow struct {
 	ID        int    `json:"id"`
 	Firstname string `json:"firstname"`
-	Nickname  string `json:"nickname"`
-	Avatar    string `json:"avatar"`
+	Lastname  string `json:"lastname"`
+
+	Nickname string `json:"nickname"`
+	Avatar   string `json:"avatar"`
 }

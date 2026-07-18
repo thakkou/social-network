@@ -2,24 +2,16 @@
 
 import { useState, useEffect, useRef } from "react";
 import { search } from "../api/search/search";
-
+import Image from "next/image";
+import Link from "next/link";
 
 function UserItem({ user }: { user: any }) {
-  const handleClick = () => {
-    const go = window.confirm(
-      `Do you want to see ${user.nickname || `${user.firstname} ${user.lastname}`} profile?`
-    );
 
-    if (go) {
-      console.log("Open profile:", user.id);
-      // add your logic here later (router.push, modal, etc.)
-    }
-  };
 
   return (
-    <div
-      onClick={handleClick}
-      style={{
+    <Link
+      href={`/profile/${user.id}`}     
+       style={{
         display: "flex",
         alignItems: "center",
         gap: "10px",
@@ -29,17 +21,17 @@ function UserItem({ user }: { user: any }) {
     >
       {/* Avatar */}
       {user.avatar ? (
-        <img
-          src={user.avatar}
-          alt="avatar"
-          className="av"
-          style={{
-            width: "28px",
-            height: "28px",
-            borderRadius: "50%",
-            objectFit: "cover",
-          }}
-        />
+       <Image
+  src={user.avatar}
+  alt="avatar"
+  width={28}
+  height={28}
+  className="av"
+  style={{
+    borderRadius: "50%",
+    objectFit: "cover",
+  }}
+/>
       ) : (
         <div
           className="av"
@@ -66,8 +58,6 @@ function UserItem({ user }: { user: any }) {
           }}
         >
           {user.nickname || `${user.firstname} ${user.lastname}`}
-
-          {/* Privacy */}
           <span title={user.is_private === 1 ? "Private profile" : "Public profile"}>
             {user.is_private === 1 ? "🔒" : ""}
           </span>
@@ -82,15 +72,16 @@ function UserItem({ user }: { user: any }) {
           User
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
-
 function GroupItem({ group }: { group: any }) {
+
   return (
-    <div
-      style={{
+    <Link
+      href={`/groups/${group.id}`}    
+        style={{
         display: "flex",
         alignItems: "center",
         gap: "10px",
@@ -125,7 +116,7 @@ function GroupItem({ group }: { group: any }) {
           Group
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 

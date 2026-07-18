@@ -1,4 +1,4 @@
-export default function ProfilePosts() {
+export default function ProfilePosts(posts:any) {
     return (
         <div id="profile-posts">
             <div className="card" style={{ marginBottom: '6px' }}>

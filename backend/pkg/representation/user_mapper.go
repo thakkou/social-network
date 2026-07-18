@@ -37,6 +37,7 @@ func mapFollowUsers(users []repository.User) []repModal.UserFollow {
 		result = append(result, repModal.UserFollow{
 			ID:        user.ID,
 			Firstname: user.Firstname,
+			Lastname:  user.Lastname,
 			Nickname:  user.Nickname,
 			Avatar:    user.Avatar,
 		})

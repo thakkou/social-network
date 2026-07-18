@@ -1,51 +1,31 @@
 "use server";
-import { auth } from "~/server/auth";
-import { ur } from "zod/v4/locales";
 
-type SearchResult<T = unknown> =
-  | { success: true; data: T }
-  | { error: string };
+import { fetchApi } from "../helper/fetch";
 
-export async function search(text: string): Promise<SearchResult> {
+// Define what your Go backend actually returns for search
+interface SearchData {
+  results: Array<{ id: string; name: string }>; 
+}
 
-const session = await auth();
-
+export async function search(text: string) {
   const query = text.trim();
 
   if (!query) {
     return { error: "Search query is required." };
   }
 
-  const url = new URL(
-    "/api/search",
-    process.env.GO_BACKEND_URL,
-  );
+  // Pass your expected generic type <SearchData> to get full type safety
+  const result = await fetchApi<SearchData>("/api/search", {
+    method: "GET",
+    searchParams: { text: query },
+  });
 
-  url.searchParams.set("text", query);
-
-  console.log(url)
-
-const res = await fetch(url.toString(), {
-  method: "GET",
-  headers: {
-    Cookie: `session_id=${session?.user?.session_id}`,
-  },
-  credentials: "include",
-});
-
-  console.log("the result of search is",res)
-  if (!res.ok) {
-    const data = await res.json().catch(() => null);
-
-    return {
-      error: data?.error ?? "Search failed",
-    };
+  if (!result.success) {
+    return { error: result.error };
   }
-
-  const data = await res.json();
 
   return {
     success: true,
-    data,
+    data: result.data,
   };
 }

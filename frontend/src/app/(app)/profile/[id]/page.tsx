@@ -1,11 +1,215 @@
-import React from 'react'
+'use client';
 
-const page = () => {
-  return (
-    <div>
-      sssss
-    </div>
-  )
+import React, { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+
+import ProfilePosts from "~/app/_components/ProfilePosts";
+import Followers from "~/app/_components/Followers";
+import { getProfileData } from "~/app/api/profiles/getProfile"; // adjust path to wherever the action lives
+import PrivateProfile from "~/app/_components/PrivateProfile";
+interface TabItem {
+    label: string;
+    Component: React.ComponentType<any>;
+    props: any;
 }
 
-export default page
+export default function Profile() {
+    const params = useParams();
+    const userId = params?.id as string; // adjust to however you're routing (e.g. /profile/[id])
+
+    const [activeTab, setActiveTab] = useState(0);
+    const [isPrivate, setIsPrivate] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [profileExists, setProfileExists] = useState(true);
+    const [profile, setProfile] = useState<any>(null);
+
+    // `tabs` depends on `profile`, so it must be declared after the state above
+    const tabs: TabItem[] = [
+        {
+            label: "posts",
+            Component: ProfilePosts,
+            props: {
+                posts: profile?.posts ?? []
+            }
+        },
+        {
+            label: "followers",
+            Component: Followers,
+            props: {
+                users: profile?.followers ?? []
+            }
+        },
+        {
+            label: "following",
+            Component: Followers,
+            props: {
+                users: profile?.following ?? []
+            }
+        }
+    ];
+
+    const CurrentTab = tabs[activeTab];
+
+   useEffect(() => {
+    if (!userId) return;
+
+    const getData = async () => {
+        setIsLoading(true);
+
+        try {
+            const res = await getProfileData(userId);
+            if (res.success) {
+                console.log(res.data)
+                setProfile(res.data); // adjust to your API
+                res.data.is_private==0 ? setIsPrivate(false) : setIsPrivate(true)
+                setProfileExists(true);
+            } else {
+                setProfileExists(false);
+            }
+        } catch (err) {
+            console.error(err);
+            setProfileExists(false);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    void getData();
+}, [userId]);
+
+const isPrivateBlocked =
+    isPrivate &&
+    profile?.following_status !== "accepted"
+
+    // following_status can be "none", "pending", or "accepted"
+    const followLabel =
+        profile?.following_status === "accepted"
+            ? "following"
+            : profile?.following_status === "pending"
+            ? "requested"
+            : "follow";
+
+    const followIcon =
+        profile?.following_status === "accepted"
+            ? "ti-user-check"
+            : profile?.following_status === "pending"
+            ? "ti-clock"
+            : "ti-user-plus";
+
+    const handleFollowClick = () => {
+        if (profile?.following_status !== "none") return;
+        console.log("send follow request");
+        // call your API here, then update profile.following_status to "pending"
+    };
+
+
+    if (isLoading) {
+        return (
+            <main className="main">
+                <div className="card" style={{ textAlign: 'center', padding: '32px' }}>
+                    <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Loading profile...</p>
+                </div>
+            </main>
+        );
+    }
+
+
+    if (!profileExists) {
+        return (
+            <main className="main">
+                <div className="card" style={{ textAlign: 'center', padding: '32px' }}>
+                    <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--color-text-primary)' }}>
+                        This profile doesn't exist
+                    </p>
+                    <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+                        The user you're looking for may have been removed or the link is incorrect.
+                    </p>
+                </div>
+            </main>
+        );
+    }
+if (isPrivateBlocked) {
+    return (
+        <main className="main">
+            <PrivateProfile
+                profile={{
+                    first_name: profile.first_name,
+                    last_name: profile.last_name,
+                    nickname: profile.nickname,
+
+                    avatar: profile.avatar,
+                }}
+                onSendRequest={() => {
+                    console.log("send follow request");
+                    // call your API here
+                }}
+            />
+        </main>
+    );
+}
+
+
+    return (
+        <main className="main">
+            <div className="card">
+                <div style={{ display: 'flex', alignItems:'flex-start', gap:'12px', marginBottom:'12px' }}>
+                <div className="av" style={{ width:'52px', height:'52px', background:'#EEEDFE', color:'#534AB7', fontSize:'16px' }}>AK</div>
+                <div style={{ flex:1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap:'8px', flexWrap: 'wrap', marginBottom:'4px' }}>
+                        <p style={{ fontSize:'14px', fontWeight:500, color:'var(--color-text-primary)' }}>Amir Kader</p>
+                        <span className="tag tag-teal"> {`@${profile?.nickname || "non"}`} </span>
+                        <span className={`tag ${isPrivate ? 'tag-gray' : 'tag-purple'}`} id="profile-visibility-tag">{isPrivate ? 'private' : 'public'}</span>
+                        <button
+                            className="btn btn-g"
+                            style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '3px', marginLeft: 'auto' }}
+                            id="follow-btn"
+                            disabled={profile?.following_status === 'pending'}
+                            onClick={handleFollowClick}
+                        >
+                            <i className={`ti ${followIcon}`} style={{ fontSize: '12px' }} aria-hidden="true"></i> {followLabel}
+                        </button>
+                    </div>
+                    <p style={{ fontSize:'11px', color:'var(--color-text-secondary)', marginBottom:'4px' }}>Born 1998-07-14 · amir@example.com</p>
+                    <p style={{ fontSize:'12px', color:'var(--color-text-primary)', lineHeight:1.5 }}>Full-stack dev working on distributed systems. Passionate about Go, open source, and clean architecture.</p>
+                </div>
+                </div>
+                <div className="divider"></div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap:'8px', textAlign: 'center' }}>
+                    <div style={{ background:'var(--color-background-secondary)', padding:'8px' }}>
+                        <p style={{ fontSize:'18px', fontWeight:500, color:'#D4537E' }}>{profile?.posts?.length || "0"}</p>
+                        <p style={{ fontSize:'10px', color:'var(--color-text-tertiary)' }}>posts</p>
+                    </div>
+                    <div style={{ background:'var(--color-background-secondary)', padding:'8px', cursor: 'pointer' }} onClick={ () => setActiveTab(tabs.findIndex(o => o.label === 'followers')) }>
+                        <p style={{ fontSize:'18px', fontWeight:500, color:'#534AB7' }}>{profile?.followers?.length || "0"}</p>
+                        <p style={{ fontSize:'10px', color:'var(--color-text-tertiary)' }}>followers</p>
+                    </div>
+                    <div style={{ background: 'var(--color-background-secondary)', padding: '8px', cursor: 'pointer' }} onClick={() => setActiveTab(tabs.findIndex(o => o.label === 'following')) }>
+                        <p style={{ fontSize:'18px', fontWeight:500, color:'#0F6E56' }}>{profile?.following?.length || "0"}</p>
+                        <p style={{ fontSize:'10px', color:'var(--color-text-tertiary)' }}>following</p>
+                    </div>
+                </div>
+            </div>
+
+            <div style={{ display: 'flex', gap:0, border:'0.5px solid var(--color-border-tertiary)', background:'var(--color-background-primary)' }}>
+                {tabs.map((tab, idx) => (
+                    <div
+                        key={idx} // or label
+                        className={`profile-tab ${activeTab === idx ? 'active-tab' : ''}`}
+                        style={{
+                            padding: '8px 16px',
+                            fontSize: '11px',
+                            cursor: 'pointer',
+                            borderRight: idx + 1 < tabs.length ? '0.5px solid var(--color-border-tertiary)' : '',
+                            color: activeTab === idx ? '#D4537E' : 'var(--color-text-secondary)',
+                            borderBottom: activeTab === idx ? '2px solid #D4537E' : 'none' }}
+                        onClick={() => setActiveTab(idx)}
+                    >
+                        {tab.label}
+                    </div>
+                ))}
+            </div>
+
+            {CurrentTab && <CurrentTab.Component {...CurrentTab.props} />}
+        </main>
+    );
+}

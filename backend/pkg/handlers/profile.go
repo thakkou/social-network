@@ -97,7 +97,6 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if the requested profile belongs to a private account
 	private, err := Repos.User.IsPrivateUser(profileID)
 	if err != nil {
 		utilities.WriteJSON(w, http.StatusNotFound, "user not found", nil)
