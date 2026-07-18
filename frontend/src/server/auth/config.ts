@@ -120,6 +120,7 @@ export const authConfig = {
         nickname: token.nickname,
         aboutme: token.aboutme,
         avatar: token.avatar,
+        session_id:token.accessToken
       },
     }),
   },

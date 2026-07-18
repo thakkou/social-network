@@ -3,6 +3,7 @@ package middlewares
 import (
 	"context"
 	"database/sql"
+	"log"
 	"net/http"
 	"time"
 
@@ -13,6 +14,9 @@ import (
 func CheckSessionCookie(handler http.HandlerFunc, requiresAuth bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("session_id")
+		for _, cookie := range r.Cookies() {
+			log.Printf("Cookie: %s=%s\n", cookie.Name, cookie.Value)
+		}
 		if err != nil || cookie.Value == "" {
 			if requiresAuth {
 				utilities.WriteJSON(w, http.StatusUnauthorized, "login required", nil)
