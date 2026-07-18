@@ -136,6 +136,85 @@ const GroupsSidebar: React.ComponentType<any> = () =>
     <button className="btn btn-p" style={{ width: '100%', fontSize: '11px' }}>create event →</button>
   </aside>);
 
+
+
+
+const DefaultSidebar: React.ComponentType<any> = () => (
+  <aside className="sidebar2">
+    <p className="sec-label" style={{ padding: 0, marginBottom: "8px" }}>
+      quick access
+    </p>
+
+    <div
+      style={{
+        fontSize: "11px",
+        color: "var(--color-text-secondary)",
+        marginBottom: "10px",
+      }}
+    >
+      explore the app
+    </div>
+
+    <Link
+      href="/"
+      className="navlink"
+    >
+      <i className="ti ti-home" />
+      home
+    </Link>
+
+    <Link
+      href="/profile"
+      className="navlink"
+    >
+      <i className="ti ti-user" />
+      profile
+    </Link>
+
+    <Link
+      href="/groups"
+      className="navlink"
+    >
+      <i className="ti ti-users" />
+      groups
+    </Link>
+
+    <Link
+      href="/messages"
+      className="navlink"
+    >
+      <i className="ti ti-message" />
+      messages
+    </Link>
+
+    <Link
+      href="/notifications"
+      className="navlink"
+    >
+      <i className="ti ti-bell" />
+      notifications
+    </Link>
+
+    <div className="divider"></div>
+
+    <p className="sec-label" style={{ padding: 0, marginBottom: "8px" }}>
+      status
+    </p>
+
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        fontSize: "11px",
+      }}
+    >
+      <span className="online-dot"></span>
+      online
+    </div>
+  </aside>
+);
+
 const navbars = [
   { path: '/', Component: HomepageSidebar },
   { path: '/profile', Component: ProfileSidebar },
@@ -146,8 +225,10 @@ const navbars = [
 
 export default function Sidebar2() {
   const pathname = usePathname();
-  const CustomNavbar = navbars.find(nv => nv.path === pathname)?.Component as React.ComponentType;
-  return (
-    <CustomNavbar />
-  );
+
+  const CustomNavbar =
+    navbars.find((nv) => nv.path === pathname)?.Component ||
+    DefaultSidebar;
+
+  return <CustomNavbar />;
 }
