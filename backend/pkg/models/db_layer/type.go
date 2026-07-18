@@ -11,6 +11,7 @@ type Post struct {
 	Title                   string
 	Text                    string
 	LikeCount, DislikeCount int
+	CommentCount            int
 	IsLiked                 int // 1:liked, 0:none, -1:disliked
 	Comments                []Comment
 	Categories              []string

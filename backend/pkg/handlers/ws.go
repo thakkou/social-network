@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"sort"
 	"strconv"
 
 	"01social/pkg/utilities"
@@ -44,6 +45,23 @@ func HandlerWs(w http.ResponseWriter, r *http.Request) {
 	client := ws.StoreClient(userId, conn)
 
 	go ws.HandleClient(client)
+}
+
+func GetOnlineUsers(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
+
+	users := make([]string, 0)
+	ws.Mu.RLock()
+	for userID := range ws.Clients {
+		users = append(users, userID)
+	}
+	ws.Mu.RUnlock()
+
+	sort.Strings(users)
+	utilities.WriteJSON(w, http.StatusOK, "online users fetched", users)
 }
 
 func TestBroadcast(w http.ResponseWriter, r *http.Request) {

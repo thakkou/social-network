@@ -98,6 +98,26 @@ func (r *PostRepository) CreatePost(p *Post, allowedUserIDs []int, categoryIDs [
 	return tx.Commit()
 }
 
+// AddComment inserts a new comment for a post.
+func (r *PostRepository) AddComment(c *Comment) error {
+	res, err := r.DB.Exec(
+		`INSERT INTO COMMENTS (user_id, post_id, created_at, text) VALUES (?, ?, ?, ?)`,
+		c.UserID,
+		c.PostID,
+		c.CreatedAt.Format("2006-01-02 15:04:05"),
+		c.Text,
+	)
+	if err != nil {
+		return err
+	}
+
+	id, err := res.LastInsertId()
+	if err == nil {
+		c.ID = int(id)
+	}
+	return err
+}
+
 // scanPostRow reads a single POSTS row (id, user_id, created_at, title, text, image, privacy)
 func scanPostRow(scanner interface{ Scan(...any) error }) (Post, error) {
 	var p Post
@@ -129,6 +149,7 @@ func (r *PostRepository) GetVisiblePosts(userID int) ([]Post, error) {
 			AND f.status = 'accepted'
 		LEFT JOIN POST_ALLOWED_USERS pau 
 			ON p.id = pau.post_id
+			AND pau.user_id = ?
 		WHERE p.privacy = 'public'
 		   OR p.user_id = ?
 		   OR (p.privacy = 'almost_private' AND f.status = 'accepted')
@@ -136,7 +157,7 @@ func (r *PostRepository) GetVisiblePosts(userID int) ([]Post, error) {
 		ORDER BY p.created_at DESC
 	`
 
-	rows, err := r.DB.Query(query, userID, userID, userID)
+	rows, err := r.DB.Query(query, userID, userID, userID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -152,6 +173,34 @@ func (r *PostRepository) GetVisiblePosts(userID int) ([]Post, error) {
 	}
 
 	return posts, rows.Err()
+}
+
+func (r *PostRepository) GetVisiblePostByID(userID, postID int) (*Post, error) {
+	query := `
+		SELECT DISTINCT p.id, p.user_id, p.created_at, p.title, p.text, p.image, p.privacy
+		FROM POSTS p
+		LEFT JOIN FOLLOWS f 
+			ON p.user_id = f.following_id 
+			AND f.follower_id = ?
+			AND f.status = 'accepted'
+		LEFT JOIN POST_ALLOWED_USERS pau 
+			ON p.id = pau.post_id
+			AND pau.user_id = ?
+		WHERE p.id = ?
+		  AND (
+			p.privacy = 'public'
+			OR p.user_id = ?
+			OR (p.privacy = 'almost_private' AND f.status = 'accepted')
+			OR (p.privacy = 'private' AND pau.user_id = ?)
+		)
+	`
+
+	row := r.DB.QueryRow(query, userID, userID, postID, userID, userID)
+	p, err := scanPostRow(row)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
 }
 
 // GetPostByID fetches a single post by its ID.
@@ -208,12 +257,29 @@ func (r *PostRepository) GetFilteredPosts(
 	query := `
 		SELECT DISTINCT p.id, p.user_id, p.created_at, p.title, p.text, p.image, p.privacy
 		FROM POSTS p
+		LEFT JOIN FOLLOWS f
+			ON p.user_id = f.following_id
+			AND f.follower_id = ?
+			AND f.status = 'accepted'
+		LEFT JOIN POST_ALLOWED_USERS pau
+			ON p.id = pau.post_id
+			AND pau.user_id = ?
 		LEFT JOIN POST_CATEGORY pc ON p.id = pc.post_id
 		LEFT JOIN CATEGORY c ON pc.category_id = c.id
 	`
 
 	var cond []string
 	var args []any
+	args = append(args, userID, userID)
+
+	visibilityCond := `(
+		p.privacy = 'public'
+		OR p.user_id = ?
+		OR (p.privacy = 'almost_private' AND f.status = 'accepted')
+		OR (p.privacy = 'private' AND pau.user_id = ?)
+	)`
+	cond = append(cond, visibilityCond)
+	args = append(args, userID, userID)
 
 	if len(categories) > 0 {
 		ph := make([]string, len(categories))
@@ -292,29 +358,31 @@ func (r *PostRepository) DeletePost(postID, userID int) error {
 	return tx.Commit()
 }
 
-// AddComment creates a new comment for a post.
-func (r *PostRepository) AddComment(c *Comment) error {
-	query := `
-		INSERT INTO COMMENTS 
-		(user_id, post_id, created_at, text)
-		VALUES (?, ?, ?, ?)
-	`
-
-	res, err := r.DB.Exec(
-		query,
-		c.UserID,
-		c.PostID,
-		c.CreatedAt.Format("2006-01-02 15:04:05"),
-		c.Text,
-	)
+// DeleteComment removes a comment if the user is the owner.
+func (r *PostRepository) DeleteComment(commentID, userID int) error {
+	tx, err := r.DB.Begin()
 	if err != nil {
 		return err
 	}
+	defer tx.Rollback()
 
-	id, _ := res.LastInsertId()
-	c.ID = int(id)
+	var ownerID int
+	err = tx.QueryRow("SELECT user_id FROM COMMENTS WHERE id = ?", commentID).Scan(&ownerID)
+	if err == sql.ErrNoRows {
+		return fmt.Errorf("comment not found")
+	}
+	if err != nil {
+		return err
+	}
+	if ownerID != userID {
+		return fmt.Errorf("not your comment")
+	}
 
-	return nil
+	if _, err := tx.Exec("DELETE FROM COMMENTS WHERE id = ?", commentID); err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 // GetCommentsByPost returns all comments for a post, newest first.
@@ -388,6 +456,13 @@ func (r *PostRepository) GetReactionCounts(postID int) (likes, dislikes int, err
 		WHERE post_id = ?
 	`, postID).Scan(&likes, &dislikes)
 	return likes, dislikes, err
+}
+
+// GetCommentCount returns the number of comments attached to a post.
+func (r *PostRepository) GetCommentCount(postID int) (int, error) {
+	var count int
+	err := r.DB.QueryRow(`SELECT COUNT(*) FROM COMMENTS WHERE post_id = ?`, postID).Scan(&count)
+	return count, err
 }
 
 // GetUserReaction returns the given user's reaction to a post (1, 0, or -1).

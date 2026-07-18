@@ -41,8 +41,8 @@ func (r *UserRepository) Create(u *User) error {
 	aboutme := sql.NullString{String: u.AboutMe, Valid: u.AboutMe != ""}
 	avatar := sql.NullString{String: u.Avatar, Valid: u.Avatar != ""}
 
-	query := `INSERT INTO USERS (firstname, lastname, email, password, birthdate, nickname, aboutme, avatar) 
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+	query := `INSERT INTO USERS (firstname, lastname, email, password, birthdate, nickname, aboutme, avatar, is_private) 
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	res, err := r.DB.Exec(query, u.Firstname, u.Lastname, u.Email, u.Password, u.Birthdate, nickname, aboutme, avatar, u.IsPrivate)
 	if err != nil {
 		return err
@@ -59,6 +59,20 @@ func (r *UserRepository) GetByIdentifier(identifier string) (*User, error) {
 	var u User
 	var nickname, aboutme, avatar sql.NullString
 	err := r.DB.QueryRow(query, identifier, identifier).Scan(&u.ID, &u.Firstname, &u.Lastname, &u.Email, &u.Password, &u.Birthdate, &nickname, &aboutme, &avatar, &u.IsPrivate)
+	if err != nil {
+		return nil, err
+	}
+	u.Nickname = nickname.String
+	u.AboutMe = aboutme.String
+	u.Avatar = avatar.String
+	return &u, nil
+}
+
+func (r *UserRepository) GetByID(userID int) (*User, error) {
+	query := `SELECT id, firstname, lastname, email, password, birthdate, nickname, aboutme, avatar, is_private FROM USERS WHERE id = ?`
+	var u User
+	var nickname, aboutme, avatar sql.NullString
+	err := r.DB.QueryRow(query, userID).Scan(&u.ID, &u.Firstname, &u.Lastname, &u.Email, &u.Password, &u.Birthdate, &nickname, &aboutme, &avatar, &u.IsPrivate)
 	if err != nil {
 		return nil, err
 	}

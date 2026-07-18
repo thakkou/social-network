@@ -12,6 +12,8 @@ type Notification struct {
 	ReferenceID int       `json:"reference_id"`
 	IsRead      int       `json:"is_read"`
 	CreatedAt   time.Time `json:"created_at"`
+	Message     string    `json:"message,omitempty"`
+	Title       string    `json:"title,omitempty"`
 }
 
 type NotificationRepository struct {
@@ -49,9 +51,27 @@ func (r *NotificationRepository) GetByUserID(userID int) ([]Notification, error)
 			return nil, err
 		}
 		n.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", tStr)
+		n.Message, n.Title = r.describeNotification(n.Type, n.ReferenceID)
 		notes = append(notes, n)
 	}
 	return notes, nil
+}
+
+func (r *NotificationRepository) describeNotification(typ string, referenceID int) (string, string) {
+	switch typ {
+	case "follow_request":
+		return "Someone requested to follow you.", "Follow request"
+	case "group_invite":
+		return "You were invited to a group.", "Group invite"
+	case "group_join_request":
+		return "A user requested to join your group.", "Group join request"
+	case "group_event":
+		return "A new event was created in a group you belong to.", "Group event"
+	case "group_message":
+		return "A new message was posted in a group chat.", "Group message"
+	default:
+		return "You have a new notification.", "Notification"
+	}
 }
 
 func (r *NotificationRepository) MarkAsRead(id int) error {

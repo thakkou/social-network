@@ -35,7 +35,7 @@ var (
 
 var (
 	Clients = make(map[string]map[*Client]bool)
-	mu      sync.RWMutex
+	Mu      sync.RWMutex
 )
 
 // this func send the notification and the data to all users exept u
@@ -45,8 +45,8 @@ func BroadcastExcept(senderID string, eventType string, data any) {
 		"data":       data,
 	}
 
-	mu.RLock()
-	defer mu.RUnlock()
+	Mu.RLock()
+	defer Mu.RUnlock()
 
 	for userID, clients := range Clients {
 		if userID == senderID {
@@ -61,9 +61,9 @@ func BroadcastExcept(senderID string, eventType string, data any) {
 
 // this function send the notification to a special user
 func NotifyUser(userID string, eventType string, data any) {
-	mu.RLock()
+	Mu.RLock()
 	clients := Clients[userID]
-	mu.RUnlock()
+	Mu.RUnlock()
 
 	payload := map[string]any{
 		"event_type": eventType,
@@ -93,8 +93,8 @@ func RemoveClient(userID string, client *Client) {
 
 	typingMu.Unlock()
 
-	mu.Lock()
-	defer mu.Unlock()
+	Mu.Lock()
+	defer Mu.Unlock()
 
 	if Clients[userID] != nil {
 		delete(Clients[userID], client)
@@ -111,7 +111,7 @@ func StoreClient(userID string, conn *websocket.Conn) *Client {
 		id:   userID,
 	}
 	// fmt.Println("store client ", userID)
-	mu.Lock()
+	Mu.Lock()
 
 	if Clients[userID] == nil {
 		Clients[userID] = make(map[*Client]bool)
@@ -125,7 +125,7 @@ func StoreClient(userID string, conn *websocket.Conn) *Client {
 		online = append(online, id)
 	}
 
-	mu.Unlock()
+	Mu.Unlock()
 	NotifyUser(userID, "init", online)
 	BroadcastExcept(userID, "client_connect", userID)
 

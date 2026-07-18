@@ -7,9 +7,9 @@ func HandleClient(client *Client) {
 		client.conn.Close()
 
 		// 2. Only broadcast disconnect if the user has no more active tabs open
-		mu.RLock()
+		Mu.RLock()
 		_, stillOnline := Clients[client.id]
-		mu.RUnlock()
+		Mu.RUnlock()
 
 		// fmt.Println("handling client")
 		if !stillOnline {

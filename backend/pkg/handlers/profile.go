@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -11,6 +10,39 @@ import (
 	"01social/pkg/representation"
 	"01social/pkg/utilities"
 )
+
+func UpdateProfilePrivacy(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
+
+	userID, ok := middlewares.GetUserID(r)
+	if !ok {
+		utilities.WriteJSON(w, http.StatusUnauthorized, "not logged in", nil)
+		return
+	}
+
+	var payload struct {
+		IsPrivate int `json:"is_private"`
+	}
+	if err := utilities.ReadJSONRequestIntoStruct(r, &payload); err != nil {
+		utilities.WriteJSON(w, http.StatusBadRequest, "invalid request body", nil)
+		return
+	}
+
+	if payload.IsPrivate != 0 && payload.IsPrivate != 1 {
+		utilities.WriteJSON(w, http.StatusBadRequest, "is_private must be 0 or 1", nil)
+		return
+	}
+
+	if err := Repos.User.UpdatePrivacy(userID, payload.IsPrivate); err != nil {
+		utilities.WriteJSON(w, http.StatusInternalServerError, "could not update profile privacy", nil)
+		return
+	}
+
+	utilities.WriteJSON(w, http.StatusOK, "profile privacy updated", map[string]any{"is_private": payload.IsPrivate})
+}
 
 func GetProfile(w http.ResponseWriter, r *http.Request) {
 	// Only allow GET requests for fetching profiles
@@ -40,7 +72,28 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if userID == profileID {
-		utilities.WriteJSON(w, http.StatusUnauthorized, "u are the same in", nil)
+		user, err := Repos.Profile.GetProfile(profileID)
+		if err != nil {
+			utilities.WriteJSON(w, http.StatusNotFound, "profile not found", nil)
+			return
+		}
+		followers, err := Repos.Follow.GetFollowers(profileID)
+		if err != nil {
+			utilities.WriteJSON(w, http.StatusInternalServerError, "failed to get followers", nil)
+			return
+		}
+		following, err := Repos.Follow.GetFollowing(profileID)
+		if err != nil {
+			utilities.WriteJSON(w, http.StatusInternalServerError, "failed to get following", nil)
+			return
+		}
+		posts, err := Repos.Post.GetPostsUserID(profileID)
+		if err != nil {
+			utilities.WriteJSON(w, http.StatusInternalServerError, "failed to get posts", nil)
+			return
+		}
+		profileRes := representation.UserToProfileResponse(user, followers, following, posts, "accepted")
+		utilities.WriteJSON(w, http.StatusOK, "profile data", profileRes)
 		return
 	}
 
@@ -68,7 +121,6 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 
 	// Fetch complete profile data or only public information
 	if canSeeFullProfile {
-		fmt.Println("user", userID, "can see the full profile of", profileID)
 		user, err = Repos.Profile.GetProfile(profileID)
 	} else {
 		user, err = Repos.Profile.GetPublicProfile(profileID)
@@ -100,14 +152,11 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 			utilities.WriteJSON(w, http.StatusInternalServerError, "failed to get following", nil)
 			return
 		}
-		// get posts for this profile
-
 		posts, err = Repos.Post.GetPostsUserID(profileID)
 		if err != nil {
 			utilities.WriteJSON(w, http.StatusInternalServerError, "failed to get posts", nil)
 			return
 		}
-		fmt.Println("posts", posts)
 	}
 
 	// Convert database models into API response model

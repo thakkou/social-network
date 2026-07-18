@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"01social/pkg/middlewares"
+	"01social/pkg/repository"
 	"01social/pkg/utilities"
 )
 
@@ -138,11 +139,21 @@ func FollowResolver(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if status == "pending" {
+			if notifyErr := Repos.Notification.Create(&repository.Notification{
+				UserID:      targetID,
+				Type:        "follow_request",
+				ReferenceID: userID,
+			}); notifyErr != nil {
+				fmt.Printf("failed to create follow notification: %v\n", notifyErr)
+			}
+		}
+
 		utilities.WriteJSON(
 			w,
 			http.StatusOK,
 			"follow request sent",
-			status,
+			map[string]any{"status": status},
 		)
 		return
 

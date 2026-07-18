@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"fmt"
+	"net/http"
 
 	db "01social/pkg/db/sqlite"
+	"01social/pkg/utilities"
 )
 
 func GetCategoriesByPost(postId int) ([]string, error) {
@@ -34,4 +36,30 @@ func GetCategoriesByPost(postId int) ([]string, error) {
 	}
 
 	return categories, nil
+}
+
+func GetAllCategories(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
+
+	rows, err := db.Database.Query(`SELECT name FROM CATEGORY ORDER BY name ASC`)
+	if err != nil {
+		utilities.WriteJSON(w, http.StatusInternalServerError, "could not fetch categories", nil)
+		return
+	}
+	defer rows.Close()
+
+	categories := make([]string, 0)
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			utilities.WriteJSON(w, http.StatusInternalServerError, "could not scan categories", nil)
+			return
+		}
+		categories = append(categories, name)
+	}
+
+	utilities.WriteJSON(w, http.StatusOK, "categories fetched", categories)
 }
