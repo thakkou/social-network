@@ -9,13 +9,18 @@ import (
 
 // Post represents a post stored in the database
 type Post struct {
-	ID        int       `json:"id"`         // Unique post identifier
-	UserID    int       `json:"user_id"`    // User who created the post
-	CreatedAt time.Time `json:"created_at"` // Creation timestamp
-	Title     string    `json:"title"`      // Post title
-	Text      string    `json:"text"`       // Post content
-	Image     string    `json:"image"`      // Optional image path
-	Privacy   string    `json:"privacy"`    // public, almost_private, private
+	ID        int       `json:"id"`
+	UserID    int       `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
+	Title     string    `json:"title"`
+	Text      string    `json:"text"`
+	Image     string    `json:"image"`
+	Privacy   string    `json:"privacy"`
+	// New fields to hold your metadata
+	LikeCount    int `json:"like_count"`
+	DislikeCount int `json:"dislike_count"`
+	IsLiked      int `json:"is_liked"` // 1 = liked, -1 = disliked, 0 = neutral
+	CommentCount int `json:"comment_count"`
 }
 
 // Comment represents a comment on a post
@@ -98,6 +103,32 @@ func (r *PostRepository) CreatePost(p *Post, allowedUserIDs []int, categoryIDs [
 	return tx.Commit()
 }
 
+// EnrichPostMetadata populates counts and current user's reaction status
+func (r *PostRepository) EnrichPostMetadata(userID int, p *Post) error {
+	likes, dislikes, err := r.GetReactionCounts(p.ID)
+	if err != nil {
+		return err
+	}
+	p.LikeCount = likes
+	p.DislikeCount = dislikes
+
+	comments, err := r.GetCommentCount(p.ID)
+	if err != nil {
+		return err
+	}
+	p.CommentCount = comments
+
+	if userID > 0 {
+		reaction, err := r.GetUserReaction(userID, p.ID)
+		if err != nil {
+			return err
+		}
+		p.IsLiked = reaction
+	}
+
+	return nil
+}
+
 // AddComment inserts a new comment for a post.
 func (r *PostRepository) AddComment(c *Comment) error {
 	res, err := r.DB.Exec(
@@ -129,7 +160,15 @@ func scanPostRow(scanner interface{ Scan(...any) error }) (Post, error) {
 		return p, err
 	}
 
-	p.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
+	// Try multiple formats if your DB formats vary, but make sure to capture the result
+	parsedTime, err := time.Parse("2006-01-02 15:04:05", createdAt)
+	if err == nil {
+		p.CreatedAt = parsedTime
+	} else {
+		// Fallback or handle standard RFC3339 if needed
+		p.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
+	}
+
 	p.Title = title.String
 	p.Text = text.String
 	p.Image = image.String
@@ -240,6 +279,14 @@ func (r *PostRepository) GetPostsUserID(userID int) ([]Post, error) {
 		if err != nil {
 			return nil, err
 		}
+		fmt.Println("post befaure", p.LikeCount, p.DislikeCount, p.IsLiked)
+		// Enrich the post with metadata stats
+		if err := r.EnrichPostMetadata(userID, &p); err != nil {
+			fmt.Println("error enrishing post")
+			return nil, err
+		}
+		fmt.Println("post after", p.LikeCount, p.DislikeCount, p.IsLiked)
+
 		posts = append(posts, p)
 	}
 
@@ -325,9 +372,9 @@ func (r *PostRepository) GetFilteredPosts(
 		if err != nil {
 			return nil, err
 		}
+
 		posts = append(posts, p)
 	}
-
 	return posts, rows.Err()
 }
 

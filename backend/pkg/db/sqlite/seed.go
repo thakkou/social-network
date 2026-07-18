@@ -236,23 +236,87 @@ func seedPosts(db *sql.DB, u []int) ([]int, error) {
 	type p struct {
 		UserID      int
 		Title, Text string
+		Image       string
 		Privacy     string
 	}
 	posts := []p{
-		{u[0], "Hello world", "My very first post on this network!", "public"},
-		{u[1], "Weekend trip", "Just got back from the mountains 🏔️", "public"},
-		{u[3], "", "Debugging is 90% of my job today.", "almost_private"},
-		{u[5], "Go tip", "context.Context should be your first param, always.", "public"},
-
-		// Chloe (user 3)
-		{u[1], "Private thoughts", "Only a few people should see this.", "private"},
-		{u[1], "Morning routine", "Coffee, reading, then coding.", "public"},
-		{u[1], "Photography", "Took some beautiful sunset photos today.", "public"},
-		{u[1], "Weekend plans", "Thinking about hiking this weekend.", "almost_private"},
-		{u[2], "Learning Go", "Interfaces finally clicked today!", "public"},
-
-		{u[4], "New camera", "Testing out my new lens today.", "almost_private"},
-		{u[7], "New track", "Dropping a new beat this Friday 🎵", "public"},
+		{
+			u[0],
+			"Hello world",
+			"My very first post on this network!",
+			"/uploads/seeder/posts/dev.jpeg",
+			"public",
+		},
+		{
+			u[1],
+			"Weekend trip",
+			"Just got back from the mountains 🏔️",
+			"/uploads/seeder/posts/travel.jpeg",
+			"public",
+		},
+		{
+			u[3],
+			"",
+			"Debugging is 90% of my job today.",
+			"/uploads/seeder/posts/dev2.jpeg",
+			"almost_private",
+		},
+		{
+			u[5],
+			"Go tip",
+			"context.Context should be your first param, always.",
+			"/uploads/seeder/posts/dev3.jpeg",
+			"public",
+		},
+		{
+			u[1],
+			"Private thoughts",
+			"Only a few people should see this.",
+			"/uploads/seeder/posts/learning.jpeg",
+			"private",
+		},
+		{
+			u[1],
+			"Morning routine",
+			"Coffee, reading, then coding.",
+			"/uploads/seeder/posts/cooking1.jpeg",
+			"public",
+		},
+		{
+			u[1],
+			"Photography",
+			"Took some beautiful sunset photos today.",
+			"/uploads/seeder/posts/travel2.jpeg",
+			"public",
+		},
+		{
+			u[1],
+			"Weekend plans",
+			"Thinking about hiking this weekend.",
+			"/uploads/seeder/posts/cooking2.jpeg",
+			"almost_private",
+		},
+		{
+			u[2],
+			"Learning Go",
+			"Interfaces finally clicked today!",
+			"/uploads/seeder/posts/learning2.jpeg",
+			"public",
+		},
+		{
+			u[4],
+			"New camera",
+			"Testing out my new lens today.",
+			"/uploads/seeder/posts/travel.jpeg",
+			"almost_private",
+		},
+		{
+			u[7],
+			"New track",
+			"Dropping a new beat this Friday 🎵",
+			"",
+			"public",
+		},
 	}
 	query := `INSERT INTO POSTS (user_id, created_at, title, text, image, privacy) VALUES (?, ?, ?, ?, ?, ?)`
 	ids := make([]int, 0, len(posts))
@@ -260,7 +324,20 @@ func seedPosts(db *sql.DB, u []int) ([]int, error) {
 	for i, post := range posts {
 		title := sql.NullString{String: post.Title, Valid: post.Title != ""}
 		createdAt := now.Add(-time.Duration(len(posts)-i) * time.Hour).Format("2006-01-02 15:04:05")
-		res, err := db.Exec(query, post.UserID, createdAt, title, post.Text, nil, post.Privacy)
+		image := sql.NullString{
+			String: post.Image,
+			Valid:  post.Image != "",
+		}
+
+		res, err := db.Exec(
+			query,
+			post.UserID,
+			createdAt,
+			title,
+			post.Text,
+			image,
+			post.Privacy,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -388,6 +465,8 @@ func seedReactions(db *sql.DB, u, postIDs, commentIDs []int) error {
 	}
 	postReactions := []pr{
 		{u[1], postIDs[0], 1},
+		{u[1], postIDs[8], 1},
+		{u[1], postIDs[7], 1},
 		{u[3], postIDs[0], 1},
 		{u[5], postIDs[1], 1},
 		{u[0], postIDs[3], 1},

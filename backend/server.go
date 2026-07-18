@@ -65,8 +65,6 @@ func main() {
 	repos := repository.NewRepositories(db.Database)
 	handlers.Init(repos)
 	http.HandleFunc("/health", healthHandler)
-	http.HandleFunc("/ws", handlers.HandlerWs)
-	http.HandleFunc("/ws/test", handlers.TestBroadcast)
 	http.HandleFunc("/assets/", handlers.Static)
 	http.HandleFunc("/uploads/", handlers.Static)
 

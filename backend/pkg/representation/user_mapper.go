@@ -58,9 +58,9 @@ func mapPosts(posts []repository.Post, Nickname string) []repModal.PostResponse 
 			Text:         post.Text,
 			Image:        post.Image,
 			Privacy:      post.Privacy,
-			LikeCount:    0,
-			DislikeCount: 0,
-			IsLiked:      0,
+			LikeCount:    post.LikeCount,
+			DislikeCount: post.DislikeCount,
+			IsLiked:      post.IsLiked,
 			// Comments: mapComments(post.Comments),
 		})
 	}
