@@ -78,7 +78,7 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 		Text:      text,
 	}
 
-	if err := Repos.Post.AddComment(comment); err != nil {
+	if err := Repos.Comment.AddComment(comment); err != nil {
 		utilities.WriteJSON(w, http.StatusInternalServerError, "could not create comment", nil)
 		return
 	}
@@ -165,7 +165,7 @@ func CommentResolver(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := Repos.Post.DeleteComment(commentID, userID); err != nil {
+		if err := Repos.Comment.DeleteComment(commentID, userID); err != nil {
 			utilities.WriteJSON(w, http.StatusForbidden, err.Error(), nil)
 			return
 		}

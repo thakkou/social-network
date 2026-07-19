@@ -5,9 +5,9 @@ import { useParams } from "next/navigation";
 
 import ProfilePosts from "~/app/_components/ProfilePosts";
 import Followers from "~/app/_components/Followers";
-import { getProfileData } from "~/app/api/profiles/getProfile"; // adjust path to wherever the action lives
+import { getProfileData } from "~/app/api/crud/getProfile"; // adjust path to wherever the action lives
 import PrivateProfile from "~/app/_components/PrivateProfile";
-import { toggleFollow } from "~/app/api/profiles/follow";
+import { toggleFollow } from "~/app/api/crud/follow";
 interface TabItem {
     label: string;
     Component: React.ComponentType<any>;

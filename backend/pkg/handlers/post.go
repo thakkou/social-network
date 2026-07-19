@@ -95,7 +95,7 @@ func enrichPostWithComments(p *dblayer.Post, userId int) error {
 		return err
 	}
 
-	comments, err := Repos.Post.GetCommentsByPostPaginated(p.Id, 30, 0)
+	comments, err := Repos.Comment.GetCommentsByPostPaginated(p.Id, 30, 0)
 	if err != nil {
 		return err
 	}

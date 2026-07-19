@@ -4,6 +4,7 @@ import "database/sql"
 
 type Repositories struct {
 	Post         *PostRepository
+	Comment      *CommentRepository
 	Category     *CategoryRepository
 	Chat         *ChatRepository
 	User         *UserRepository
@@ -17,6 +18,7 @@ type Repositories struct {
 func NewRepositories(db *sql.DB) *Repositories {
 	return &Repositories{
 		Post:         NewPostRepository(db),
+		Comment:      NewCommentRepository(db),
 		Category:     NewCategoryRepository(db),
 		Chat:         NewChatRepository(db),
 		User:         NewUserRepository(db),

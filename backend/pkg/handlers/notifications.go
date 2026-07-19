@@ -40,7 +40,6 @@ type FollowAcceptedPayload struct {
 type PostReactionPayload struct {
 	PostID    int    `json:"post_id"`
 	PostTitle string `json:"post_title"`
-	PostImage string `json:"post_image,omitempty"`
 	CreatedAt string `json:"created_at"`
 	Reaction  string `json:"reaction"` // like/dislike
 }
@@ -208,25 +207,34 @@ func buildNotifPayload(n repository.Notification) interface{} {
 	switch n.Type {
 
 	case "post_reaction":
+		postData, err := Repos.Post.GetPostByID(n.ObjectID)
+		if err != nil {
+			return nil
+		}
 		return PostReactionPayload{
 			PostID:    n.ObjectID,
 			PostTitle: "My first post title",
-			PostImage: "https://fake-image.com/post.png",
-			CreatedAt: time.Now().Format(time.RFC3339),
+			CreatedAt: postData.CreatedAt.String(),
 			Reaction:  "like",
 		}
 
 	case "comment":
+		commentData, err := Repos.Comment.GetCommentByID(n.ObjectID)
+		if err != nil {
+			// skippe or ignore the notification
+
+			return nil
+		}
 		return CommentPayload{
-			PostID:    n.ObjectID,
-			CommentID: 123, // fake for now
-			Snippet:   "Nice post! This is a fake comment preview",
-			CreatedAt: time.Now().Format(time.RFC3339),
+			PostID:    commentData.PostID,
+			CommentID: n.ObjectID, // fake for now
+			Snippet:   commentData.Text,
+			CreatedAt: commentData.CreatedAt.String(),
 		}
 
 	case "follow_request":
 		return FollowRequestPayload{
-			FollowRequestID: 456, // fake
+			FollowRequestID: n.ObjectID, // fake
 			FollowStatus:    "pending",
 		}
 
@@ -236,18 +244,30 @@ func buildNotifPayload(n repository.Notification) interface{} {
 		}
 
 	case "group_invite":
+		groupdata, err := Repos.Group.GetPublicGroupDetails(n.ObjectID)
+		if err != nil {
+			// skippe or ignore the notification
+
+			return nil
+		}
 		return GroupInvitePayload{
-			GroupID:      n.ObjectID,
-			GroupName:    "Gophers Community",
+			GroupID:      groupdata.ID,
+			GroupName:    groupdata.Title,
 			GroupAvatar:  "https://fake-image.com/group.png",
-			InvitationID: 789, // fake
+			InvitationID: n.ObjectID, // fake
 		}
 
 	case "group_join_request":
+		groupdata, err := Repos.Group.GetPublicGroupDetails(n.ObjectID)
+		if err != nil {
+			// skippe or ignore the notification
+
+			return nil
+		}
 		return GroupJoinRequestPayload{
 			GroupID:      n.ObjectID,
 			SenderID:     n.ActorID,
-			InvitationID: 999, // fake
+			InvitationID: groupdata.ID, // fake
 		}
 
 	default:

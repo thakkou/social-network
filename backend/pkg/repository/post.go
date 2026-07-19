@@ -23,15 +23,6 @@ type Post struct {
 	CommentCount int `json:"comment_count"`
 }
 
-// Comment represents a comment on a post
-type Comment struct {
-	ID        int       `json:"id"`         // Unique comment identifier
-	UserID    int       `json:"user_id"`    // User who created the comment
-	PostID    int       `json:"post_id"`    // Post being commented on
-	CreatedAt time.Time `json:"created_at"` // Comment creation timestamp
-	Text      string    `json:"text"`       // Comment content
-}
-
 // PostRepository handles all database operations related to posts
 type PostRepository struct {
 	DB *sql.DB
@@ -127,26 +118,6 @@ func (r *PostRepository) EnrichPostMetadata(userID int, p *Post) error {
 	}
 
 	return nil
-}
-
-// AddComment inserts a new comment for a post.
-func (r *PostRepository) AddComment(c *Comment) error {
-	res, err := r.DB.Exec(
-		`INSERT INTO COMMENTS (user_id, post_id, created_at, text) VALUES (?, ?, ?, ?)`,
-		c.UserID,
-		c.PostID,
-		c.CreatedAt.Format("2006-01-02 15:04:05"),
-		c.Text,
-	)
-	if err != nil {
-		return err
-	}
-
-	id, err := res.LastInsertId()
-	if err == nil {
-		c.ID = int(id)
-	}
-	return err
 }
 
 // scanPostRow reads a single POSTS row (id, user_id, created_at, title, text, image, privacy)
@@ -405,79 +376,6 @@ func (r *PostRepository) DeletePost(postID, userID int) error {
 	return tx.Commit()
 }
 
-// DeleteComment removes a comment if the user is the owner.
-func (r *PostRepository) DeleteComment(commentID, userID int) error {
-	tx, err := r.DB.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	var ownerID int
-	err = tx.QueryRow("SELECT user_id FROM COMMENTS WHERE id = ?", commentID).Scan(&ownerID)
-	if err == sql.ErrNoRows {
-		return fmt.Errorf("comment not found")
-	}
-	if err != nil {
-		return err
-	}
-	if ownerID != userID {
-		return fmt.Errorf("not your comment")
-	}
-
-	if _, err := tx.Exec("DELETE FROM COMMENTS WHERE id = ?", commentID); err != nil {
-		return err
-	}
-
-	return tx.Commit()
-}
-
-// GetCommentsByPost returns all comments for a post, newest first.
-func (r *PostRepository) GetCommentsByPost(postID int) ([]Comment, error) {
-	return r.getComments(postID, 0, 0)
-}
-
-// GetCommentsByPostPaginated returns comments for a post using a keyset (lastID) cursor.
-func (r *PostRepository) GetCommentsByPostPaginated(postID, limit, lastID int) ([]Comment, error) {
-	return r.getComments(postID, limit, lastID)
-}
-
-func (r *PostRepository) getComments(postID, limit, lastID int) ([]Comment, error) {
-	query := `SELECT id, user_id, post_id, created_at, text FROM COMMENTS WHERE post_id = ?`
-	args := []any{postID}
-
-	if lastID > 0 {
-		query += " AND id < ?"
-		args = append(args, lastID)
-	}
-
-	query += " ORDER BY created_at DESC, id DESC"
-
-	if limit > 0 {
-		query += " LIMIT ?"
-		args = append(args, limit)
-	}
-
-	rows, err := r.DB.Query(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var comments []Comment
-	for rows.Next() {
-		var c Comment
-		var createdAt string
-		if err := rows.Scan(&c.ID, &c.UserID, &c.PostID, &createdAt, &c.Text); err != nil {
-			return nil, err
-		}
-		c.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
-		comments = append(comments, c)
-	}
-
-	return comments, rows.Err()
-}
-
 // SetPostReaction creates or updates a user's reaction on a post.
 // isLike values: 1 -> like, 0 -> remove/neutral, -1 -> dislike
 func (r *PostRepository) SetPostReaction(userID, postID, isLike int) error {
@@ -505,13 +403,6 @@ func (r *PostRepository) GetReactionCounts(postID int) (likes, dislikes int, err
 	return likes, dislikes, err
 }
 
-// GetCommentCount returns the number of comments attached to a post.
-func (r *PostRepository) GetCommentCount(postID int) (int, error) {
-	var count int
-	err := r.DB.QueryRow(`SELECT COUNT(*) FROM COMMENTS WHERE post_id = ?`, postID).Scan(&count)
-	return count, err
-}
-
 // GetUserReaction returns the given user's reaction to a post (1, 0, or -1).
 func (r *PostRepository) GetUserReaction(userID, postID int) (int, error) {
 	var reaction int
@@ -523,4 +414,10 @@ func (r *PostRepository) GetUserReaction(userID, postID int) (int, error) {
 		return 0, nil
 	}
 	return reaction, err
+}
+
+func (r *PostRepository) GetCommentCount(postID int) (int, error) {
+	var count int
+	err := r.DB.QueryRow(`SELECT COUNT(*) FROM COMMENTS WHERE post_id = ?`, postID).Scan(&count)
+	return count, err
 }

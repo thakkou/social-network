@@ -340,3 +340,29 @@ func (r *GroupRepository) SearchGroups(text string) ([]Group, error) {
 
 	return groups, rows.Err()
 }
+
+func (r *GroupRepository) GetPublicGroupDetails(groupID int) (*Group, error) {
+	var group Group
+
+	var createdAt string
+
+	err := r.DB.QueryRow(`
+		SELECT 
+			id,
+			title,
+			created_at
+		FROM GROUPS
+		WHERE id = ?
+	`, groupID).Scan(
+		&group.ID,
+		&group.Title,
+		&createdAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	group.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
+
+	return &group, nil
+}

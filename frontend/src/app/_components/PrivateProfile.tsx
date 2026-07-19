@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { toggleFollow } from "../api/profiles/follow";
 
 interface PrivateProfileProps {
     userId: string | number;
