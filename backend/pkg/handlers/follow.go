@@ -140,15 +140,16 @@ func FollowResolver(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if status == "pending" {
-			if notifyErr := Repos.Notification.Create(&repository.Notification{
-				UserID:      targetID,
-				Type:        "follow_request",
-				ReferenceID: userID,
-			}); notifyErr != nil {
-				fmt.Printf("failed to create follow notification: %v\n", notifyErr)
+			if err := Repos.Notification.Create(&repository.Notification{
+				UserID:     targetID, // receiver
+				ActorID:    userID,   // requester
+				Type:       "follow_request",
+				ObjectType: "follow",
+				ObjectID:   userID, // or the FOLLOWS row ID if you add one
+			}); err != nil {
+				fmt.Printf("failed to create notification: %v\n", err)
 			}
 		}
-
 		utilities.WriteJSON(
 			w,
 			http.StatusOK,

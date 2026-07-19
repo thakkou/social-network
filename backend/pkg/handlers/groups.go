@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,26 +13,41 @@ import (
 	"01social/pkg/ws"
 )
 
-func notifyGroupUsers(groupID int, eventType string, referenceID int, excludedUserIDs ...int) {
+func notifyGroupUsers(
+	groupID int,
+	eventType string,
+	objectType string,
+	objectID int,
+	actorID int,
+	excludedUserIDs ...int,
+) {
 	memberIDs, err := Repos.Group.GetGroupMemberIDs(groupID)
 	if err != nil {
 		return
 	}
 
 	excluded := make(map[int]struct{}, len(excludedUserIDs))
+
 	for _, userID := range excludedUserIDs {
 		excluded[userID] = struct{}{}
 	}
 
 	for _, userID := range memberIDs {
+
 		if _, skip := excluded[userID]; skip {
 			continue
 		}
-		_ = Repos.Notification.Create(&repository.Notification{
-			UserID:      userID,
-			Type:        eventType,
-			ReferenceID: referenceID,
+
+		err := Repos.Notification.Create(&repository.Notification{
+			UserID:     userID,
+			ActorID:    actorID,
+			Type:       eventType,
+			ObjectType: objectType,
+			ObjectID:   objectID,
 		})
+		if err != nil {
+			fmt.Printf("notification error: %v\n", err)
+		}
 	}
 }
 
@@ -336,7 +352,14 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		notifyGroupUsers(groupID, "group_message", msg.ID, userID)
+		notifyGroupUsers(
+			groupID,
+			"group_message",
+			"group_message",
+			msg.ID,
+			userID,
+			userID,
+		)
 		for _, memberID := range []int{userID} {
 			_ = memberID
 		}
@@ -367,7 +390,13 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 		}
 		creatorID, err := Repos.Group.GetGroupCreatorID(groupID)
 		if err == nil && creatorID > 0 {
-			_ = Repos.Notification.Create(&repository.Notification{UserID: creatorID, Type: "group_join_request", ReferenceID: groupID})
+			_ = Repos.Notification.Create(&repository.Notification{
+				UserID:     creatorID,
+				ActorID:    userID,
+				Type:       "group_join_request",
+				ObjectType: "group_request",
+				ObjectID:   groupID,
+			})
 		}
 		utilities.WriteJSON(w, http.StatusOK, "join request sent", nil)
 	case "invite":
@@ -390,7 +419,13 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			utilities.WriteJSON(w, http.StatusInternalServerError, "could not invite user", nil)
 			return
 		}
-		_ = Repos.Notification.Create(&repository.Notification{UserID: payload.UserID, Type: "group_invite", ReferenceID: groupID})
+		_ = Repos.Notification.Create(&repository.Notification{
+			UserID:     payload.UserID,
+			ActorID:    userID,
+			Type:       "group_invite",
+			ObjectType: "group_invite",
+			ObjectID:   groupID,
+		})
 		utilities.WriteJSON(w, http.StatusOK, "invite sent", nil)
 	case "posts":
 		member, err := Repos.Group.IsGroupMember(groupID, userID)
@@ -463,7 +498,14 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			utilities.WriteJSON(w, http.StatusInternalServerError, "could not create event", nil)
 			return
 		}
-		notifyGroupUsers(groupID, "group_event", event.ID, userID)
+		notifyGroupUsers(
+			groupID,
+			"group_event",
+			"event",
+			event.ID,
+			userID,
+			userID,
+		)
 		utilities.WriteJSON(w, http.StatusCreated, "event created", map[string]any{"event_id": event.ID})
 	default:
 		utilities.WriteJSON(w, http.StatusNotFound, "unknown endpoint", nil)

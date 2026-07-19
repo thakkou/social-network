@@ -770,27 +770,273 @@ func seedMessages(db *sql.DB, convIDs, u []int) error {
 
 func seedNotifications(db *sql.DB, u []int) error {
 	type n struct {
-		UserID      int
-		Type        string
-		ReferenceID int
-		IsRead      int
+		UserID     int
+		ActorID    int
+		Type       string
+		ObjectType string
+		ObjectID   int
+		IsRead     int
 	}
+
 	notifications := []n{
-		{u[2], "follow_request", u[6], 0},      // chloe: grace requested to follow
-		{u[4], "follow_request", u[7], 0},      // emma: hugo requested to follow
-		{u[6], "group_invite", u[0], 0},        // grace: invited to Gophers United by alice
-		{u[4], "group_invite", u[5], 0},        // emma: invited to Weekend Hikers by farid
-		{u[0], "group_join_request", u[7], 0},  // alice (creator): hugo requested to join
-		{u[5], "group_join_request", u[3], 0},  // farid (creator): david requested to join
-		{u[3], "group_event_created", u[0], 1}, // david: new event in Gophers United (read)
-		{u[5], "group_event_created", u[0], 0}, // farid: new event in Gophers United
+		// Chloe receives follow request from Grace
+		{
+			UserID:     u[2],
+			ActorID:    u[6],
+			Type:       "follow_request",
+			ObjectType: "follow",
+			ObjectID:   u[6],
+			IsRead:     0,
+		},
+		// Alice receives like on her first post from Bob
+		{
+			UserID:     u[0],
+			ActorID:    u[1],
+			Type:       "post_reaction",
+			ObjectType: "post",
+			ObjectID:   1,
+			IsRead:     0,
+		},
+
+		// Alice receives comment on her post from David
+		{
+			UserID:     u[0],
+			ActorID:    u[3],
+			Type:       "comment",
+			ObjectType: "comment",
+			ObjectID:   2,
+			IsRead:     0,
+		},
+
+		// Alice receives accepted follow notification from Chloe
+		{
+			UserID:     u[0],
+			ActorID:    u[2],
+			Type:       "follow_accepted",
+			ObjectType: "follow",
+			ObjectID:   u[2],
+			IsRead:     1,
+		},
+
+		// Alice receives group invite from Farid
+		{
+			UserID:     u[0],
+			ActorID:    u[5],
+			Type:       "group_invite",
+			ObjectType: "group_invite",
+			ObjectID:   2,
+			IsRead:     1,
+		},
+
+		// Bob receives like on his weekend trip post from Alice
+		{
+			UserID:     u[1],
+			ActorID:    u[0],
+			Type:       "post_reaction",
+			ObjectType: "post",
+			ObjectID:   2,
+			IsRead:     0,
+		},
+
+		// Bob receives comment from Chloe
+		{
+			UserID:     u[1],
+			ActorID:    u[2],
+			Type:       "comment",
+			ObjectType: "comment",
+			ObjectID:   1,
+			IsRead:     1,
+		},
+
+		// Bob receives follow request from Grace
+		{
+			UserID:     u[1],
+			ActorID:    u[6],
+			Type:       "follow_request",
+			ObjectType: "follow",
+			ObjectID:   u[6],
+			IsRead:     0,
+		},
+
+		// Bob receives new message from Alice
+		{
+			UserID:     u[1],
+			ActorID:    u[0],
+			Type:       "message",
+			ObjectType: "conversation",
+			ObjectID:   1,
+			IsRead:     0,
+		},
+
+		// Chloe receives like on her Learning Go post
+		{
+			UserID:     u[2],
+			ActorID:    u[1],
+			Type:       "post_reaction",
+			ObjectType: "post",
+			ObjectID:   9,
+			IsRead:     0,
+		},
+
+		// Chloe receives comment from Alice
+		{
+			UserID:     u[2],
+			ActorID:    u[0],
+			Type:       "comment",
+			ObjectType: "comment",
+			ObjectID:   5,
+			IsRead:     0,
+		},
+
+		// Chloe receives accepted follow from Alice
+		{
+			UserID:     u[2],
+			ActorID:    u[0],
+			Type:       "follow_accepted",
+			ObjectType: "follow",
+			ObjectID:   u[0],
+			IsRead:     1,
+		},
+
+		// Chloe receives group event reminder
+		{
+			UserID:     u[2],
+			ActorID:    u[5],
+			Type:       "group_event",
+			ObjectType: "event",
+			ObjectID:   2,
+			IsRead:     0,
+		},
+
+		// Chloe receives private post shared notification
+		{
+			UserID:     u[2],
+			ActorID:    u[0],
+			Type:       "post_shared",
+			ObjectType: "post",
+			ObjectID:   1,
+			IsRead:     1,
+		},
+
+		// Alice receives another unread notification from Hugo
+		{
+			UserID:     u[0],
+			ActorID:    u[7],
+			Type:       "follow_request",
+			ObjectType: "follow",
+			ObjectID:   u[7],
+			IsRead:     0,
+		},
+
+		// Bob receives group event notification
+		{
+			UserID:     u[1],
+			ActorID:    u[0],
+			Type:       "group_event",
+			ObjectType: "event",
+			ObjectID:   1,
+			IsRead:     0,
+		},
+		// Emma receives follow request from Hugo
+		{
+			UserID:     u[4],
+			ActorID:    u[7],
+			Type:       "follow_request",
+			ObjectType: "follow",
+			ObjectID:   u[7],
+			IsRead:     0,
+		},
+
+		// Grace receives group invite from Alice
+		{
+			UserID:     u[6],
+			ActorID:    u[0],
+			Type:       "group_invite",
+			ObjectType: "group_invite",
+			ObjectID:   1,
+			IsRead:     0,
+		},
+
+		// Emma receives group invite from Farid
+		{
+			UserID:     u[4],
+			ActorID:    u[5],
+			Type:       "group_invite",
+			ObjectType: "group_invite",
+			ObjectID:   2,
+			IsRead:     0,
+		},
+
+		// Alice receives join request from Hugo
+		{
+			UserID:     u[0],
+			ActorID:    u[7],
+			Type:       "group_join_request",
+			ObjectType: "group_request",
+			ObjectID:   1,
+			IsRead:     0,
+		},
+
+		// Farid receives join request from David
+		{
+			UserID:     u[5],
+			ActorID:    u[3],
+			Type:       "group_join_request",
+			ObjectType: "group_request",
+			ObjectID:   2,
+			IsRead:     0,
+		},
+
+		// David receives event notification
+		{
+			UserID:     u[3],
+			ActorID:    u[0],
+			Type:       "group_event",
+			ObjectType: "event",
+			ObjectID:   1,
+			IsRead:     1,
+		},
+
+		// Farid receives event notification
+		{
+			UserID:     u[5],
+			ActorID:    u[0],
+			Type:       "group_event",
+			ObjectType: "event",
+			ObjectID:   1,
+			IsRead:     0,
+		},
 	}
-	query := `INSERT INTO NOTIFICATIONS (user_id, type, reference_id, is_read) VALUES (?, ?, ?, ?)`
+
+	query := `
+	INSERT INTO NOTIFICATIONS
+	(
+		user_id,
+		actor_id,
+		type,
+		object_type,
+		object_id,
+		is_read
+	)
+	VALUES (?, ?, ?, ?, ?, ?)
+	`
+
 	for _, notif := range notifications {
-		if _, err := db.Exec(query, notif.UserID, notif.Type, notif.ReferenceID, notif.IsRead); err != nil {
+
+		_, err := db.Exec(
+			query,
+			notif.UserID,
+			notif.ActorID,
+			notif.Type,
+			notif.ObjectType,
+			notif.ObjectID,
+			notif.IsRead,
+		)
+		if err != nil {
 			return err
 		}
 	}
+
 	log.Printf("[SEED] notifications: %d\n", len(notifications))
 	return nil
 }
