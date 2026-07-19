@@ -113,10 +113,35 @@ func (r *NotificationRepository) GetByUserID(userID int, typeNotif string) ([]No
 }
 
 func (r *NotificationRepository) MarkAsRead(id int) error {
-	_, err := r.DB.Exec(
-		"UPDATE NOTIFICATIONS SET is_read = 1 WHERE id = ?",
-		id,
-	)
+	query := `UPDATE NOTIFICATIONS SET is_read = 1 WHERE id = ?`
+	_, err := r.DB.Exec(query, id)
+	return err
+}
 
+func (r *NotificationRepository) MarkAllAsReadByUserID(userID int) error {
+	query := `UPDATE NOTIFICATIONS SET is_read = 1 WHERE user_id = ? AND is_read = 0`
+	_, err := r.DB.Exec(query, userID)
+	return err
+}
+
+func (r *NotificationRepository) DeleteByIDAndUserID(id int, userID int) error {
+	query := `DELETE FROM NOTIFICATIONS WHERE id = ? AND user_id = ?`
+	res, err := r.DB.Exec(query, id, userID)
+	if err != nil {
+		return err
+	}
+
+	// Optional check: ensure rows were actually modified (proves ownership)
+	rowsAffected, err := res.RowsAffected()
+	if err == nil && rowsAffected == 0 {
+		return errors.New("notification not found or unauthorized")
+	}
+
+	return nil
+}
+
+func (r *NotificationRepository) DeleteAllByUserID(userID int) error {
+	query := `DELETE FROM NOTIFICATIONS WHERE user_id = ?`
+	_, err := r.DB.Exec(query, userID)
 	return err
 }

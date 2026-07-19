@@ -200,10 +200,20 @@ func RegisterRoutes() {
 	)
 
 	http.HandleFunc(
+		"/api/notifications/readAll",
+		middlewares.CheckSessionCookie(handlers.MarkAllNotificationsRead, true),
+	)
+	// delete one notif
+	http.HandleFunc(
 		"/api/notifications/read",
 		middlewares.CheckSessionCookie(handlers.MarkNotificationRead, true),
 	)
 
+	// mark notif as Read
+	http.HandleFunc(
+		"/api/notifications/deletAll",
+		middlewares.CheckSessionCookie(handlers.DeletAllNotif, true),
+	)
 	// http.HandleFunc(
 	// 	"/api/users/{id}",
 	// 	middlewares.RateLimit(

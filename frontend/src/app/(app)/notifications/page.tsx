@@ -1,6 +1,7 @@
+
 "use client"
-import { getNotifications } from "~/app/api/crud/notification";
-import { useState, useEffect } from "react";
+import { getNotifications, markNotificationAsRead, markAllNotificationsRead, deleteAllNotifications } from "~/app/api/crud/notification";
+import { useState, useEffect } from "react"
 
 // 1. Exact Interface mapping to your JSON response
 interface NotificationActor {
@@ -33,9 +34,13 @@ interface NotificationItem {
   payload: NotificationPayload | null;
 }
 
-const NotificationCard = ({ data }: { data: NotificationItem }) => {
-  console.log("notification of ", data.type, "the data:", data);
-
+const NotificationCard = ({
+  data,
+  onMarkRead,
+}: {
+  data: NotificationItem;
+  onMarkRead: (id: string | number) => void;
+}) => {
   // Setup dynamic color styling and configurations based on notification type
   const typeStyles = {
     follow_request: { border: '#D4537E', tagClass: 'tag-pink', label: 'follow request' },
@@ -47,7 +52,6 @@ const NotificationCard = ({ data }: { data: NotificationItem }) => {
     group_event: { border: '#1D9E75', tagClass: 'tag-teal', label: 'group event' }
   }[data.type] || { border: '#ccc', tagClass: 'tag-g', label: 'notification' };
 
-  // Generate clear user labels safely out of your actor object fields
   const getActorName = () => {
     if (!data.actor) return "Someone";
     if (data.actor.firstname || data.actor.lastname) {
@@ -56,7 +60,6 @@ const NotificationCard = ({ data }: { data: NotificationItem }) => {
     return data.actor.nickname || "Someone";
   };
 
-  // Safe user avatar abbreviation fallback
   const getInitials = () => {
     if (!data.actor) return "??";
     if (data.actor.firstname && data.actor.lastname) {
@@ -66,8 +69,6 @@ const NotificationCard = ({ data }: { data: NotificationItem }) => {
   };
 
   const hasAccept = ["follow_request", "group_invite", "group_join_request"].includes(data.type);
-
-  // Parse ISO date into a simple viewable string format
   const displayTime = data.created_at ? new Date(data.created_at).toLocaleDateString() : "just now";
 
   return (
@@ -75,11 +76,12 @@ const NotificationCard = ({ data }: { data: NotificationItem }) => {
       className="card" 
       style={{ 
         borderLeft: `2px solid ${typeStyles.border}`,
-        opacity: data.is_read ? 0.7 : 1 
+        opacity: data.is_read ? 0.6 : 1 
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
         <span className={`tag ${typeStyles.tagClass}`}>{typeStyles.label}</span>
+        {data.is_read && <span style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', fontStyle: 'italic' }}>read</span>}
         <span style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', marginLeft: 'auto' }}>
           {displayTime}
         </span>
@@ -134,28 +136,34 @@ const NotificationCard = ({ data }: { data: NotificationItem }) => {
         </p>
       </div>
 
-      {/* Dynamic Action Buttons based on parsed types */}
-      <div style={{ display: 'flex', gap: '6px' }}>
-        {data.type === 'group_event' ? (
-          <>
-            <button className="btn btn-t" style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <i className="ti ti-check" style={{ fontSize: '12px' }} aria-hidden="true"></i> going
-            </button>
-            <button className="btn btn-g" style={{ fontSize: '11px' }}>not going</button>
-          </>
-        ) : hasAccept ? (
-          <>
-            <button className="btn btn-t" style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <i className="ti ti-check" style={{ fontSize: '12px' }} aria-hidden="true"></i> accept
-            </button>
-            <button className="btn btn-red" style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <i className="ti ti-x" style={{ fontSize: '12px' }} aria-hidden="true"></i> decline
-            </button>
-          </>
-        ) : (
-          ["post_reaction", "comment"].includes(data.type) && (
-            <button className="btn btn-g" style={{ fontSize: '11px' }}>view post</button>
-          )
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "6px" }}>
+          {data.type === "group_event" ? (
+            <>
+              <button className="btn btn-t" style={{ fontSize: "11px" }}>going</button>
+              <button className="btn btn-g" style={{ fontSize: "11px" }}>not going</button>
+            </>
+          ) : hasAccept ? (
+            <>
+              <button className="btn btn-t" style={{ fontSize: "11px" }}>accept</button>
+              <button className="btn btn-red" style={{ fontSize: "11px" }}>decline</button>
+            </>
+          ) : (
+            ["post_reaction", "comment"].includes(data.type) && (
+              <button className="btn btn-g" style={{ fontSize: "11px" }}>view post</button>
+            )
+          )}
+        </div>
+
+        {/* Updated individual button to handle 'mark as read' state instead of flat out hard-deleting */}
+        {!data.is_read && (
+          <button
+            className="btn btn-g"
+            style={{ fontSize: "11px" }}
+            onClick={() => onMarkRead(data.id)}
+          >
+            <i className="ti ti-check" /> mark read
+          </button>
         )}
       </div>
     </div>
@@ -179,6 +187,41 @@ export default function Notifications() {
 
     setNotifications(res.data);
     setLoading(false);
+  };
+
+  const handleMarkRead = async (id: string | number) => {
+    const res = await markNotificationAsRead(id);
+
+    if (res.success) {
+      if (filter === "unread") {
+        // If viewing only unread, filter it completely out of sight
+        setNotifications(prev => prev.filter(n => n.id !== id));
+      } else {
+        // Otherwise, visually change its inline read-status values
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+      }
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    const res = await markAllNotificationsRead();
+
+    if (res.success) {
+      if (filter === "unread") {
+        setNotifications([]);
+      } else {
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      }
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (!window.confirm("Are you sure you want to clear all your notifications? This cannot be undone.")) return;
+    
+    const res = await deleteAllNotifications();
+    if (res.success) {
+      setNotifications([]);
+    }
   };
 
   const handleFilterChange = (type: "all" | "unread") => {
@@ -217,11 +260,20 @@ export default function Notifications() {
           unread
         </button>
 
-        <button className="btn btn-red" style={{ fontSize: "10px", marginLeft: "auto" }}>
+        {/* Wired up to trigger the backend API delete-all route */}
+        <button 
+          className="btn btn-red" 
+          style={{ fontSize: "10px", marginLeft: "auto" }}
+          onClick={handleDeleteAll}
+        >
           delete all
         </button>
 
-        <button className="btn btn-g" style={{ fontSize: "10px" }}>
+        <button
+          className="btn btn-g"
+          style={{ fontSize: "10px" }}
+          onClick={handleMarkAllRead}
+        >
           mark all read
         </button>
       </div>
@@ -239,7 +291,11 @@ export default function Notifications() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {notification.map((item) => (
-            <NotificationCard key={item.id} data={item} />
+            <NotificationCard
+              key={item.id}
+              data={item}
+              onMarkRead={handleMarkRead}
+            />
           ))}
         </div>
       )}

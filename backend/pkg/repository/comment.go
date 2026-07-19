@@ -116,11 +116,6 @@ func (r *CommentRepository) getComments(postID, limit, lastID int) ([]Comment, e
 }
 
 // GetCommentCount returns the number of comments attached to a post.
-func (r *CommentRepository) GetCommentCount(postID int) (int, error) {
-	var count int
-	err := r.DB.QueryRow(`SELECT COUNT(*) FROM COMMENTS WHERE post_id = ?`, postID).Scan(&count)
-	return count, err
-}
 
 // GetCommentByID returns a single comment by its ID.
 func (r *CommentRepository) GetCommentByID(commentID int) (*Comment, error) {

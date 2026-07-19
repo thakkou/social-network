@@ -62,62 +62,13 @@ export async function getNotifications(type: "all" | "unread" = "unread") {
   };
 }
 
-/* =========================
- * Delete One Notification
- * DELETE /api/notifications?id=1
- * ========================= */
-
-export async function deleteNotification(id: number) {
-  const result = await fetchApi(
-    `/api/notifications?id=${id}`,
-    {
-      method: "DELETE",
-    }
-  );
-
-  if (!result.success) {
-    return {
-      success: false,
-      error: result.error,
-    };
-  }
-
-  return {
-    success: true,
-  };
-}
 
 /* =========================
- * Delete All Notifications
- * DELETE /api/notifications
- * ========================= */
-
-export async function deleteAllNotifications() {
-  const result = await fetchApi(
-    "/api/notifications",
-    {
-      method: "DELETE",
-    }
-  );
-
-  if (!result.success) {
-    return {
-      success: false,
-      error: result.error,
-    };
-  }
-
-  return {
-    success: true,
-  };
-}
-
-/* =========================
- * Mark One Notification Read
+* Mark One Notification Read
  * POST /api/notifications/read?id=1
  * ========================= */
 
-export async function markNotificationRead(id: number) {
+export async function markNotificationAsRead(id: number) {
   const result = await fetchApi(
     `/api/notifications/read?id=${id}`,
     {
@@ -144,9 +95,34 @@ export async function markNotificationRead(id: number) {
 
 export async function markAllNotificationsRead() {
   const result = await fetchApi(
-    "/api/notifications/read-all",
+    "/api/notifications/readAll",
     {
       method: "POST",
+    }
+  );
+
+  if (!result.success) {
+    return {
+      success: false,
+      error: result.error,
+    };
+  }
+
+  return {
+    success: true,
+  };}
+
+
+/* =========================
+ * Delete All Notifications
+ * DELETE /api/notifications
+ * ========================= */
+
+export async function deleteAllNotifications() {
+  const result = await fetchApi(
+    "/api/notifications/deletAll",
+    {
+      method: "DELETE",
     }
   );
 

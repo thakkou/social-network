@@ -67,6 +67,7 @@ type GroupJoinRequestPayload struct {
 func GetNotifications(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		utilities.WriteJSON(w, http.StatusBadRequest, "method not allowed", nil)
+		return
 	}
 	notifType := r.URL.Query().Get("type")
 	if notifType == "" {
@@ -100,11 +101,50 @@ func GetNotifications(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeletNotif(w http.ResponseWriter, r *http.Request) {
-	utilities.WriteJSON(w, http.StatusAccepted, "start delete one notif", nil)
+	if r.Method != http.MethodDelete {
+		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
+
+	userID, ok := middlewares.GetUserID(r)
+	if !ok {
+		utilities.WriteJSON(w, http.StatusUnauthorized, "not logged in", nil)
+		return
+	}
+
+	idStr := r.URL.Query().Get("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		utilities.WriteJSON(w, http.StatusBadRequest, "invalid notification id", nil)
+		return
+	}
+
+	if err := Repos.Notification.DeleteByIDAndUserID(id, userID); err != nil {
+		utilities.WriteJSON(w, http.StatusInternalServerError, "could not delete notification", nil)
+		return
+	}
+
+	utilities.WriteJSON(w, http.StatusOK, "notification deleted", nil)
 }
 
 func DeletAllNotif(w http.ResponseWriter, r *http.Request) {
-	utilities.WriteJSON(w, http.StatusAccepted, "start delete one notif", nil)
+	if r.Method != http.MethodDelete {
+		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
+
+	userID, ok := middlewares.GetUserID(r)
+	if !ok {
+		utilities.WriteJSON(w, http.StatusUnauthorized, "not logged in", nil)
+		return
+	}
+
+	if err := Repos.Notification.DeleteAllByUserID(userID); err != nil {
+		utilities.WriteJSON(w, http.StatusInternalServerError, "could not delete notifications", nil)
+		return
+	}
+
+	utilities.WriteJSON(w, http.StatusOK, "all notifications deleted", nil)
 }
 
 func MarkNotificationRead(w http.ResponseWriter, r *http.Request) {
@@ -128,44 +168,25 @@ func MarkNotificationRead(w http.ResponseWriter, r *http.Request) {
 	utilities.WriteJSON(w, http.StatusOK, "notification marked as read", nil)
 }
 
-/*
-actor:{
-avatar,nickname,first and last name}
-*/
-/*
-all types
-1-  "type": "post_reaction",
-     "object_type": "post",
-2- "type": "comment",
-     "object_type": "comment",
-3-"type": "follow_request", req
-"object_type": "follow",
-4-"type": "follow_accepted",
-    "object_type": "follow",
-5-"type": "group_invite",   req
-            "object_type": "group_invite",
-6-"type": "group_join_request",    user a find group b and send a request join
-    "object_type": "group_request",
-*/
+func MarkAllNotificationsRead(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
 
-/*payload data on each type
-1-follow_request
- ->{follow request ID
-    + follow status
- }
-2-group_invite
-->{
-groupid,grouptitle,avatar,invitationID
+	userID, ok := middlewares.GetUserID(r)
+	if !ok {
+		utilities.WriteJSON(w, http.StatusUnauthorized, "not logged in", nil)
+		return
+	}
+
+	if err := Repos.Notification.MarkAllAsReadByUserID(userID); err != nil {
+		utilities.WriteJSON(w, http.StatusInternalServerError, "could not mark all notifications as read", nil)
+		return
+	}
+
+	utilities.WriteJSON(w, http.StatusOK, "all notifications marked as read", nil)
 }
-3-group_join_request (later + not required)
- ->{
-     user senderid + invitationid
- }
-	 4-postreaction or comment reaction={
-	only like + post title,createt at}
-	5-new comment=>
-
-*/
 
 func EnrishNotif(notifs []repository.Notification) []NotifResponse {
 	enriched := make([]NotifResponse, 0, len(notifs))
@@ -173,9 +194,6 @@ func EnrishNotif(notifs []repository.Notification) []NotifResponse {
 	for _, n := range notifs {
 		var actor ActorInfo
 
-		// NOTE: assumes repository.Notification has a SenderID field and
-		// Repos.User has a GetMinimalByID method — rename to match your
-		// actual repo/user model.
 		if user, err := Repos.Profile.GetPublicProfile(n.ActorID); err == nil && user != nil {
 			actor = ActorInfo{
 				UserID:    user.ID,
@@ -200,9 +218,6 @@ func EnrishNotif(notifs []repository.Notification) []NotifResponse {
 	return enriched
 }
 
-// buildNotifPayload returns the right typed payload based on n.Type.
-// NOTE: assumes repository.Notification has an ObjectID field pointing at
-// the related post/comment/group/etc — adjust field names to match your model.
 func buildNotifPayload(n repository.Notification) interface{} {
 	switch n.Type {
 
@@ -221,20 +236,18 @@ func buildNotifPayload(n repository.Notification) interface{} {
 	case "comment":
 		commentData, err := Repos.Comment.GetCommentByID(n.ObjectID)
 		if err != nil {
-			// skippe or ignore the notification
-
 			return nil
 		}
 		return CommentPayload{
 			PostID:    commentData.PostID,
-			CommentID: n.ObjectID, // fake for now
+			CommentID: n.ObjectID,
 			Snippet:   commentData.Text,
 			CreatedAt: commentData.CreatedAt.String(),
 		}
 
 	case "follow_request":
 		return FollowRequestPayload{
-			FollowRequestID: n.ObjectID, // fake
+			FollowRequestID: n.ObjectID,
 			FollowStatus:    "pending",
 		}
 
@@ -246,28 +259,24 @@ func buildNotifPayload(n repository.Notification) interface{} {
 	case "group_invite":
 		groupdata, err := Repos.Group.GetPublicGroupDetails(n.ObjectID)
 		if err != nil {
-			// skippe or ignore the notification
-
 			return nil
 		}
 		return GroupInvitePayload{
 			GroupID:      groupdata.ID,
 			GroupName:    groupdata.Title,
 			GroupAvatar:  "https://fake-image.com/group.png",
-			InvitationID: n.ObjectID, // fake
+			InvitationID: n.ObjectID,
 		}
 
 	case "group_join_request":
 		groupdata, err := Repos.Group.GetPublicGroupDetails(n.ObjectID)
 		if err != nil {
-			// skippe or ignore the notification
-
 			return nil
 		}
 		return GroupJoinRequestPayload{
 			GroupID:      n.ObjectID,
 			SenderID:     n.ActorID,
-			InvitationID: groupdata.ID, // fake
+			InvitationID: groupdata.ID,
 		}
 
 	default:
