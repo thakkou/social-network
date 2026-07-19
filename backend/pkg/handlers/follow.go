@@ -173,6 +173,10 @@ func FollowResolver(w http.ResponseWriter, r *http.Request) {
 			)
 			return
 		}
+		// Clean up any existing follow notifications between these two users
+		if err := Repos.Notification.DeleteFollowNotification(userID, targetID); err != nil {
+			fmt.Printf("failed to clean up follow notification: %v\n", err)
+		}
 
 		utilities.WriteJSON(
 			w,

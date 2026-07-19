@@ -22,6 +22,17 @@ type NotificationRepository struct {
 	DB *sql.DB
 }
 
+func (r *NotificationRepository) DeleteFollowNotification(actorID, userID int) error {
+	query := `
+        DELETE FROM NOTIFICATIONS 
+        WHERE actor_id = ? 
+        AND user_id = ? 
+        AND type IN ('follow_request', 'follow_accepted')
+    `
+	_, err := r.DB.Exec(query, actorID, userID)
+	return err
+}
+
 func NewNotificationRepository(db *sql.DB) *NotificationRepository {
 	return &NotificationRepository{DB: db}
 }
