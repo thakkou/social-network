@@ -158,6 +158,7 @@ if (isPrivateBlocked) {
     return (
         <main className="main">
             <PrivateProfile
+            userId={userId}
                 profile={{
                     firstname: profile.firstname,
                     lastname: profile.lastname,

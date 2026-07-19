@@ -1,6 +1,10 @@
 "use client";
 
+import { useState } from "react";
+import { toggleFollow } from "../api/profiles/follow";
+
 interface PrivateProfileProps {
+    userId: string | number;
     profile: {
         firstname?: string;
         lastname?: string;
@@ -8,20 +12,25 @@ interface PrivateProfileProps {
         avatar?: string;
         following_status?: string;
     };
-    onSendRequest?: () => void;
+    onStatusChange?: (status: string) => void;
 }
 
 export default function PrivateProfile({
+    userId,
     profile,
     onSendRequest,
 }: PrivateProfileProps) {
-    console.log("private ", profile);
+const isPending = profile.following_status === "pending";
 
-    const isPending = profile.following_status === "pending";
+const [isLoading, setIsLoading] = useState(false);
+const buttonLabel = isLoading
+  ? "..."
+  : isPending
+  ? "Follow request sent"
+  : "Send follow request";
 
-    const buttonLabel = isPending
-        ? "waiting user accepts ur follow request"
-        : "send follow request";
+
+
 
     return (
         <div className="card">
@@ -82,13 +91,13 @@ export default function PrivateProfile({
                     Send a follow request to see posts and activity.
                 </p>
 
-                <button
-                    className="btn btn-g"
-                    onClick={onSendRequest}
-                    disabled={isPending}
-                >
-                    {buttonLabel}
-                </button>
+             <button
+  className="btn btn-g"
+  onClick={() => void onSendRequest()}
+  disabled={isLoading}
+>
+  {buttonLabel}
+</button>
             </div>
         </div>
     );
