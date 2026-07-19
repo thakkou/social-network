@@ -7,6 +7,7 @@ import ProfilePosts from "~/app/_components/ProfilePosts";
 import Followers from "~/app/_components/Followers";
 import { getProfileData } from "~/app/api/profiles/getProfile"; // adjust path to wherever the action lives
 import PrivateProfile from "~/app/_components/PrivateProfile";
+import { toggleFollow } from "~/app/api/profiles/follow";
 interface TabItem {
     label: string;
     Component: React.ComponentType<any>;
@@ -22,6 +23,7 @@ export default function Profile() {
     const [isLoading, setIsLoading] = useState(true);
     const [profileExists, setProfileExists] = useState(true);
     const [profile, setProfile] = useState<any>(null);
+    const [isFollowLoading, setIsFollowLoading] = useState(false);
 
     // `tabs` depends on `profile`, so it must be declared after the state above
     const tabs: TabItem[] = [
@@ -84,7 +86,7 @@ const isPrivateBlocked =
     // following_status can be "none", "pending", or "accepted"
     const followLabel =
         profile?.following_status === "accepted"
-            ? "following"
+            ? "unfollow"
             : profile?.following_status === "pending"
             ? "requested"
             : "follow";
@@ -96,10 +98,34 @@ const isPrivateBlocked =
             ? "ti-clock"
             : "ti-user-plus";
 
-    const handleFollowClick = () => {
-        if (profile?.following_status !== "none") return;
-        console.log("send follow request");
-        // call your API here, then update profile.following_status to "pending"
+    const handleFollowClick = async () => {
+        console.log("click")
+
+        if (!userId || isFollowLoading) return;
+        setIsFollowLoading(true);
+
+        try {
+            const res = await toggleFollow(userId,profile.following_status);
+console.log(res)
+            if ("error" in res) {
+                console.error(res.error);
+                return;
+            }
+
+          setProfile((prev: any) => {
+    console.log("previous", prev.following_status);
+    console.log("new", res.status);
+
+    return {
+        ...prev,
+        following_status: res.status,
+    };
+});
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsFollowLoading(false);
+        }
     };
 
 
@@ -133,15 +159,14 @@ if (isPrivateBlocked) {
         <main className="main">
             <PrivateProfile
                 profile={{
-                    first_name: profile.first_name,
-                    last_name: profile.last_name,
+                    firstname: profile.firstname,
+                    lastname: profile.lastname,
                     nickname: profile.nickname,
-
+                     following_status:profile.following_status,   
                     avatar: profile.avatar,
                 }}
                 onSendRequest={() => {
-                    console.log("send follow request");
-                    // call your API here
+                    void handleFollowClick();
                 }}
             />
         </main>
@@ -163,10 +188,10 @@ if (isPrivateBlocked) {
                             className="btn btn-g"
                             style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '3px', marginLeft: 'auto' }}
                             id="follow-btn"
-                            disabled={profile?.following_status === 'pending'}
-                            onClick={handleFollowClick}
+                            disabled={profile?.following_status === 'pending' || isFollowLoading}
+                            onClick={() => void handleFollowClick()}
                         >
-                            <i className={`ti ${followIcon}`} style={{ fontSize: '12px' }} aria-hidden="true"></i> {followLabel}
+                            <i className={`ti ${followIcon}`} style={{ fontSize: '12px' }} aria-hidden="true"></i> {isFollowLoading ? '...' : followLabel}
                         </button>
                     </div>
                     <p style={{ fontSize:'11px', color:'var(--color-text-secondary)', marginBottom:'4px' }}>Born 1998-07-14 · amir@example.com</p>

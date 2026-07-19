@@ -2,10 +2,11 @@
 
 interface PrivateProfileProps {
     profile: {
-        first_name?: string;
-        last_name?: string;
+        firstname?: string;
+        lastname?: string;
         nickname?: string;
         avatar?: string;
+        following_status?: string;
     };
     onSendRequest?: () => void;
 }
@@ -14,6 +15,14 @@ export default function PrivateProfile({
     profile,
     onSendRequest,
 }: PrivateProfileProps) {
+    console.log("private ", profile);
+
+    const isPending = profile.following_status === "pending";
+
+    const buttonLabel = isPending
+        ? "waiting user accepts ur follow request"
+        : "send follow request";
+
     return (
         <div className="card">
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -31,7 +40,7 @@ export default function PrivateProfile({
                     {profile.avatar ? (
                         <img
                             src={profile.avatar}
-                            alt={profile.nickname}
+                            alt={profile.nickname ?? "avatar"}
                             style={{
                                 width: "100%",
                                 height: "100%",
@@ -39,18 +48,20 @@ export default function PrivateProfile({
                             }}
                         />
                     ) : (
-                        `${profile.first_name?.[0] ?? ""}${profile.last_name?.[0] ?? ""}`
+                        `${profile?.firstname?.[0] ?? ""}${profile?.lastname?.[0] ?? ""}`
                     )}
                 </div>
 
                 <div>
                     <p style={{ fontSize: "14px", fontWeight: 500 }}>
-                        {profile.first_name} {profile.last_name}
+                        {profile.firstname} {profile.lastname}
                     </p>
 
-                    <span className="tag tag-teal">
-                        @{profile.nickname}
-                    </span>
+                    {profile.nickname && (
+                        <span className="tag tag-teal">
+                            @{profile.nickname}
+                        </span>
+                    )}
                 </div>
             </div>
 
@@ -74,8 +85,9 @@ export default function PrivateProfile({
                 <button
                     className="btn btn-g"
                     onClick={onSendRequest}
+                    disabled={isPending}
                 >
-                    Send request
+                    {buttonLabel}
                 </button>
             </div>
         </div>
