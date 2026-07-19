@@ -28,35 +28,41 @@ type NotifResponse struct {
 	Actor      ActorInfo   `json:"actor"`
 	Payload    interface{} `json:"payload"`
 }
+type FollowRequestPayload struct {
+	FollowRequestID int    `json:"follow_request_id"`
+	FollowStatus    string `json:"follow_status"` // pending
+}
+
+type FollowAcceptedPayload struct {
+	FollowStatus string `json:"follow_status"` // accepted
+}
+
+type PostReactionPayload struct {
+	PostID    int    `json:"post_id"`
+	PostTitle string `json:"post_title"`
+	PostImage string `json:"post_image,omitempty"`
+	CreatedAt string `json:"created_at"`
+	Reaction  string `json:"reaction"` // like/dislike
+}
 
 type CommentPayload struct {
 	PostID    int    `json:"post_id"`
 	CommentID int    `json:"comment_id"`
 	Snippet   string `json:"snippet,omitempty"`
-}
-
-type FollowRequestPayload struct {
-	FollowStatus string `json:"follow_status"` // "pending"
-}
-
-type FollowAcceptedPayload struct {
-	FollowStatus string `json:"follow_status"` // "accepted"
-}
-type PostReactionPayload struct {
-	PostID    int    `json:"post_id"`
-	PostImage string `json:"post_image,omitempty"`
-	Reaction  string `json:"reaction"` // e.g. "like" | "dislike"
+	CreatedAt string `json:"created_at"`
 }
 
 type GroupInvitePayload struct {
-	GroupID     int    `json:"group_id"`
-	GroupName   string `json:"group_name"`
-	GroupAvatar string `json:"group_avatar,omitempty"`
+	GroupID      int    `json:"group_id"`
+	GroupName    string `json:"group_name"`
+	GroupAvatar  string `json:"group_avatar,omitempty"`
+	InvitationID int    `json:"invitation_id"`
 }
 
 type GroupJoinRequestPayload struct {
-	GroupID   int    `json:"group_id"`
-	GroupName string `json:"group_name"`
+	GroupID      int `json:"group_id"`
+	SenderID     int `json:"sender_id"`
+	InvitationID int `json:"invitation_id"`
 }
 
 func GetNotifications(w http.ResponseWriter, r *http.Request) {
@@ -133,14 +139,33 @@ all types
      "object_type": "post",
 2- "type": "comment",
      "object_type": "comment",
-3-"type": "follow_request",
+3-"type": "follow_request", req
 "object_type": "follow",
 4-"type": "follow_accepted",
     "object_type": "follow",
-5-"type": "group_invite",
+5-"type": "group_invite",   req
             "object_type": "group_invite",
-6-"type": "group_join_request",
+6-"type": "group_join_request",    user a find group b and send a request join
     "object_type": "group_request",
+*/
+
+/*payload data on each type
+1-follow_request
+ ->{follow request ID
+    + follow status
+ }
+2-group_invite
+->{
+groupid,grouptitle,avatar,invitationID
+}
+3-group_join_request (later + not required)
+ ->{
+     user senderid + invitationid
+ }
+	 4-postreaction or comment reaction={
+	only like + post title,createt at}
+	5-new comment=>
+
 */
 
 func EnrishNotif(notifs []repository.Notification) []NotifResponse {
@@ -181,30 +206,50 @@ func EnrishNotif(notifs []repository.Notification) []NotifResponse {
 // the related post/comment/group/etc — adjust field names to match your model.
 func buildNotifPayload(n repository.Notification) interface{} {
 	switch n.Type {
+
 	case "post_reaction":
 		return PostReactionPayload{
-			PostID: n.ObjectID,
+			PostID:    n.ObjectID,
+			PostTitle: "My first post title",
+			PostImage: "https://fake-image.com/post.png",
+			CreatedAt: time.Now().Format(time.RFC3339),
+			Reaction:  "like",
 		}
+
 	case "comment":
 		return CommentPayload{
-			PostID: n.ObjectID,
+			PostID:    n.ObjectID,
+			CommentID: 123, // fake for now
+			Snippet:   "Nice post! This is a fake comment preview",
+			CreatedAt: time.Now().Format(time.RFC3339),
 		}
+
 	case "follow_request":
 		return FollowRequestPayload{
-			FollowStatus: "pending",
+			FollowRequestID: 456, // fake
+			FollowStatus:    "pending",
 		}
+
 	case "follow_accepted":
 		return FollowAcceptedPayload{
 			FollowStatus: "accepted",
 		}
+
 	case "group_invite":
 		return GroupInvitePayload{
-			GroupID: n.ObjectID,
+			GroupID:      n.ObjectID,
+			GroupName:    "Gophers Community",
+			GroupAvatar:  "https://fake-image.com/group.png",
+			InvitationID: 789, // fake
 		}
+
 	case "group_join_request":
 		return GroupJoinRequestPayload{
-			GroupID: n.ObjectID,
+			GroupID:      n.ObjectID,
+			SenderID:     n.ActorID,
+			InvitationID: 999, // fake
 		}
+
 	default:
 		return nil
 	}
