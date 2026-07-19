@@ -3,7 +3,7 @@ import "~/styles/globals.css";
 import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 
-import { Providers } from "./providers";
+import { Providers } from "./_providers/providers";
 
 export const metadata: Metadata = {
   title: "01Social",

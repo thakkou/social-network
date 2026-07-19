@@ -1,4 +1,7 @@
--impliment the search front end (users,then groups)in the components
--group detaille and profile data 
--structure layers front end
+-impliment the search front end (users,then groups)in the components done
+-group detaille and profile data  --> done
+-start get the conversations and send messages
+-feeds,comments
+-creat group,post group invite , update the avatre
 -we can add to group avatar
+-structure layers front end 

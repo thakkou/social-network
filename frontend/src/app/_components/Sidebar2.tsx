@@ -10,6 +10,8 @@ import { usePathname } from 'next/navigation';
 // groups: pending requests + create event
 
 import type React from "react";
+import { Component } from 'react';
+import { MessagesSidebar } from './sideBars/message';
 
 const HomepageSidebar: React.ComponentType<any> = () =>
   (<aside className="sidebar2">
@@ -90,32 +92,7 @@ const NotificationsSidebar: React.ComponentType<any> = () =>
     <div style={{ textAlign: 'center', marginTop: '8px' }}><Link className="btn btn-p" style={{ fontSize: '10px', width: '100%' }} href="/chat">open messages →</Link></div>
   </aside>);
 
-const MessagesSidebar: React.ComponentType<any> = () =>
-  (<aside className="sidebar2">
-    <p className="sec-label" style={{ padding: 0, marginBottom: '8px' }}>shared groups</p>
-    <div style={{ fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px', background: 'var(--color-background-secondary)', border: '0.5px solid var(--color-border-tertiary)' }}>
-        <span style={{ width: '6px', height: '6px', background: '#D4537E', flexShrink: 0 }}></span>
-        <span style={{ color: 'var(--color-text-primary)' }}>go devs</span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px', background: 'var(--color-background-secondary)', border: '0.5px solid var(--color-border-tertiary)' }}>
-        <span style={{ width: '6px', height: '6px', background: '#1D9E75', flexShrink: 0 }}></span>
-        <span style={{ color: 'var(--color-text-primary)' }}>open src</span>
-      </div>
-    </div>
-    <div className="divider"></div>
-    <p className="sec-label" style={{ padding: 0, marginBottom: '8px' }}>quick emoji</p>
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-      <span style={{ fontSize: '16px', cursor: 'pointer' }} title="thumbs up">&'#128077', </span>
-      <span style={{ fontSize: '16px', cursor: 'pointer' }}>&'#128078', </span>
-      <span style={{ fontSize: '16px', cursor: 'pointer' }}>&'#128514', </span>
-      <span style={{ fontSize: '16px', cursor: 'pointer' }}>&#10084, </span>
-      <span style={{ fontSize: '16px', cursor: 'pointer' }}>&'#128293', </span>
-      <span style={{ fontSize: '16px', cursor: 'pointer' }}>&'#128591', </span>
-      <span style={{ fontSize: '16px', cursor: 'pointer' }}>&'#127881', </span>
-      <span style={{ fontSize: '16px', cursor: 'pointer' }}>&'#128522', </span>
-    </div>
-  </aside>);
+
 
 const GroupsSidebar: React.ComponentType<any> = () =>
   (<aside className="sidebar2">
