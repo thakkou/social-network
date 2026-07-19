@@ -4,21 +4,20 @@ import { fetchApi } from "../helper/fetch";
 
 type FollowStatus = "none" | "pending" | "accepted";
 
-
-
 interface FollowActionResponse {
   status_code: number;
   message: string;
   data: {
-    status: FollowStatus;
+    status?: FollowStatus;
   };
 }
 
-
-// 2. Send a follow request
-async function followUser(userId: string | number) {
+async function followAction(
+  action: "follow" | "unfollow" | "accept" | "reject",
+  userId: string | number
+) {
   const result = await fetchApi<FollowActionResponse>(
-    `/api/follow/follow/${userId}`,
+    `/api/follow/${action}/${userId}`,
     {
       method: "PUT",
     }
@@ -30,29 +29,32 @@ async function followUser(userId: string | number) {
 
   return {
     success: true,
-    status: result.data.data.status,
-  };
-}
-// 3. Remove a follow / cancel a follow request
-async function unfollowUser(userId: string | number) {
-  const result = await fetchApi<FollowActionResponse>(
-    `/api/follow/unfollow/${userId}`,
-    {
-      method: "PUT",
-    }
-  );
-
-  if (!result.success) {
-    return { error: result.error };
-  }
-
-  return {
-    success: true,
-    status: result.data.data.status,
+    message: result.data.message,
+    status: result.data.data?.status,
   };
 }
 
-// 4. Toggle: checks the current status, then follows if "none", otherwise unfollows
+// Follow
+export async function followUser(userId: string | number) {
+  return followAction("follow", userId);
+}
+
+// Unfollow / Cancel request
+export async function unfollowUser(userId: string | number) {
+  return followAction("unfollow", userId);
+}
+
+// Accept follow request
+export async function acceptFollowRequest(userId: string | number) {
+  return followAction("accept", userId);
+}
+
+// Reject follow request
+export async function rejectFollowRequest(userId: string | number) {
+  return followAction("reject", userId);
+}
+
+// Toggle follow
 export async function toggleFollow(
   userId: string | number,
   followingState: FollowStatus
@@ -67,7 +69,7 @@ export async function toggleFollow(
       : await unfollowUser(userId);
 
   if ("error" in result) {
-    return { error: result.error };
+    return result;
   }
 
   return {

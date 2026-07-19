@@ -2,6 +2,7 @@
 "use client"
 import { getNotifications, markNotificationAsRead, markAllNotificationsRead, deleteAllNotifications } from "~/app/api/crud/notification";
 import { useState, useEffect } from "react"
+import { acceptFollowRequest,rejectFollowRequest } from "~/app/api/crud/follow";
 
 // 1. Exact Interface mapping to your JSON response
 interface NotificationActor {
@@ -33,13 +34,16 @@ interface NotificationItem {
   actor: NotificationActor | null;
   payload: NotificationPayload | null;
 }
-
 const NotificationCard = ({
   data,
   onMarkRead,
+  onAcceptFollow,
+  onRejectFollow,
 }: {
   data: NotificationItem;
   onMarkRead: (id: string | number) => void;
+  onAcceptFollow: (userId: number, notificationId: string | number) => void;
+  onRejectFollow: (userId: number, notificationId: string | number) => void;
 }) => {
   // Setup dynamic color styling and configurations based on notification type
   const typeStyles = {
@@ -138,17 +142,58 @@ const NotificationCard = ({
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", gap: "6px" }}>
-          {data.type === "group_event" ? (
-            <>
-              <button className="btn btn-t" style={{ fontSize: "11px" }}>going</button>
-              <button className="btn btn-g" style={{ fontSize: "11px" }}>not going</button>
-            </>
-          ) : hasAccept ? (
-            <>
-              <button className="btn btn-t" style={{ fontSize: "11px" }}>accept</button>
-              <button className="btn btn-red" style={{ fontSize: "11px" }}>decline</button>
-            </>
-          ) : (
+    {data.type === "group_event" ? (
+  <>
+    <button className="btn btn-t" style={{ fontSize: "11px" }}>
+      going
+    </button>
+    <button className="btn btn-g" style={{ fontSize: "11px" }}>
+      not going
+    </button>
+  </>
+) : data.type === "follow_request" ? (
+  <>
+    <button
+      className="btn btn-t"
+      style={{ fontSize: "11px" }}
+      onClick={() => {
+        if (data.actor) {
+          onAcceptFollow(data.actor.user_id, data.id);
+        }
+      }}
+    >
+      accept
+    </button>
+
+    <button
+      className="btn btn-red"
+      style={{ fontSize: "11px" }}
+      onClick={() => {
+        if (data.actor) {
+          onRejectFollow(data.actor.user_id, data.id);
+        }
+      }}
+    >
+      decline
+    </button>
+  </>
+) : data.type === "group_invite" || data.type === "group_join_request" ? (
+  <>
+    <button
+      className="btn btn-t"
+      style={{ fontSize: "11px" }}
+    >
+      accept
+    </button>
+
+    <button
+      className="btn btn-red"
+      style={{ fontSize: "11px" }}
+    >
+      decline
+    </button>
+  </>
+) : (
             ["post_reaction", "comment"].includes(data.type) && (
               <button className="btn btn-g" style={{ fontSize: "11px" }}>view post</button>
             )
@@ -215,6 +260,33 @@ export default function Notifications() {
     }
   };
 
+  const handleAcceptFollow = async (
+  userId: number,
+  notificationId: string | number
+) => {
+  const res = await acceptFollowRequest(userId);
+
+  if (res.success) {
+    // remove the handled request
+    setNotifications((prev) =>
+      prev.filter((n) => n.id !== notificationId)
+    );
+  }
+};
+
+const handleRejectFollow = async (
+  userId: number,
+  notificationId: string | number
+) => {
+  const res = await rejectFollowRequest(userId);
+
+  if (res.success) {
+    // remove the handled request
+    setNotifications((prev) =>
+      prev.filter((n) => n.id !== notificationId)
+    );
+  }
+};
   const handleDeleteAll = async () => {
     if (!window.confirm("Are you sure you want to clear all your notifications? This cannot be undone.")) return;
     
@@ -291,11 +363,13 @@ export default function Notifications() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {notification.map((item) => (
-            <NotificationCard
-              key={item.id}
-              data={item}
-              onMarkRead={handleMarkRead}
-            />
+        <NotificationCard
+  key={item.id}
+  data={item}
+  onMarkRead={handleMarkRead}
+  onAcceptFollow={handleAcceptFollow}
+  onRejectFollow={handleRejectFollow}
+/>
           ))}
         </div>
       )}
