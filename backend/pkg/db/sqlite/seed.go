@@ -908,16 +908,6 @@ func seedNotifications(db *sql.DB, u []int) error {
 			IsRead:     0,
 		},
 
-		// Chloe receives private post shared notification
-		{
-			UserID:     u[2],
-			ActorID:    u[0],
-			Type:       "post_shared",
-			ObjectType: "post",
-			ObjectID:   1,
-			IsRead:     1,
-		},
-
 		// Alice receives another unread notification from Hugo
 		{
 			UserID:     u[0],
