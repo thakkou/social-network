@@ -2,7 +2,7 @@
 
 import { SessionProvider } from "next-auth/react";
 import { WSProvider } from "./ws-provider";
-import { MessageProvider } from "./message-provider";
+import { ChatProvider } from "./chatProvider";
 
 export function Providers({
   children,
@@ -12,9 +12,9 @@ export function Providers({
   return (
     <SessionProvider>
       <WSProvider>
-        <MessageProvider>
+        <ChatProvider>
           {children}
-        </MessageProvider>
+        </ChatProvider>
       </WSProvider>
     </SessionProvider>
   );

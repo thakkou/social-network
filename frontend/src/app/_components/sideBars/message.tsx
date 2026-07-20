@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { getConversations, ConversationFeedItem } from "~/app/api/crud/conversations";
+import { useChat } from "~/app/_providers/chatProvider"; // Adjust import path to match your ChatContext location
 
 const AVATAR_COLORS = ["#FBEAF0", "#EAF3FB", "#EAFBEF", "#FFF3E8", "#F3EAFB"];
 const GROUP_COLORS = ["#D4537E", "#1D9E75", "#3B82F6", "#F59E0B", "#8B5CF6"];
@@ -20,14 +21,15 @@ function colorFor(id: number, palette: string[]) {
 }
 
 interface MessagesSidebarProps {
-  activeId?: string | number;
+  // Option to pass external handler if needed, but Context handles primary state
   onSelect?: (item: ConversationFeedItem) => void;
 }
 
 export const MessagesSidebar: React.ComponentType<MessagesSidebarProps> = ({
-  activeId,
   onSelect,
 }) => {
+  const { selectedChat, selectChat } = useChat();
+
   const [users, setUsers] = useState<ConversationFeedItem[]>([]);
   const [groups, setGroups] = useState<ConversationFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,6 +60,17 @@ export const MessagesSidebar: React.ComponentType<MessagesSidebarProps> = ({
     };
   }, []);
 
+  const handleSelect = (item: ConversationFeedItem, type: "user" | "group") => {
+    // 1. Update global ChatContext state
+    selectChat({
+      id: String(item.id),
+      type: type,
+    });
+
+    // 2. Optional callback if parent component needs it
+    onSelect?.(item);
+  };
+
   if (loading) {
     return (
       <aside className="sidebar2">
@@ -84,11 +97,14 @@ export const MessagesSidebar: React.ComponentType<MessagesSidebarProps> = ({
       </p>
       <div style={{ fontSize: "11px", display: "flex", flexDirection: "column", gap: "6px" }}>
         {users.map((user) => {
-          const isSelected = activeId === user.id;
+          // Check if this user is currently selected in ChatContext
+          const isSelected =
+            selectedChat?.type === "user" && selectedChat?.id === String(user.id);
+
           return (
             <div
               key={`direct-${user.id}`}
-              onClick={() => onSelect?.(user)}
+              onClick={() => handleSelect(user, "user")}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -146,11 +162,14 @@ export const MessagesSidebar: React.ComponentType<MessagesSidebarProps> = ({
       </p>
       <div style={{ fontSize: "11px", display: "flex", flexDirection: "column", gap: "6px" }}>
         {groups.map((group) => {
-          const isSelected = activeId === group.id;
+          // Check if this group is currently selected in ChatContext
+          const isSelected =
+            selectedChat?.type === "group" && selectedChat?.id === String(group.id);
+
           return (
             <div
               key={`group-${group.id}`}
-              onClick={() => onSelect?.(group)}
+              onClick={() => handleSelect(group, "group")}
               style={{
                 display: "flex",
                 alignItems: "center",

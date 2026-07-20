@@ -1,25 +1,45 @@
-
 "use client";
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
+import { useChat } from "~/app/_providers/chatProvider"; // Adjust path to your ChatContext location
+
+interface ChatItem {
+  id: string;
+  name: string;
+  initials: string;
+  color: string;
+  isGroup: boolean;
+}
+
+interface Message {
+  type: "me" | "them";
+  text: string;
+  senderName?: string;
+}
 
 export default function Chat() {
-  const users = [
+  const { selectedChat } = useChat();
+
+  const users: ChatItem[] = [
     { id: "u1", name: "Selin Rauf", initials: "SR", color: "#FBEAF0", isGroup: false },
     { id: "u2", name: "Adam Smith", initials: "AS", color: "#EAF3FB", isGroup: false },
     { id: "u3", name: "Maya Ali", initials: "MA", color: "#EAFBEF", isGroup: false },
     { id: "u4", name: "John Doe", initials: "JD", color: "#FFF3E8", isGroup: false },
   ];
 
-  const groups = [
+  const groups: ChatItem[] = [
     { id: "g1", name: "Engineering Team", initials: "ENG", color: "#EAEFFB", isGroup: true },
     { id: "g2", name: "General Chat", initials: "GEN", color: "#F5EAFB", isGroup: true },
   ];
 
-  // Set default active chat to the first user
-  const [activeChat, setActiveChat] = useState(users[0]);
+  // Combine both lists so we can easily lookup by ID
+  const allChats = [...users, ...groups];
+
+  // Default active chat
+  const [activeChat, setActiveChat] = useState<ChatItem>(users[0]);
   const [message, setMessage] = useState("");
 
-  const [chats, setChats] = useState({
+  const [chats, setChats] = useState<Record<string, Message[]>>({
     u1: [
       { type: "them", text: "hey, tested the websocket handler — looks solid" },
       { type: "me", text: "thanks! just added group broadcast support too" },
@@ -34,6 +54,18 @@ export default function Chat() {
     ],
     g2: []
   });
+
+  // Listen for sidebar selection changes from ChatContext
+  useEffect(() => {
+    if (!selectedChat) return;
+console.log("selected chat",selectedChat)
+    // Find the matching user or group object by ID
+    const match = allChats.find((item) => String(item.id) === String(selectedChat.id));
+
+    if (match) {
+      setActiveChat(match);
+    }
+  }, [selectedChat]);
 
   function sendMsg() {
     const val = message.trim();
@@ -53,7 +85,6 @@ export default function Chat() {
     setMessage("");
   }
 
-
   const currentMessages = chats[activeChat.id] || [];
 
   return (
@@ -67,8 +98,6 @@ export default function Chat() {
         minHeight: "480px",
       }}
     >
- 
-
       {/* Main Chat View Container */}
       <div
         style={{
@@ -97,7 +126,7 @@ export default function Chat() {
               background: activeChat.color,
               color: activeChat.isGroup ? "#2C5282" : "#993556",
               fontSize: "11px",
-              borderRadius: activeChat.isGroup ? "6px" : "50%"
+              borderRadius: activeChat.isGroup ? "6px" : "50%",
             }}
           >
             {activeChat.initials}
@@ -130,10 +159,23 @@ export default function Chat() {
           </div>
 
           {currentMessages.map((msg, index) => (
-            <div key={index} style={{ display: "flex", flexDirection: "column", alignItems: msg.type === "me" ? "flex-end" : "flex-start" }}>
+            <div
+              key={index}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: msg.type === "me" ? "flex-end" : "flex-start",
+              }}
+            >
               {/* Add sender alias if it's a group incoming message */}
               {activeChat.isGroup && msg.type === "them" && msg.senderName && (
-                <span style={{ fontSize: "9px", color: "var(--color-text-tertiary)", margin: "0 4px 2px 4px" }}>
+                <span
+                  style={{
+                    fontSize: "9px",
+                    color: "var(--color-text-tertiary)",
+                    margin: "0 4px 2px 4px",
+                  }}
+                >
                   {msg.senderName}
                 </span>
               )}
@@ -145,39 +187,37 @@ export default function Chat() {
         </div>
 
         {/* Input Bar */}
-       {/* Input Bar */}
-<div
-  style={{
-    background: "var(--color-background-primary)",
-    borderTop: "0.5px solid var(--color-border-tertiary)",
-    padding: "8px 12px",
-    display: "flex",
-    gap: "6px",
-    alignItems: "center",
-  }}
->
-  <input
-    className="inp"
-    value={message}
-    onChange={(e) => setMessage(e.target.value)}
-    onKeyDown={(e) => {
-      if (e.key === "Enter") {
-        sendMsg();
-      }
-    }}
-    placeholder={`message ${activeChat.name}...`}
-    style={{
-      flex: 1,
-      fontSize: "12px",
-    }}
-  />
+        <div
+          style={{
+            background: "var(--color-background-primary)",
+            borderTop: "0.5px solid var(--color-border-tertiary)",
+            padding: "8px 12px",
+            display: "flex",
+            gap: "6px",
+            alignItems: "center",
+          }}
+        >
+          <input
+            className="inp"
+            value={message}
+            onChange={(e) => setMessage(e.value ?? e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                sendMsg();
+              }
+            }}
+            placeholder={`message ${activeChat.name}...`}
+            style={{
+              flex: 1,
+              fontSize: "12px",
+            }}
+          />
 
-  <button className="btn btn-p" onClick={sendMsg}>
-    <i className="ti ti-send" />
-  </button>
-</div>
+          <button className="btn btn-p" onClick={sendMsg}>
+            <i className="ti ti-send" />
+          </button>
+        </div>
       </div>
     </main>
   );
 }
-
