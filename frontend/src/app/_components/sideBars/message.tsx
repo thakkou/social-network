@@ -60,16 +60,15 @@ export const MessagesSidebar: React.ComponentType<MessagesSidebarProps> = ({
     };
   }, []);
 
-  const handleSelect = (item: ConversationFeedItem, type: "user" | "group") => {
-    // 1. Update global ChatContext state
-    selectChat({
-      id: String(item.id),
-      type: type,
-    });
+const handleSelect = (item: ConversationFeedItem, type: "user" | "group") => {
+  selectChat({
+    id: String(item.id),
+    type: type,
+    data: item, // Pass the entire conversation feed item here
+  });
 
-    // 2. Optional callback if parent component needs it
-    onSelect?.(item);
-  };
+  onSelect?.(item);
+};
 
   if (loading) {
     return (

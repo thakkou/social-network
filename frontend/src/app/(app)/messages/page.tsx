@@ -1,14 +1,24 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useChat } from "~/app/_providers/chatProvider"; // Adjust path to your ChatContext location
+import { useChat } from "~/app/_providers/chatProvider"; // Adjust path if needed
 
-interface ChatItem {
-  id: string;
-  name: string;
-  initials: string;
-  color: string;
-  isGroup: boolean;
+const AVATAR_COLORS = ["#FBEAF0", "#EAF3FB", "#EAFBEF", "#FFF3E8", "#F3EAFB"];
+const GROUP_COLORS = ["#D4537E", "#1D9E75", "#3B82F6", "#F59E0B", "#8B5CF6"];
+
+function getInitials(name: string) {
+  if (!name) return "??";
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+}
+
+function colorFor(id: number | string, palette: string[]) {
+  const numId = typeof id === "number" ? id : parseInt(id, 10) || 0;
+  return palette[Math.abs(numId) % palette.length];
 }
 
 interface Message {
@@ -19,62 +29,43 @@ interface Message {
 
 export default function Chat() {
   const { selectedChat } = useChat();
-
-  const users: ChatItem[] = [
-    { id: "u1", name: "Selin Rauf", initials: "SR", color: "#FBEAF0", isGroup: false },
-    { id: "u2", name: "Adam Smith", initials: "AS", color: "#EAF3FB", isGroup: false },
-    { id: "u3", name: "Maya Ali", initials: "MA", color: "#EAFBEF", isGroup: false },
-    { id: "u4", name: "John Doe", initials: "JD", color: "#FFF3E8", isGroup: false },
-  ];
-
-  const groups: ChatItem[] = [
-    { id: "g1", name: "Engineering Team", initials: "ENG", color: "#EAEFFB", isGroup: true },
-    { id: "g2", name: "General Chat", initials: "GEN", color: "#F5EAFB", isGroup: true },
-  ];
-
-  // Combine both lists so we can easily lookup by ID
-  const allChats = [...users, ...groups];
-
-  // Default active chat
-  const [activeChat, setActiveChat] = useState<ChatItem>(users[0]);
   const [message, setMessage] = useState("");
 
+  // In-memory chat storage keyed by selection string (e.g. "user-2" or "group-1")
   const [chats, setChats] = useState<Record<string, Message[]>>({
-    u1: [
-      { type: "them", text: "hey, tested the websocket handler — looks solid" },
-      { type: "me", text: "thanks! just added group broadcast support too" },
-      { type: "them", text: "nice. any issue with the gorilla lib version?" },
+    "user-2": [
+      { type: "them", text: "Sounds good, thanks!" }
     ],
-    u2: [{ type: "them", text: "hello Adam 👋" }],
-    u3: [],
-    u4: [],
-    g1: [
-      { type: "them", text: "System: Deployment to production successful 🚀", senderName: "CI/CD" },
-      { type: "them", text: "Anyone reviewing logs for the websocket spike?", senderName: "Selin Rauf" }
-    ],
-    g2: []
+    "group-1": [
+      { type: "them", text: "Welcome to Gophers United!", senderName: "System" }
+    ]
   });
 
-  // Listen for sidebar selection changes from ChatContext
-  useEffect(() => {
-    if (!selectedChat) return;
-console.log("selected chat",selectedChat)
-    // Find the matching user or group object by ID
-    const match = allChats.find((item) => String(item.id) === String(selectedChat.id));
+  // Extract raw payload from context
+  const chatData = selectedChat?.data || {};
+  const isGroup = selectedChat?.type === "group" || chatData.type === "group";
+  const chatId = selectedChat?.id ?? String(chatData.id ?? "");
+  const activeKey = `${selectedChat?.type || "user"}-${chatId}`;
 
-    if (match) {
-      setActiveChat(match);
-    }
-  }, [selectedChat]);
+  // Read metadata dynamically from payload
+  const displayName = chatData.display_name || "Select a conversation";
+  const avatarUrl = chatData.avatar || null;
+  const memberCount = chatData.member_count ?? null;
+  const initials = getInitials(displayName);
+
+  // Background color calculation if no image avatar is present
+  const fallbackBg = isGroup 
+    ? colorFor(chatId, GROUP_COLORS) 
+    : colorFor(chatId, AVATAR_COLORS);
 
   function sendMsg() {
     const val = message.trim();
-    if (!val) return;
+    if (!val || !selectedChat) return;
 
     setChats((prev) => ({
       ...prev,
-      [activeChat.id]: [
-        ...(prev[activeChat.id] || []),
+      [activeKey]: [
+        ...(prev[activeKey] || []),
         {
           type: "me",
           text: val,
@@ -85,7 +76,7 @@ console.log("selected chat",selectedChat)
     setMessage("");
   }
 
-  const currentMessages = chats[activeChat.id] || [];
+  const currentMessages = chats[activeKey] || [];
 
   return (
     <main
@@ -118,25 +109,45 @@ console.log("selected chat",selectedChat)
             gap: "8px",
           }}
         >
-          <div
-            className="av"
-            style={{
-              width: "28px",
-              height: "28px",
-              background: activeChat.color,
-              color: activeChat.isGroup ? "#2C5282" : "#993556",
-              fontSize: "11px",
-              borderRadius: activeChat.isGroup ? "6px" : "50%",
-            }}
-          >
-            {activeChat.initials}
-          </div>
+          {/* Avatar Rendering: Image or Styled Initials Box */}
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={displayName}
+              style={{
+                width: "28px",
+                height: "28px",
+                borderRadius: isGroup ? "6px" : "50%",
+                objectFit: "cover",
+              }}
+            />
+          ) : (
+            <div
+              className="av"
+              style={{
+                width: "28px",
+                height: "28px",
+                background: fallbackBg,
+                color: isGroup ? "#FFFFFF" : "#993556",
+                fontSize: "11px",
+                borderRadius: isGroup ? "6px" : "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: 600,
+              }}
+            >
+              {initials}
+            </div>
+          )}
 
           <div>
-            <p style={{ fontSize: "12px", fontWeight: 500 }}>{activeChat.name}</p>
+            <p style={{ fontSize: "12px", fontWeight: 500 }}>{displayName}</p>
             <p style={{ fontSize: "10px", color: "var(--color-text-tertiary)" }}>
               <span className="online-dot" />
-              {activeChat.isGroup ? "channel active · group" : "online now · websocket"}
+              {isGroup
+                ? `channel active · ${memberCount ? `${memberCount} members` : "group"}`
+                : "online now · websocket"}
             </p>
           </div>
         </div>
@@ -154,36 +165,71 @@ console.log("selected chat",selectedChat)
             overflowY: "auto",
           }}
         >
-          <div style={{ textAlign: "center", fontSize: "10px", color: "var(--color-text-tertiary)" }}>
-            today · 14:22
-          </div>
+          {selectedChat ? (
+            <>
+              <div
+                style={{
+                  textAlign: "center",
+                  fontSize: "10px",
+                  color: "var(--color-text-tertiary)",
+                }}
+              >
+                today · 14:22
+              </div>
 
-          {currentMessages.map((msg, index) => (
-            <div
-              key={index}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: msg.type === "me" ? "flex-end" : "flex-start",
-              }}
-            >
-              {/* Add sender alias if it's a group incoming message */}
-              {activeChat.isGroup && msg.type === "them" && msg.senderName && (
-                <span
+              {currentMessages.length === 0 ? (
+                <div
                   style={{
-                    fontSize: "9px",
+                    margin: "auto",
+                    fontSize: "11px",
                     color: "var(--color-text-tertiary)",
-                    margin: "0 4px 2px 4px",
                   }}
                 >
-                  {msg.senderName}
-                </span>
+                  No messages here yet. Say hello!
+                </div>
+              ) : (
+                currentMessages.map((msg, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: msg.type === "me" ? "flex-end" : "flex-start",
+                    }}
+                  >
+                    {isGroup && msg.type === "them" && msg.senderName && (
+                      <span
+                        style={{
+                          fontSize: "9px",
+                          color: "var(--color-text-tertiary)",
+                          margin: "0 4px 2px 4px",
+                        }}
+                      >
+                        {msg.senderName}
+                      </span>
+                    )}
+                    <div
+                      className={
+                        msg.type === "me" ? "msg-bubble-me" : "msg-bubble-them"
+                      }
+                    >
+                      {msg.text}
+                    </div>
+                  </div>
+                ))
               )}
-              <div className={msg.type === "me" ? "msg-bubble-me" : "msg-bubble-them"}>
-                {msg.text}
-              </div>
+            </>
+          ) : (
+            <div
+              style={{
+                margin: "auto",
+                fontSize: "12px",
+                color: "var(--color-text-tertiary)",
+              }}
+            >
+              Select a user or group from the sidebar to view conversation
             </div>
-          ))}
+          )}
         </div>
 
         {/* Input Bar */}
@@ -199,21 +245,28 @@ console.log("selected chat",selectedChat)
         >
           <input
             className="inp"
+            disabled={!selectedChat}
             value={message}
-            onChange={(e) => setMessage(e.value ?? e.target.value)}
+            onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 sendMsg();
               }
             }}
-            placeholder={`message ${activeChat.name}...`}
+            placeholder={
+              selectedChat ? `message ${displayName}...` : "Select a conversation..."
+            }
             style={{
               flex: 1,
               fontSize: "12px",
             }}
           />
 
-          <button className="btn btn-p" onClick={sendMsg}>
+          <button
+            className="btn btn-p"
+            onClick={sendMsg}
+            disabled={!selectedChat}
+          >
             <i className="ti ti-send" />
           </button>
         </div>
