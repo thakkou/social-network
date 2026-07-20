@@ -23,8 +23,12 @@ type ChatContextType = {
 
 const ChatContext = createContext<ChatContextType>({
   selectedChat: null,
-  selectChat: () => {},
-  clearChat: () => {},
+  selectChat: () => {
+    /* no-op */
+  },
+  clearChat: () => {
+    /* no-op */
+  },
 });
 
 export function ChatProvider({

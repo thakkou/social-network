@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 import ProfilePosts from "~/app/_components/ProfilePosts";
 import Followers from "~/app/_components/Followers";
-import { getProfileData } from "~/app/api/crud/getProfile"; // adjust path to wherever the action lives
+import { getProfileData } from "~/app/api/crud/getProfile";
 import PrivateProfile from "~/app/_components/PrivateProfile";
 import { toggleFollow } from "~/app/api/crud/follow";
 interface TabItem {
@@ -16,7 +17,16 @@ interface TabItem {
 
 export default function Profile() {
     const params = useParams();
-    const userId = params?.id as string; // adjust to however you're routing (e.g. /profile/[id])
+    const router = useRouter();
+    const { data: session } = useSession();
+    const userId = params?.id as string;
+
+    // Redirect to /profile if viewing own profile
+    useEffect(() => {
+      if (userId && session?.user?.id && userId === session.user.id) {
+        router.replace("/profile");
+      }
+    }, [userId, session?.user?.id, router]);
 
     const [activeTab, setActiveTab] = useState(0);
     const [isPrivate, setIsPrivate] = useState<boolean>(false);

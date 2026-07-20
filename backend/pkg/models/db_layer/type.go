@@ -3,31 +3,37 @@ package dbModal
 import "time"
 
 type Post struct {
-	Id                      int
-	UserId                  int
-	Nickname                string
-	Created_at              time.Time
-	TimeAgo                 string
-	Title                   string
-	Text                    string
-	LikeCount, DislikeCount int
-	CommentCount            int
-	IsLiked                 int // 1:liked, 0:none, -1:disliked
-	Comments                []Comment
-	Categories              []string
-	Image                   string
+	Id           int       `json:"id"`
+	UserId       int       `json:"user_id"`
+	Nickname     string    `json:"nickname"`
+	Firstname    string    `json:"firstname"`
+	Lastname     string    `json:"lastname"`
+	Avatar       string    `json:"avatar"`
+	Created_at   time.Time `json:"created_at"`
+	TimeAgo      string    `json:"time_ago"`
+	Title        string    `json:"title"`
+	Text         string    `json:"text"`
+	Image        string    `json:"image"`
+	Privacy      string    `json:"privacy"`
+	LikeCount    int       `json:"like_count"`
+	DislikeCount int       `json:"dislike_count"`
+	CommentCount int       `json:"comment_count"`
+	IsLiked      int       `json:"is_liked"` // 1:liked, 0:none, -1:disliked
+	Comments     []Comment `json:"comments"`
+	Categories   []string  `json:"categories"`
 }
 
 type Comment struct {
-	Id                      int
-	UserId                  int
-	Nickname                string
-	Created_at              time.Time
-	TimeAgo                 string
-	Text                    string
-	Image                   string
-	LikeCount, DislikeCount int
-	IsLiked                 int // 1:liked, 0:none, -1:disliked
+	Id           int    `json:"id"`
+	UserId       int    `json:"user_id"`
+	Nickname     string `json:"nickname"`
+	Created_at   time.Time `json:"created_at"`
+	TimeAgo      string `json:"time_ago"`
+	Text         string `json:"text"`
+	Image        string `json:"image"`
+	LikeCount    int    `json:"like_count"`
+	DislikeCount int    `json:"dislike_count"`
+	IsLiked      int    `json:"is_liked"` // 1:liked, 0:none, -1:disliked
 }
 
 type User struct {

@@ -42,6 +42,9 @@ func enrichPost(p *dblayer.Post, userId int) error {
 		return err
 	}
 	p.Nickname = user.Nickname
+	p.Firstname = user.Firstname
+	p.Lastname = user.Lastname
+	p.Avatar = user.Avatar
 
 	p.LikeCount, p.DislikeCount, err = Repos.Post.GetReactionCounts(p.Id)
 	if err != nil {
@@ -355,15 +358,16 @@ func GetPosts(w http.ResponseWriter, r *http.Request) {
 
 	enrichedPosts := make([]dblayer.Post, 0, len(posts))
 	for _, post := range posts {
-		dbPost := dblayer.Post{
-			Id:         post.ID,
-			UserId:     post.UserID,
-			Created_at: post.CreatedAt,
-			Title:      post.Title,
-			Text:       post.Text,
-			Image:      post.Image,
-		}
-		if err := enrichPost(&dbPost, userID); err != nil {
+	dbPost := dblayer.Post{
+		Id:         post.ID,
+		UserId:     post.UserID,
+		Created_at: post.CreatedAt,
+		Title:      post.Title,
+		Text:       post.Text,
+		Image:      post.Image,
+		Privacy:    post.Privacy,
+	}
+	if err := enrichPost(&dbPost, userID); err != nil {
 			utilities.WriteJSON(w, http.StatusInternalServerError, "failed to enrich posts", nil)
 			return
 		}
@@ -409,6 +413,7 @@ func GetPostById(w http.ResponseWriter, r *http.Request) {
 		Title:      post.Title,
 		Text:       post.Text,
 		Image:      post.Image,
+		Privacy:    post.Privacy,
 	}
 	if err := enrichPostWithComments(&dbPost, userID); err != nil {
 		utilities.WriteJSON(w, http.StatusInternalServerError, "failed to enrich post", nil)

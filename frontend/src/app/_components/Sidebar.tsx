@@ -1,16 +1,11 @@
-'use client'; // used only for navigation
-
-// notes:
-// homepage: navigation + my groups
-// profile: navigation
-// notifications: navigation
-// messages: navigation + direct + groups
-// groups: navigation
-
-// switchChat function in direct & groups
+'use client';
 
 import Link from "next/link";
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { getUserGroups } from "~/app/api/crud/groups";
+import { getProfileData } from "~/app/api/crud/getProfile";
 
 const links = [
   { href: '/', label: 'feed', icon: 'ti-home' },
@@ -20,55 +15,118 @@ const links = [
   { href: '/notifications', label: 'notifications', icon: 'ti-bell' },
 ];
 
+const GROUP_COLORS = ["#D4537E", "#534AB7", "#1D9E75", "#E28743", "#7F77DD", "#3B82F6"];
+
+function colorFor(id: number) {
+  return GROUP_COLORS[Math.abs(id) % GROUP_COLORS.length];
+}
+
 export default function Sidebar() {
-	const pathname = usePathname();
-	return (
-		<aside className="sidebar" id="main-sidebar">
-			{/* NAVIGATION */}
-			<p className="sec-label">navigate</p>
-			{links.map(link => (
-				<Link
-				key={link.label}
-				className={`navlink ${
-					pathname === link.href ||
-					(link.href !== '/' && pathname.startsWith(link.href))
-					? 'active'
-					: ''
-				}`}
-				href={link.href}
-				>
-				<i className={`ti ${link.icon}`} style={{ fontSize:'14px' }} aria-hidden="true"></i> {link.label}
-				{link.href === '/messages' || link.href === '/notifications' ? <span className="notif-dot" style={{ marginLeft: 'auto' }}>2</span> : <></> }
-				</Link>
-			))}
+  const pathname = usePathname();
+  const { data: session } = useSession();
+  const userId = session?.user?.id;
 
-			<div className="divider" style={{ margin:'0.5rem 0.75rem' }}></div>
-			
-			{/* MY GROUPS */}
-			<p className="sec-label">my groups</p>
-			<div className="navlink" style={{ fontSize:'11px' }}><span style={{ width:'6px', height:'6px', background:'#D4537E', display: 'inline-block', flexShrink:0 }}></span> go devs</div>
-			<div className="navlink" style={{ fontSize:'11px' }}><span style={{ width:'6px', height:'6px', background:'#534AB7', display: 'inline-block', flexShrink:0 }}></span> design sys</div>
-			<div className="navlink" style={{ fontSize:'11px' }}><span style={{ width:'6px', height:'6px', background:'#1D9E75', display: 'inline-block', flexShrink:0 }}></span> open src</div>
-			<div style={{ padding:'6px 12px', marginTop:'4px' }}><Link className="btn btn-g" style={{ width:'100%', fontSize:'11px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap:'4px' }} href="/groups"><i className="ti ti-plus" style={{ fontSize:'12px' }} aria-hidden="true"></i> new group</Link></div>
+  const [myGroups, setMyGroups] = useState<{ id: number; title: string }[]>([]);
+  const [following, setFollowing] = useState<{ id: number; nickname: string; firstname: string; lastname: string; avatar: string }[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(true);
+  const [loadingDirect, setLoadingDirect] = useState(true);
 
-			<div className="divider" style={{ margin: '0.5rem 0.75rem' }}></div>
+  useEffect(() => {
+    if (!userId) return;
+    const load = async () => {
+      setLoadingGroups(true);
+      const res = await getUserGroups();
+      if (res.success) setMyGroups(res.data);
+      setLoadingGroups(false);
+    };
+    void load();
+  }, [userId]);
 
-			{/* DIRECT */}
-			<p className="sec-label">direct</p>
-			<div className="navlink active-chat" style={{ background:'#FBEAF0', borderLeft:'2px solid #D4537E', color:'#D4537E', fontSize:'11px' }} /* onClick={ switchChat('selin') }*/ >
-				<div className="av" style={{ width:'20px', height:'20px', background:'#FBEAF0', color:'#993556', fontSize:'9px' }}>SR</div> Selin R. <span className="notif-dot" style={{ marginLeft: 'auto' }}>2</span>
-			</div>
-			<div className="navlink" style={{ fontSize: '11px' }} /*onClick={  switchChat('jonas') }*/>
-				<div className="av" style={{ width:'20px', height:'20px', background:'#E1F5EE', color:'#0F6E56', fontSize:'9px' }}>JM</div> Jonas M.
-			</div>
+  useEffect(() => {
+    if (!userId) return;
+    const load = async () => {
+      setLoadingDirect(true);
+      const res = await getProfileData(userId);
+      if (res.success && res.data.following) {
+        setFollowing(res.data.following);
+      }
+      setLoadingDirect(false);
+    };
+    void load();
+  }, [userId]);
 
-			<div className="divider" style={{ margin: '0.5rem 0.75rem' }}></div>
+  return (
+    <aside className="sidebar" id="main-sidebar">
+      {/* NAVIGATION */}
+      <p className="sec-label">navigate</p>
+      {links.map(link => (
+        <Link
+          key={link.label}
+          className={`navlink ${
+            pathname === link.href ||
+            (link.href !== '/' && pathname.startsWith(link.href))
+            ? 'active'
+            : ''
+          }`}
+          href={link.href}
+        >
+          <i className={`ti ${link.icon}`} style={{ fontSize:'14px' }} aria-hidden="true"></i> {link.label}
+        </Link>
+      ))}
 
-			{/* GROUPS */}
-			<p className="sec-label">groups</p>
-			<div className="navlink" style={{ fontSize:'11px' }} /* onClick={ switchChat('godevs') } */>
-				<span style={{ width:'6px', height:'6px', background:'#D4537E', display: 'inline-block', flexShrink:0 }}></span> go devs
-			</div>
-		</aside>
-	);
+      <div className="divider" style={{ margin:'0.5rem 0.75rem' }}></div>
+      
+      {/* MY GROUPS */}
+      <p className="sec-label">my groups</p>
+      {loadingGroups ? (
+        <div className="navlink" style={{ fontSize: '10px', color: '#6b6760' }}>loading...</div>
+      ) : myGroups.length === 0 ? (
+        <div className="navlink" style={{ fontSize: '10px', color: '#6b6760' }}>no groups yet</div>
+      ) : (
+        myGroups.map(g => (
+          <Link
+            key={g.id}
+            href={`/groups/${g.id}`}
+            className="navlink"
+            style={{ fontSize: '11px', textDecoration: 'none' }}
+          >
+            <span style={{ width:'6px', height:'6px', background: colorFor(g.id), display: 'inline-block', flexShrink:0 }}></span>
+            {g.title}
+          </Link>
+        ))
+      )}
+      <div style={{ padding:'6px 12px', marginTop:'4px' }}>
+        <Link className="btn btn-g" style={{ width:'100%', fontSize:'11px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap:'4px' }} href="/groups">
+          <i className="ti ti-plus" style={{ fontSize:'12px' }} aria-hidden="true"></i> new group
+        </Link>
+      </div>
+
+      <div className="divider" style={{ margin: '0.5rem 0.75rem' }}></div>
+
+      {/* DIRECT - users I follow */}
+      <p className="sec-label">following</p>
+      {loadingDirect ? (
+        <div className="navlink" style={{ fontSize: '10px', color: '#6b6760' }}>loading...</div>
+      ) : following.length === 0 ? (
+        <div className="navlink" style={{ fontSize: '10px', color: '#6b6760' }}>not following anyone yet</div>
+      ) : (
+        following.map(u => (
+          <Link
+            key={u.id}
+            href={`/profile/${u.id}`}
+            className="navlink"
+            style={{ fontSize: '11px', textDecoration: 'none' }}
+          >
+            <div className="av" style={{ width:'20px', height:'20px', background: colorFor(u.id), color: '#fff', fontSize:'9px', display:'flex', alignItems:'center', justifyContent:'center', flexShrink: 0 }}>
+              {u.nickname
+                ? u.nickname.charAt(0).toUpperCase()
+                : (u.firstname?.charAt(0) || '?').toUpperCase()
+              }
+            </div>
+            {u.nickname || `${u.firstname || ''} ${u.lastname || ''}`.trim()}
+          </Link>
+        ))
+      )}
+    </aside>
+  );
 }

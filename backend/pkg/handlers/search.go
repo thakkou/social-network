@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"01social/pkg/middlewares"
 	"01social/pkg/repository"
 	"01social/pkg/utilities"
 )
@@ -15,7 +16,9 @@ type SearchResponse struct {
 func FindQuery(w http.ResponseWriter, r *http.Request) {
 	text := r.URL.Query().Get("text")
 
-	profiles, err := Repos.Profile.SearchProfiles(text)
+	userID, _ := middlewares.GetUserID(r)
+
+	profiles, err := Repos.Profile.SearchProfiles(text, userID)
 	if err != nil {
 		utilities.WriteJSON(w, http.StatusInternalServerError, err.Error(), nil)
 		return

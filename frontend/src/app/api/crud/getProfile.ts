@@ -6,6 +6,7 @@ import { fetchApi } from "../helper/fetch";
 interface ProfileUserMinimal {
   id: number;
   firstname: string;
+  lastname: string;
   nickname: string;
   avatar: string;
 }

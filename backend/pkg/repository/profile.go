@@ -102,7 +102,7 @@ func (r *ProfileRepository) GetProfile(userID int) (*User, error) {
 
 // SearchProfiles searches users by first name, last name, nickname (username),
 // or full name.
-func (r *ProfileRepository) SearchProfiles(text string) ([]User, error) {
+func (r *ProfileRepository) SearchProfiles(text string, excludeUserID int) ([]User, error) {
 	query := `
 	SELECT
 		id,
@@ -113,17 +113,20 @@ func (r *ProfileRepository) SearchProfiles(text string) ([]User, error) {
 		is_private
 	FROM USERS
 	WHERE
-		LOWER(firstname) LIKE LOWER(?)
-		OR LOWER(lastname) LIKE LOWER(?)
-		OR LOWER(COALESCE(nickname, '')) LIKE LOWER(?)
-		OR LOWER(firstname || ' ' || lastname) LIKE LOWER(?)
+		id != ?
+		AND (
+			LOWER(firstname) LIKE LOWER(?)
+			OR LOWER(lastname) LIKE LOWER(?)
+			OR LOWER(COALESCE(nickname, '')) LIKE LOWER(?)
+			OR LOWER(firstname || ' ' || lastname) LIKE LOWER(?)
+		)
 	ORDER BY firstname, lastname
 	LIMIT 20
 	`
 
 	search := "%" + strings.TrimSpace(text) + "%"
 
-	rows, err := r.DB.Query(query, search, search, search, search)
+	rows, err := r.DB.Query(query, excludeUserID, search, search, search, search)
 	if err != nil {
 		return nil, err
 	}
