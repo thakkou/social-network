@@ -11,7 +11,9 @@ export function Providers({
 }) {
   return (
     <SessionProvider>
+
       <WSProvider>
+        
         <ChatProvider>
           {children}
         </ChatProvider>

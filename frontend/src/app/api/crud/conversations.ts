@@ -75,6 +75,7 @@ export async function getConversationById(
   offset = 0,
   limit = 10
 ) {
+  console.log("starrt get the conv By ID",type,id,offset,limit)
   if (!id) {
     return { error: "Conversation ID is required." };
   }
@@ -85,7 +86,7 @@ export async function getConversationById(
   });
 
   const result = await fetchApi<GetConversationByIdResponse>(
-    `/api/conversations/${type}/${id}?${params.toString()}`,
+    `/api/conversation/${type}/${id}?${params.toString()}`,
     {
       method: "GET",
     }

@@ -10,7 +10,7 @@ import {
 export type ChatType = "user" | "group";
 
 export type SelectedChat<T = Record<string, any>> = {
-  id: string;
+  id: string | number;
   type: ChatType;
   data?: T; // Holds any extra info (e.g. name, avatar, unreadCount)
 } | null;

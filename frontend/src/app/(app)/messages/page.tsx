@@ -2,6 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useChat } from "~/app/_providers/chatProvider"; // Adjust path if needed
+import {
+  getConversationById,
+  ConversationType,
+  ConversationMessage,
+} from "~/app/api/crud/conversations"; // Adjust relative path to actions
 
 const AVATAR_COLORS = ["#FBEAF0", "#EAF3FB", "#EAFBEF", "#FFF3E8", "#F3EAFB"];
 const GROUP_COLORS = ["#D4537E", "#1D9E75", "#3B82F6", "#F59E0B", "#8B5CF6"];
@@ -21,32 +26,30 @@ function colorFor(id: number | string, palette: string[]) {
   return palette[Math.abs(numId) % palette.length];
 }
 
-interface Message {
+interface DisplayMessage {
+  id: number;
   type: "me" | "them";
   text: string;
-  senderName?: string;
+  senderId: number;
 }
 
-export default function Chat() {
+export default function Chat({ currentUserId }: { currentUserId: number }) {
   const { selectedChat } = useChat();
   const [message, setMessage] = useState("");
 
-  // In-memory chat storage keyed by selection string (e.g. "user-2" or "group-1")
-  const [chats, setChats] = useState<Record<string, Message[]>>({
-    "user-2": [
-      { type: "them", text: "Sounds good, thanks!" }
-    ],
-    "group-1": [
-      { type: "them", text: "Welcome to Gophers United!", senderName: "System" }
-    ]
-  });
+  // Real messages fetched from API
+  const [messages, setMessages] = useState<DisplayMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Extract raw payload from context
   const chatData = selectedChat?.data || {};
   const isGroup = selectedChat?.type === "group" || chatData.type === "group";
-  const chatId = selectedChat?.id ?? String(chatData.id ?? "");
-  const activeKey = `${selectedChat?.type || "user"}-${chatId}`;
 
+  // Map conversation type to API string
+  const convType: ConversationType = isGroup ? "group" : "direct";
+  // Extract conversation ID directly from selectedChat.id
+  const convId = selectedChat?.id
   // Read metadata dynamically from payload
   const displayName = chatData.display_name || "Select a conversation";
   const avatarUrl = chatData.avatar || null;
@@ -54,29 +57,63 @@ export default function Chat() {
   const initials = getInitials(displayName);
 
   // Background color calculation if no image avatar is present
-  const fallbackBg = isGroup 
-    ? colorFor(chatId, GROUP_COLORS) 
-    : colorFor(chatId, AVATAR_COLORS);
+  const fallbackBg = isGroup
+    ? colorFor(convId, GROUP_COLORS)
+    : colorFor(convId, AVATAR_COLORS);
+
+  // Fetch messages from backend when selectedChat changes
+  useEffect(() => {
+    if (!convId) {
+      setMessages([]);
+      return;
+    }
+
+    async function loadMessages() {
+      setIsLoading(true);
+      setError(null);
+console.log("get the converstaion",convType,convId,0,30)
+      const response = await getConversationById(convType, convId, 0, 30);
+
+      if (response.error) {
+        setError(response.error);
+        setMessages([]);
+      } else if (response.success && response.messages) {
+        // Reverse array to display chronologically (oldest top, newest bottom)
+        const formatted = [...response.messages]
+          .reverse()
+          .map((msg: ConversationMessage) => ({
+            id: msg.id,
+            type: (msg.sender_id === currentUserId ? "me" : "them") as
+              | "me"
+              | "them",
+            text: msg.text,
+            senderId: msg.sender_id,
+          }));
+        setMessages(formatted);
+      }
+      setIsLoading(false);
+    }
+
+    loadMessages();
+  }, [convType, convId, currentUserId]);
 
   function sendMsg() {
     const val = message.trim();
     if (!val || !selectedChat) return;
 
-    setChats((prev) => ({
-      ...prev,
-      [activeKey]: [
-        ...(prev[activeKey] || []),
-        {
-          type: "me",
-          text: val,
-        },
-      ],
-    }));
+    // Optimistic UI append for local sending
+    const tempMsg: DisplayMessage = {
+      id: Date.now(),
+      type: "me",
+      text: val,
+      senderId: currentUserId,
+    };
 
+    setMessages((prev) => [...prev, tempMsg]);
     setMessage("");
-  }
 
-  const currentMessages = chats[activeKey] || [];
+    // TODO: Trigger WS notification or API send action here
+  }
 
   return (
     <main
@@ -109,7 +146,7 @@ export default function Chat() {
             gap: "8px",
           }}
         >
-          {/* Avatar Rendering: Image or Styled Initials Box */}
+          {/* Avatar Rendering */}
           {avatarUrl ? (
             <img
               src={avatarUrl}
@@ -167,17 +204,27 @@ export default function Chat() {
         >
           {selectedChat ? (
             <>
-              <div
-                style={{
-                  textAlign: "center",
-                  fontSize: "10px",
-                  color: "var(--color-text-tertiary)",
-                }}
-              >
-                today · 14:22
-              </div>
-
-              {currentMessages.length === 0 ? (
+              {isLoading ? (
+                <div
+                  style={{
+                    margin: "auto",
+                    fontSize: "11px",
+                    color: "var(--color-text-tertiary)",
+                  }}
+                >
+                  Loading messages...
+                </div>
+              ) : error ? (
+                <div
+                  style={{
+                    margin: "auto",
+                    fontSize: "11px",
+                    color: "var(--color-error, #e53e3e)",
+                  }}
+                >
+                  {error}
+                </div>
+              ) : messages.length === 0 ? (
                 <div
                   style={{
                     margin: "auto",
@@ -188,26 +235,15 @@ export default function Chat() {
                   No messages here yet. Say hello!
                 </div>
               ) : (
-                currentMessages.map((msg, index) => (
+                messages.map((msg) => (
                   <div
-                    key={index}
+                    key={msg.id}
                     style={{
                       display: "flex",
                       flexDirection: "column",
                       alignItems: msg.type === "me" ? "flex-end" : "flex-start",
                     }}
                   >
-                    {isGroup && msg.type === "them" && msg.senderName && (
-                      <span
-                        style={{
-                          fontSize: "9px",
-                          color: "var(--color-text-tertiary)",
-                          margin: "0 4px 2px 4px",
-                        }}
-                      >
-                        {msg.senderName}
-                      </span>
-                    )}
                     <div
                       className={
                         msg.type === "me" ? "msg-bubble-me" : "msg-bubble-them"
@@ -245,7 +281,7 @@ export default function Chat() {
         >
           <input
             className="inp"
-            disabled={!selectedChat}
+            disabled={!selectedChat || isLoading}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => {
@@ -265,7 +301,7 @@ export default function Chat() {
           <button
             className="btn btn-p"
             onClick={sendMsg}
-            disabled={!selectedChat}
+            disabled={!selectedChat || isLoading}
           >
             <i className="ti ti-send" />
           </button>

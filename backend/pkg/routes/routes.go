@@ -169,7 +169,7 @@ func RegisterRoutes() {
 	)
 
 	http.HandleFunc(
-		"/api/conversation/",
+		"/api/conversation/{type}/{id}",
 		middlewares.RateLimit(
 			middlewares.CheckSessionCookie(handlers.GetConversationByID, true),
 			3*time.Second,

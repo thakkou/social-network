@@ -6,7 +6,7 @@ type Repositories struct {
 	Post         *PostRepository
 	Comment      *CommentRepository
 	Category     *CategoryRepository
-	Chat         *ChatRepository
+	Conversation *ConversationRepository
 	User         *UserRepository
 	Group        *GroupRepository
 	Follow       *FollowRepository
@@ -20,7 +20,7 @@ func NewRepositories(db *sql.DB) *Repositories {
 		Post:         NewPostRepository(db),
 		Comment:      NewCommentRepository(db),
 		Category:     NewCategoryRepository(db),
-		Chat:         NewChatRepository(db),
+		Conversation: NewConversationRepository(db),
 		User:         NewUserRepository(db),
 		Group:        NewGroupRepository(db),
 		Follow:       NewFollowRepository(db),
