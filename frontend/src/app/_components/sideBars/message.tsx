@@ -183,14 +183,28 @@ const handleSelect = (item: ConversationFeedItem, type: "user" | "group") => {
                 fontWeight: isSelected ? 500 : "normal",
               }}
             >
-              <span
-                style={{
-                  width: "6px",
-                  height: "6px",
-                  background: colorFor(group.id, GROUP_COLORS),
-                  flexShrink: 0,
-                }}
-              ></span>
+              {group.avatar ? (
+                <img
+                  src={group.avatar}
+                  alt={group.display_name}
+                  style={{
+                    width: "20px",
+                    height: "20px",
+                    borderRadius: "4px",
+                    objectFit: "cover",
+                    flexShrink: 0,
+                  }}
+                />
+              ) : (
+                <span
+                  style={{
+                    width: "6px",
+                    height: "6px",
+                    background: colorFor(group.id, GROUP_COLORS),
+                    flexShrink: 0,
+                  }}
+                ></span>
+              )}
               <span style={{ color: "var(--color-text-primary)" }}>
                 {group.display_name}
               </span>

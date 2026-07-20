@@ -321,6 +321,18 @@ export async function rejectGroupInvite(groupId: string) {
   return { success: true };
 }
 
+// ─── Profile Update (server action) ───
+
+export async function updateProfileNickname(formData: FormData) {
+  const result = await fetchApi<{ status_code: number; message: string }>(
+    "/api/profile/update",
+    { method: "PUT", body: formData }
+  );
+
+  if (!result.success) return { error: result.error };
+  return { success: true };
+}
+
 // Respond to a group event (status: "going" | "not_going")
 export async function respondToEvent(
   groupId: string,

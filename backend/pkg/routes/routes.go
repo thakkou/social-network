@@ -43,6 +43,7 @@ func RegisterRoutes() {
 	)
 
 	// profiles
+	http.HandleFunc("/api/profile/update", middlewares.CheckSessionCookie(handlers.UpdateProfile, true))
 	http.HandleFunc("/api/profile/", middlewares.CheckSessionCookie(handlers.GetProfile, true))
 	http.HandleFunc("/api/profile/privacy", middlewares.CheckSessionCookie(handlers.UpdateProfilePrivacy, true))
 	// follow

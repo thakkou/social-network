@@ -13,6 +13,7 @@ const links = [
   { href: '/groups', label: 'groups', icon: 'ti-users' },
   { href: '/messages', label: 'messages', icon: 'ti-message' },
   { href: '/notifications', label: 'notifications', icon: 'ti-bell' },
+  { href: '/settings', label: 'settings', icon: 'ti-settings' },
 ];
 
 const GROUP_COLORS = ["#D4537E", "#534AB7", "#1D9E75", "#E28743", "#7F77DD", "#3B82F6"];

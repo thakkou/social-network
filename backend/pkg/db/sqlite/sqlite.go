@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"01social/pkg/db/sqlite/seeder"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -43,7 +44,7 @@ func Init(refresh bool) error {
 	}
 
 	if refresh {
-		if err := Run(Database); err != nil {
+		if err := seeder.Run(Database); err != nil {
 			return fmt.Errorf("seed failed: %v", err)
 		}
 	}

@@ -130,3 +130,12 @@ func (r *UserRepository) IsPrivateUser(userID int) (bool, error) {
 	}
 	return isPrivate == 1, nil
 }
+
+func (r *UserRepository) UpdateProfile(userID int, nickname, aboutme, avatar string) error {
+	query := `UPDATE USERS SET nickname = ?, aboutme = ?, avatar = ? WHERE id = ?`
+	nick := sql.NullString{String: nickname, Valid: nickname != ""}
+	about := sql.NullString{String: aboutme, Valid: aboutme != ""}
+	av := sql.NullString{String: avatar, Valid: avatar != ""}
+	_, err := r.DB.Exec(query, nick, about, av, userID)
+	return err
+}

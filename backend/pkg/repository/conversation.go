@@ -33,6 +33,7 @@ type Message struct {
 	SenderID  int    `json:"sender_id"`
 	Text      string `json:"text"`
 	CreatedAt string `json:"created_at"`
+	Nickname  string `json:"nickname"`
 }
 
 type feedRef struct {
@@ -266,7 +267,8 @@ func (r *ConversationRepository) FetchConversationFeed(userID, limit, offset int
 				g.title,
 				(SELECT COUNT(*) FROM GROUP_MEMBERS gm WHERE gm.group_id = g.id),
 				lm.text,
-				lm.created_at
+				lm.created_at,
+				g.logo
 			FROM GROUPS g
 			LEFT JOIN (
 				SELECT gm1.group_id, gm1.text, gm1.created_at
@@ -292,8 +294,9 @@ func (r *ConversationRepository) FetchConversationFeed(userID, limit, offset int
 				title             string
 				memberCount       int
 				lastMsg, lastDate sql.NullString
+				groupLogo         sql.NullString
 			)
-			if err := gRows.Scan(&groupID, &title, &memberCount, &lastMsg, &lastDate); err != nil {
+			if err := gRows.Scan(&groupID, &title, &memberCount, &lastMsg, &lastDate, &groupLogo); err != nil {
 				return nil, nil, err
 			}
 
@@ -320,6 +323,9 @@ func (r *ConversationRepository) FetchConversationFeed(userID, limit, offset int
 			}
 			if lastDate.Valid {
 				item.LastMessageAt = &lastDate.String
+			}
+			if groupLogo.Valid && groupLogo.String != "" {
+				item.Avatar = &groupLogo.String
 			}
 			groupDetails[groupID] = item
 		}
@@ -357,10 +363,11 @@ func (r *ConversationRepository) FetchDirectMessages(convID, userID, limit, offs
 	}
 
 	rows, err := r.db.Query(`
-		SELECT id, sender_id, text, created_at
-		FROM MESSAGES
-		WHERE conversation_id = ?
-		ORDER BY created_at DESC
+		SELECT m.id, m.sender_id, m.text, m.created_at, COALESCE(u.nickname, u.firstname) 
+		FROM MESSAGES m
+		JOIN USERS u ON u.id = m.sender_id
+		WHERE m.conversation_id = ?
+		ORDER BY m.created_at DESC
 		LIMIT ? OFFSET ?
 	`, convID, limit, offset)
 	if err != nil {
@@ -371,7 +378,7 @@ func (r *ConversationRepository) FetchDirectMessages(convID, userID, limit, offs
 	var messages []Message
 	for rows.Next() {
 		var m Message
-		if err := rows.Scan(&m.ID, &m.SenderID, &m.Text, &m.CreatedAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.SenderID, &m.Text, &m.CreatedAt, &m.Nickname); err != nil {
 			return nil, err
 		}
 		messages = append(messages, m)
@@ -392,10 +399,11 @@ func (r *ConversationRepository) FetchGroupMessages(groupID, userID, limit, offs
 	}
 
 	rows, err := r.db.Query(`
-		SELECT id, sender_id, text, created_at
-		FROM GROUP_MESSAGES
-		WHERE group_id = ?
-		ORDER BY created_at DESC
+		SELECT gm.id, gm.sender_id, gm.text, gm.created_at, COALESCE(u.nickname, u.firstname)
+		FROM GROUP_MESSAGES gm
+		JOIN USERS u ON u.id = gm.sender_id
+		WHERE gm.group_id = ?
+		ORDER BY gm.created_at DESC
 		LIMIT ? OFFSET ?
 	`, groupID, limit, offset)
 	if err != nil {
@@ -406,7 +414,7 @@ func (r *ConversationRepository) FetchGroupMessages(groupID, userID, limit, offs
 	var messages []Message
 	for rows.Next() {
 		var m Message
-		if err := rows.Scan(&m.ID, &m.SenderID, &m.Text, &m.CreatedAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.SenderID, &m.Text, &m.CreatedAt, &m.Nickname); err != nil {
 			return nil, err
 		}
 		messages = append(messages, m)

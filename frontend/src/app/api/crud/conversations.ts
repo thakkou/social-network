@@ -22,6 +22,7 @@ export interface ConversationMessage {
   sender_id: number;
   text: string;
   created_at: string;
+  nickname: string;
 }
 
 interface GetConversationsResponse {

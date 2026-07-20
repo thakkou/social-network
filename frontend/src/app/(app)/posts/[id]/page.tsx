@@ -527,7 +527,7 @@ export default function PostDetailPage() {
 
       {/* Comments */}
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        {post.comments.length === 0 ? (
+        {post?.comments?.length === 0 ? (
           <div
             className="card"
             style={{ textAlign: "center", padding: "16px" }}
@@ -537,7 +537,7 @@ export default function PostDetailPage() {
             </p>
           </div>
         ) : (
-          post.comments.map((comment) => (
+          post?.comments?.map((comment) => (
             <div key={comment.id} className="card">
               <div
                 style={{

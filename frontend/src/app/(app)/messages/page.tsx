@@ -28,11 +28,29 @@ function colorFor(id: number | string, palette: string[]) {
   return palette[Math.abs(numId) % palette.length];
 }
 
+function timeAgo(dateStr: string): string {
+  if (!dateStr) return "";
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHrs = Math.floor(diffMin / 60);
+  if (diffHrs < 24) return `${diffHrs}h ago`;
+  const diffDays = Math.floor(diffHrs / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
 interface DisplayMessage {
   id: number;
   type: "me" | "them";
   text: string;
   senderId: number;
+  nickname: string;
+  createdAt: string;
+  timeAgo: string;
   isSending?: boolean; // Track optimistic state
 }
 
@@ -94,6 +112,9 @@ export default function Chat() {
               | "them",
             text: msg.text,
             senderId: msg.sender_id,
+            nickname: msg.nickname || "unknown",
+            createdAt: msg.created_at,
+            timeAgo: timeAgo(msg.created_at),
           }));
         setMessages(formatted);
       }
@@ -115,6 +136,9 @@ export default function Chat() {
       type: "me",
       text: val,
       senderId: currentUserId,
+      nickname: "you",
+      createdAt: new Date().toISOString(),
+      timeAgo: "just now",
       isSending: true,
     };
 
@@ -282,9 +306,71 @@ export default function Chat() {
                       display: "flex",
                       flexDirection: "column",
                       alignItems: msg.type === "me" ? "flex-end" : "flex-start",
-                      opacity: msg.isSending ? 0.6 : 1, // Visual indication while sending
+                      opacity: msg.isSending ? 0.6 : 1,
+                      maxWidth: "80%",
+                      alignSelf: msg.type === "me" ? "flex-end" : "flex-start",
                     }}
                   >
+                    {/* Nickname + timestamp for "them" messages */}
+                    {msg.type === "them" && (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          marginBottom: "2px",
+                          paddingLeft: "4px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: 600,
+                            color: "#D4537E",
+                          }}
+                        >
+                          {msg.nickname}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: "9px",
+                            color: "#6b6760",
+                          }}
+                        >
+                          {msg.timeAgo}
+                        </span>
+                      </div>
+                    )}
+                    {/* Timestamp for "me" messages */}
+                    {msg.type === "me" && (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          marginBottom: "2px",
+                          paddingRight: "4px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "9px",
+                            color: "#6b6760",
+                          }}
+                        >
+                          {msg.isSending ? "sending..." : msg.timeAgo}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: 600,
+                            color: "var(--color-text-primary)",
+                          }}
+                        >
+                          you
+                        </span>
+                      </div>
+                    )}
                     <div
                       className={
                         msg.type === "me" ? "msg-bubble-me" : "msg-bubble-them"

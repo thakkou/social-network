@@ -174,3 +174,24 @@ export async function deleteComment(commentId: number) {
   if (!result.success) return { error: result.error };
   return { success: true };
 }
+
+// ─── Create Post (for feed) ───
+
+interface CreatePostResponse {
+  status_code: number;
+  message: string;
+  data: {
+    post_id: number;
+  };
+}
+
+// Create a new post with optional image, privacy, categories
+export async function createPost(formData: FormData) {
+  const result = await fetchApi<CreatePostResponse>("/api/posts/create", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!result.success) return { error: result.error };
+  return { success: true, data: result.data.data };
+}

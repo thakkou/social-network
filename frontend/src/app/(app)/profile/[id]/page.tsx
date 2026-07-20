@@ -185,15 +185,34 @@ if (isPrivateBlocked) {
 }
 
 
+    // Determine display name and initials
+    const displayName = profile?.nickname || `${profile?.firstname || ''} ${profile?.lastname || ''}`.trim() || 'User';
+    const avatarInitials = (profile?.firstname?.[0]?.toUpperCase() || '') + (profile?.lastname?.[0]?.toUpperCase() || '') || '?';
+    const isFollowing = profile?.following_status === "accepted";
+
     return (
         <main className="main">
             <div className="card">
                 <div style={{ display: 'flex', alignItems:'flex-start', gap:'12px', marginBottom:'12px' }}>
-                <div className="av" style={{ width:'52px', height:'52px', background:'#EEEDFE', color:'#534AB7', fontSize:'16px' }}>AK</div>
+                <div
+                  className="av"
+                  style={{
+                    width: '52px',
+                    height: '52px',
+                    background: profile?.avatar ? `url(${profile.avatar}) center/cover` : '#EEEDFE',
+                    color: '#534AB7',
+                    fontSize: '16px',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {!profile?.avatar && avatarInitials}
+                </div>
                 <div style={{ flex:1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap:'8px', flexWrap: 'wrap', marginBottom:'4px' }}>
-                        <p style={{ fontSize:'14px', fontWeight:500, color:'var(--color-text-primary)' }}>Amir Kader</p>
-                        <span className="tag tag-teal"> {`@${profile?.nickname || "non"}`} </span>
+                        <p style={{ fontSize:'14px', fontWeight:500, color:'var(--color-text-primary)' }}>{displayName}</p>
+                        {profile?.nickname && (
+                          <span className="tag tag-teal">@{profile.nickname}</span>
+                        )}
                         <span className={`tag ${isPrivate ? 'tag-gray' : 'tag-purple'}`} id="profile-visibility-tag">{isPrivate ? 'private' : 'public'}</span>
                         <button
                             className="btn btn-g"
@@ -205,8 +224,15 @@ if (isPrivateBlocked) {
                             <i className={`ti ${followIcon}`} style={{ fontSize: '12px' }} aria-hidden="true"></i> {isFollowLoading ? '...' : followLabel}
                         </button>
                     </div>
-                    <p style={{ fontSize:'11px', color:'var(--color-text-secondary)', marginBottom:'4px' }}>Born 1998-07-14 · amir@example.com</p>
-                    <p style={{ fontSize:'12px', color:'var(--color-text-primary)', lineHeight:1.5 }}>Full-stack dev working on distributed systems. Passionate about Go, open source, and clean architecture.</p>
+                    {/* Show email + birth only if following */}
+                    {isFollowing && (
+                      <p style={{ fontSize:'11px', color:'var(--color-text-secondary)', marginBottom:'4px' }}>
+                        {profile?.birthdate ? `Born ${profile.birthdate}` : ''}{profile?.birthdate && profile?.email ? ' · ' : ''}{profile?.email || ''}
+                      </p>
+                    )}
+                    {profile?.aboutme && (
+                      <p style={{ fontSize:'12px', color:'var(--color-text-primary)', lineHeight:1.5 }}>{profile.aboutme}</p>
+                    )}
                 </div>
                 </div>
                 <div className="divider"></div>
@@ -229,7 +255,7 @@ if (isPrivateBlocked) {
             <div style={{ display: 'flex', gap:0, border:'0.5px solid var(--color-border-tertiary)', background:'var(--color-background-primary)' }}>
                 {tabs.map((tab, idx) => (
                     <div
-                        key={idx} // or label
+                        key={idx}
                         className={`profile-tab ${activeTab === idx ? 'active-tab' : ''}`}
                         style={{
                             padding: '8px 16px',

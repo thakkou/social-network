@@ -170,3 +170,53 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 	// Return profile data
 	utilities.WriteJSON(w, http.StatusOK, "profile data", profileRes)
 }
+
+func UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
+
+	userID, ok := middlewares.GetUserID(r)
+	if !ok {
+		utilities.WriteJSON(w, http.StatusUnauthorized, "not logged in", nil)
+		return
+	}
+
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		var payload struct {
+			Nickname string `json:"nickname"`
+			AboutMe  string `json:"aboutme"`
+		}
+		if jsonErr := utilities.ReadJSONRequestIntoStruct(r, &payload); jsonErr != nil {
+			utilities.WriteJSON(w, http.StatusBadRequest, "invalid request body", nil)
+			return
+		}
+
+		if err := Repos.User.UpdateProfile(userID, payload.Nickname, payload.AboutMe, ""); err != nil {
+			utilities.WriteJSON(w, http.StatusInternalServerError, "could not update profile", nil)
+			return
+		}
+
+		utilities.WriteJSON(w, http.StatusOK, "profile updated", nil)
+		return
+	}
+
+	nickname := strings.TrimSpace(r.FormValue("nickname"))
+	aboutme := strings.TrimSpace(r.FormValue("aboutme"))
+
+	var avatarPath string
+	if file, header, err := r.FormFile("avatar"); err == nil {
+		defer file.Close()
+		if saved, saveErr := utilities.SaveImage(file, header, "uploads/avatars/"); saveErr == nil {
+			avatarPath = saved
+		}
+	}
+
+	if err := Repos.User.UpdateProfile(userID, nickname, aboutme, avatarPath); err != nil {
+		utilities.WriteJSON(w, http.StatusInternalServerError, "could not update profile", nil)
+		return
+	}
+
+	utilities.WriteJSON(w, http.StatusOK, "profile updated", nil)
+}
