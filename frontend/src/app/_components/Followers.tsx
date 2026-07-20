@@ -1,7 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
 
-export default function Followers({ users = [] }) {
+interface FollowerUser {
+  id: number;
+  nickname?: string;
+  firstname?: string;
+  lastname?: string;
+  avatar?: string;
+}
+
+export default function Followers({ users = [] }: { users?: FollowerUser[] }) {
     return (
         <div id="profile-followers">
             <div className="card">

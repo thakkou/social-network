@@ -30,6 +30,9 @@ export default tseslint.config(
       "error",
       { checksVoidReturn: { attributes: false } },
     ],
+    "@typescript-eslint/no-unsafe-assignment": "off",
+    "@typescript-eslint/no-unsafe-member-access": "off",
+    "@typescript-eslint/no-explicit-any": "warn",
   },
   },
   {

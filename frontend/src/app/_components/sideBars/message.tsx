@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { getConversations, ConversationFeedItem } from "~/app/api/crud/conversations";
+import { getConversations } from "~/app/api/crud/conversations";
+import type { ConversationFeedItem } from "~/app/api/crud/conversations";
 import { useChat } from "~/app/_providers/chatProvider"; // Adjust import path to match your ChatContext location
 
 const AVATAR_COLORS = ["#FBEAF0", "#EAF3FB", "#EAFBEF", "#FFF3E8", "#F3EAFB"];

@@ -68,7 +68,7 @@ export async function getNotifications(type: "all" | "unread" = "unread") {
  * POST /api/notifications/read?id=1
  * ========================= */
 
-export async function markNotificationAsRead(id: number) {
+export async function markNotificationAsRead(id: number | string) {
   const result = await fetchApi(
     `/api/notifications/read?id=${id}`,
     {

@@ -2,9 +2,29 @@
 
 import { fetchApi } from "../helper/fetch";
 
-// Define what your Go backend actually returns for search
-interface SearchData {
-  results: Array<{ id: string; name: string }>; 
+interface SearchProfile {
+  id: number;
+  firstname: string;
+  lastname: string;
+  nickname?: string;
+  avatar?: string;
+  is_private?: number;
+}
+
+interface SearchGroup {
+  id: number;
+  title: string;
+  description?: string;
+  logo?: string;
+}
+
+interface SearchResponse {
+  status_code: number;
+  message: string;
+  data: {
+    profiles: SearchProfile[];
+    groups: SearchGroup[];
+  };
 }
 
 export async function search(text: string) {
@@ -14,8 +34,7 @@ export async function search(text: string) {
     return { error: "Search query is required." };
   }
 
-  // Pass your expected generic type <SearchData> to get full type safety
-  const result = await fetchApi<SearchData>("/api/search", {
+  const result = await fetchApi<SearchResponse>("/api/search", {
     method: "GET",
     searchParams: { text: query },
   });
@@ -26,6 +45,6 @@ export async function search(text: string) {
 
   return {
     success: true,
-    data: result.data,
+    data: result.data.data,
   };
 }

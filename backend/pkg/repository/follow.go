@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 )
 
 type Follow struct {
@@ -61,6 +62,7 @@ func (r *FollowRepository) Unfollow(followerID, followingID int) error {
 }
 
 // AcceptFollow changes a pending request into an accepted follow.
+// Returns an error if no pending follow request was found.
 func (r *FollowRepository) AcceptFollow(followerID, followingID int) error {
 	query := `
 		UPDATE FOLLOWS
@@ -70,17 +72,27 @@ func (r *FollowRepository) AcceptFollow(followerID, followingID int) error {
 		AND status = 'pending'
 	`
 
-	_, err := r.DB.Exec(
+	res, err := r.DB.Exec(
 		query,
 		followerID,
 		followingID,
 	)
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("no pending follow request found")
+	}
+
+	return nil
 }
 
 // RejectFollow removes a pending follow request.
 // No history is stored.
+// Returns an error if no pending follow request was found.
 func (r *FollowRepository) RejectFollow(followerID, followingID int) error {
 	query := `
 		DELETE FROM FOLLOWS
@@ -89,13 +101,22 @@ func (r *FollowRepository) RejectFollow(followerID, followingID int) error {
 		AND status = 'pending'
 	`
 
-	_, err := r.DB.Exec(
+	res, err := r.DB.Exec(
 		query,
 		followerID,
 		followingID,
 	)
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("no pending follow request found")
+	}
+
+	return nil
 }
 
 // GetFollowers returns all accepted followers of a user.

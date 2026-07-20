@@ -185,7 +185,7 @@ export default function SearchInput({
       const response = await search(searchTerm.trim());
 
       if (response.success) {
-        const data = response.data.data;
+        const data = response.data;
 
         setResults({
           profiles: data?.profiles ?? [],

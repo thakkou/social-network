@@ -4,7 +4,7 @@ import {
   createContext,
   useContext,
   useState,
-  ReactNode,
+  type ReactNode,
 } from "react";
 
 export type ChatType = "user" | "group";

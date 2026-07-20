@@ -197,11 +197,22 @@ func FollowResolver(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			utilities.WriteJSON(
 				w,
-				http.StatusInternalServerError,
-				"could not accept follow",
+				http.StatusNotFound,
+				err.Error(),
 				nil,
 			)
 			return
+		}
+
+		// Notify the requester that their follow was accepted
+		if err := Repos.Notification.Create(&repository.Notification{
+			UserID:     targetID, // the requester gets notified
+			ActorID:    userID,   // the owner who accepted
+			Type:       "follow_accepted",
+			ObjectType: "follow",
+			ObjectID:   targetID,
+		}); err != nil {
+			fmt.Printf("failed to create follow_accepted notification: %v\n", err)
 		}
 
 		utilities.WriteJSON(

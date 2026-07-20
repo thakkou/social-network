@@ -533,93 +533,95 @@ export default function GroupDetailPage() {
         </div>
       )}
 
-      {/* ── CREATE POST ── */}
-      <div className="card">
-        <p style={{ fontSize: 12, color: "#a09c94", marginBottom: 12 }}>
-          Create a new group post
-        </p>
-        <div className="form-row">
-          <label className="form-label">Title (optional)</label>
-          <input
-            className="inp"
-            value={newPostTitle}
-            onChange={(e) => setNewPostTitle(e.target.value)}
-            placeholder="Post title..."
-          />
-        </div>
-        <textarea
-          className="inp"
-          rows={3}
-          value={newPostText}
-          onChange={(e) => setNewPostText(e.target.value)}
-          placeholder="Share something with the group..."
-          style={{ resize: "none" }}
-        />
-        {/* Image preview */}
-        {newPostPreview && (
-          <div style={{ position: "relative", marginTop: 8 }}>
-            <img
-              src={newPostPreview}
-              alt="Preview"
-              style={{
-                width: "100%",
-                maxHeight: 200,
-                objectFit: "cover",
-                border: "0.5px solid #3a3733",
-              }}
+      {/* ── CREATE POST (members only) ── */}
+      {isMember && (
+        <div className="card">
+          <p style={{ fontSize: 12, color: "#a09c94", marginBottom: 12 }}>
+            Create a new group post
+          </p>
+          <div className="form-row">
+            <label className="form-label">Title (optional)</label>
+            <input
+              className="inp"
+              value={newPostTitle}
+              onChange={(e) => setNewPostTitle(e.target.value)}
+              placeholder="Post title..."
             />
+          </div>
+          <textarea
+            className="inp"
+            rows={3}
+            value={newPostText}
+            onChange={(e) => setNewPostText(e.target.value)}
+            placeholder="Share something with the group..."
+            style={{ resize: "none" }}
+          />
+          {/* Image preview */}
+          {newPostPreview && (
+            <div style={{ position: "relative", marginTop: 8 }}>
+              <img
+                src={newPostPreview}
+                alt="Preview"
+                style={{
+                  width: "100%",
+                  maxHeight: 200,
+                  objectFit: "cover",
+                  border: "0.5px solid #3a3733",
+                }}
+              />
+              <button
+                onClick={() => {
+                  setNewPostImage(null);
+                  setNewPostPreview(null);
+                }}
+                style={{
+                  position: "absolute",
+                  top: 4,
+                  right: 4,
+                  background: "#2a1818",
+                  border: "0.5px solid #7a2c2c",
+                  color: "#e07070",
+                  cursor: "pointer",
+                  width: 22,
+                  height: 22,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 12,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12 }}>
+            <label className="btn btn-g" style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+              <i className="ti ti-photo" />
+              {newPostImage ? "change" : "image"}
+              <input
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setNewPostImage(file);
+                    setNewPostPreview(URL.createObjectURL(file));
+                  }
+                }}
+              />
+            </label>
             <button
-              onClick={() => {
-                setNewPostImage(null);
-                setNewPostPreview(null);
-              }}
-              style={{
-                position: "absolute",
-                top: 4,
-                right: 4,
-                background: "#2a1818",
-                border: "0.5px solid #7a2c2c",
-                color: "#e07070",
-                cursor: "pointer",
-                width: 22,
-                height: 22,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 12,
-              }}
+              className="btn btn-p"
+              disabled={posting || (!newPostText.trim() && !newPostTitle.trim())}
+              onClick={() => void handleCreatePost()}
             >
-              ✕
+              {posting ? "posting..." : <><i className="ti ti-send" /> publish</>}
             </button>
           </div>
-        )}
-
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12 }}>
-          <label className="btn btn-g" style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-            <i className="ti ti-photo" />
-            {newPostImage ? "change" : "image"}
-            <input
-              type="file"
-              accept="image/*"
-              style={{ display: "none" }}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  setNewPostImage(file);
-                  setNewPostPreview(URL.createObjectURL(file));
-                }
-              }}
-            />
-          </label>
-          <button
-            className="btn btn-p"
-            disabled={posting || (!newPostText.trim() && !newPostTitle.trim())}
-            onClick={() => void handleCreatePost()}
-          >
-            {posting ? "posting..." : <><i className="ti ti-send" /> publish</>}
-          </button>
         </div>
-      </div>
+      )}
 
       {/* ── FEED ── */}
       {filteredFeed.length === 0 && (

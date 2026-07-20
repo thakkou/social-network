@@ -11,7 +11,7 @@ interface PrivateProfileProps {
         avatar?: string;
         following_status?: string;
     };
-    onStatusChange?: (status: string) => void;
+    onSendRequest?: () => void;
 }
 
 export default function PrivateProfile({
@@ -92,7 +92,7 @@ const buttonLabel = isLoading
 
              <button
   className="btn btn-g"
-  onClick={() => void onSendRequest()}
+  onClick={() => onSendRequest?.()}
   disabled={isLoading}
 >
   {buttonLabel}

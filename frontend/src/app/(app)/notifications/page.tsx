@@ -67,7 +67,7 @@ const NotificationCard = ({
   const getInitials = () => {
     if (!data.actor) return "??";
     if (data.actor.firstname && data.actor.lastname) {
-      return (data.actor.firstname[0] + data.actor.lastname[0]).toUpperCase();
+      return (data.actor.firstname.charAt(0) + data.actor.lastname.charAt(0)).toUpperCase();
     }
     return (data.actor.nickname ? data.actor.nickname.slice(0, 2) : "UN").toUpperCase();
   };
@@ -219,6 +219,7 @@ export default function Notifications() {
   const [filter, setFilter] = useState<"all" | "unread">("unread");
   const [loading, setLoading] = useState(true);
   const [notification, setNotifications] = useState<NotificationItem[]>([]);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const loadNotifications = async (type: "all" | "unread") => {
     setLoading(true);
@@ -264,9 +265,12 @@ export default function Notifications() {
   userId: number,
   notificationId: string | number
 ) => {
+  setActionError(null);
   const res = await acceptFollowRequest(userId);
 
-  if (res.success) {
+  if ("error" in res) {
+    setActionError(res.error ?? "Failed to accept follow request");
+  } else {
     // remove the handled request
     setNotifications((prev) =>
       prev.filter((n) => n.id !== notificationId)
@@ -278,9 +282,12 @@ const handleRejectFollow = async (
   userId: number,
   notificationId: string | number
 ) => {
+  setActionError(null);
   const res = await rejectFollowRequest(userId);
 
-  if (res.success) {
+  if ("error" in res) {
+    setActionError(res.error ?? "Failed to reject follow request");
+  } else {
     // remove the handled request
     setNotifications((prev) =>
       prev.filter((n) => n.id !== notificationId)
@@ -302,7 +309,7 @@ const handleRejectFollow = async (
   };
 
   useEffect(() => {
-    loadNotifications(filter);
+    void loadNotifications(filter);
   }, []);
 
   if (loading) {
@@ -355,6 +362,21 @@ const handleRejectFollow = async (
           notifications ({notification?.length || 0})
         </p>
       </div>
+
+      {actionError && (
+        <div
+          className="card"
+          style={{
+            borderLeft: "2px solid #e74c3c",
+            padding: "10px 14px",
+            fontSize: "12px",
+            color: "#e74c3c",
+            marginBottom: "12px",
+          }}
+        >
+          {actionError}
+        </div>
+      )}
 
       {notification.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: "24px", color: "var(--color-text-secondary)" }}>
