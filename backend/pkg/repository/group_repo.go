@@ -64,7 +64,7 @@ func (r *GroupRepository) CreateGroup(g *Group) error {
 	logo := sql.NullString{String: g.Logo, Valid: g.Logo != ""}
 	background := sql.NullString{String: g.Background, Valid: g.Background != ""}
 
-	query := `INSERT INTO GROUPS (creator_id, title, description, logo, backgroun) VALUES (?, ?, ?, ?, ?)`
+	query := `INSERT INTO GROUPS (creator_id, title, description, logo, background) VALUES (?, ?, ?, ?, ?)`
 	res, err := r.DB.Exec(query, g.CreatorID, g.Title, description, logo, background)
 	if err != nil {
 		return err

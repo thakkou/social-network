@@ -2,10 +2,12 @@
 -group detaille and profile data  --> done
 
 
-+2j
++1j
 
 -start get the conversations and send messages 2 days--done
+
 -creat group,post group invite and events add group avatar , update the avatre 3 days
+
 --->here i will change the backend logic 
 -feeds,comments 1 days
 -setup ws and add notifications
@@ -22,3 +24,4 @@
 --use the search inputs for group invitations
 and make it optional
 -add avatar and bg optionalas
+-fix the Ui messages add nickname and i'm or their write

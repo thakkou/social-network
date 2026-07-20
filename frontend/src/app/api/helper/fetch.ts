@@ -5,7 +5,7 @@ type ApiResult<T> =
   | { success: false; error: string; data?: never };
 
 interface FetchApiOptions extends Omit<RequestInit, "body"> {
-  body?: unknown; // Allow passing objects directly instead of stringifying manually
+  body?: unknown; // Allow passing objects or FormData directly
   searchParams?: Record<string, string | number | boolean | undefined>;
 }
 
@@ -31,31 +31,46 @@ export async function fetchApi<T>(
       });
     }
 
-    // 2. Setup Headers (Merge default session cookies with custom headers)
+    // 2. Setup Headers
     const headers = new Headers(options.headers);
     if (session?.user?.session_id) {
       headers.set("Cookie", `session_id=${session.user.session_id}`);
     }
-    
-    // Automatically set Content-Type if sending JSON body
-    if (options.body && typeof options.body === "object" && !headers.has("Content-Type")) {
+
+    const isFormData = options.body instanceof FormData;
+
+    // Automatically set Content-Type to JSON ONLY if body is a plain object (not FormData)
+    if (
+      options.body &&
+      typeof options.body === "object" &&
+      !isFormData &&
+      !headers.has("Content-Type")
+    ) {
       headers.set("Content-Type", "application/json");
     }
 
-    // 3. Prepare Request Configuration
+    // 3. Prepare Request Body
+    let body: BodyInit | null | undefined;
+    if (isFormData) {
+      body = options.body as FormData;
+    } else if (options.body && typeof options.body === "object") {
+      body = JSON.stringify(options.body);
+    } else {
+      body = options.body as BodyInit;
+    }
+
+    // 4. Prepare Request Configuration
     const config: RequestInit = {
       ...options,
       headers,
       credentials: options.credentials ?? "include",
-      body: options.body && typeof options.body === "object" 
-        ? JSON.stringify(options.body) 
-        : (options.body as BodyInit),
+      body,
     };
 
-    // 4. Fire Request
+    // 5. Fire Request
     const res = await fetch(url.toString(), config);
 
-    // 5. Handle Network/Backend Failure
+    // 6. Handle Network/Backend Failure
     if (!res.ok) {
       const errorData = await res.json().catch(() => null);
       return {
@@ -64,12 +79,11 @@ export async function fetchApi<T>(
       };
     }
 
-    // 6. Return Typed Data
+    // 7. Return Typed Data
     const data = (await res.json()) as T;
     return { success: true, data };
 
   } catch (err) {
-    // Catch-all for network timeouts or unexpected parsing errors
     return {
       success: false,
       error: err instanceof Error ? err.message : "An unexpected error occurred",

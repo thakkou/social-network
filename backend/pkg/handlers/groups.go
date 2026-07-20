@@ -135,7 +135,8 @@ func CreateGroup(w http.ResponseWriter, r *http.Request) {
 	var logoPath string
 	logoFile, logoHeader, err := r.FormFile("logo")
 	if err == nil {
-		path, err := utilities.SaveImage(logoFile, logoHeader, "uploads/groups/logo")
+		defer logoFile.Close()
+		path, err := utilities.SaveImage(logoFile, logoHeader, "uploads/groups/logos")
 		if err != nil {
 			log.Printf("[CREATE_GROUP] Failed to process logo upload: %v", err)
 			utilities.WriteJSON(w, http.StatusBadRequest, err.Error(), nil)
@@ -150,6 +151,7 @@ func CreateGroup(w http.ResponseWriter, r *http.Request) {
 	var backgroundPath string
 	bgFile, bgHeader, err := r.FormFile("background")
 	if err == nil {
+		defer bgFile.Close()
 		path, err := utilities.SaveImage(bgFile, bgHeader, "uploads/groups/backgrounds")
 		if err != nil {
 			log.Printf("[CREATE_GROUP] Failed to process background upload: %v", err)
@@ -169,7 +171,6 @@ func CreateGroup(w http.ResponseWriter, r *http.Request) {
 		Logo:        logoPath,
 		Background:  backgroundPath,
 	}
-	log.Printf("[CREATE_GROUP] DB insertion failed for group %q by user %d: %v", title, userID, err)
 
 	if err := Repos.Group.CreateGroup(group); err != nil {
 		log.Printf("[CREATE_GROUP] DB insertion failed for group %q by user %d: %v", title, userID, err)
