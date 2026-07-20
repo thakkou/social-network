@@ -158,6 +158,77 @@ func (r *GroupRepository) RejectGroupRequest(groupID, userID int) error {
 	return err
 }
 
+type PendingRequest struct {
+	ID        int    `json:"id"`
+	UserID    int    `json:"user_id"`
+	Nickname  string `json:"nickname"`
+	Firstname string `json:"firstname"`
+	Lastname  string `json:"lastname"`
+	Avatar    string `json:"avatar"`
+	Status    string `json:"status"`
+	CreatedAt string `json:"created_at"`
+}
+
+func (r *GroupRepository) ListGroupPendingRequests(groupID int) ([]PendingRequest, error) {
+	query := `
+		SELECT
+			gr.id,
+			gr.user_id,
+			COALESCE(u.nickname, '') AS nickname,
+			u.firstname,
+			u.lastname,
+			COALESCE(u.avatar, '') AS avatar,
+			gr.status,
+			gr.created_at
+		FROM GROUP_REQUESTS gr
+		JOIN USERS u ON u.id = gr.user_id
+		WHERE gr.group_id = ? AND gr.status = 'pending'
+		ORDER BY gr.created_at DESC
+	`
+	rows, err := r.DB.Query(query, groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var requests []PendingRequest
+	for rows.Next() {
+		var req PendingRequest
+		if err := rows.Scan(&req.ID, &req.UserID, &req.Nickname, &req.Firstname, &req.Lastname, &req.Avatar, &req.Status, &req.CreatedAt); err != nil {
+			return nil, err
+		}
+		requests = append(requests, req)
+	}
+	return requests, rows.Err()
+}
+
+func (r *GroupRepository) GetUserGroups(userID int) ([]Group, error) {
+	query := `
+		SELECT g.id, g.creator_id, g.title, COALESCE(g.description, ''), g.created_at
+		FROM GROUPS g
+		JOIN GROUP_MEMBERS gm ON gm.group_id = g.id
+		WHERE gm.user_id = ?
+		ORDER BY g.created_at DESC
+	`
+	rows, err := r.DB.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var groups []Group
+	for rows.Next() {
+		var g Group
+		var createdAt string
+		if err := rows.Scan(&g.ID, &g.CreatorID, &g.Title, &g.Description, &createdAt); err != nil {
+			return nil, err
+		}
+		g.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
+		groups = append(groups, g)
+	}
+	return groups, rows.Err()
+}
+
 func (r *GroupRepository) GetGroupCreatorID(groupID int) (int, error) {
 	var creatorID int
 	err := r.DB.QueryRow(`SELECT creator_id FROM GROUPS WHERE id = ?`, groupID).Scan(&creatorID)

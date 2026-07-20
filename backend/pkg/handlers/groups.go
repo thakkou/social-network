@@ -339,6 +339,29 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// GET /api/groups/{groupId}/requests — list pending join requests
+	if len(segments) == 4 && segments[3] == "requests" {
+		if r.Method != http.MethodGet {
+			utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+			return
+		}
+
+		creatorID, err := Repos.Group.GetGroupCreatorID(groupID)
+		if err != nil || creatorID != userID {
+			utilities.WriteJSON(w, http.StatusForbidden, "only the group creator can view requests", nil)
+			return
+		}
+
+		requests, err := Repos.Group.ListGroupPendingRequests(groupID)
+		if err != nil {
+			utilities.WriteJSON(w, http.StatusInternalServerError, "could not fetch requests", nil)
+			return
+		}
+
+		utilities.WriteJSON(w, http.StatusOK, "pending requests fetched", requests)
+		return
+	}
+
 	if len(segments) >= 6 && segments[3] == "requests" {
 		targetUserID, err := strconv.Atoi(segments[4])
 		if err != nil {
@@ -684,6 +707,27 @@ func GetGroupPublic(w http.ResponseWriter, r *http.Request) {
 		"group":    group,
 		"is_member": isMember,
 	})
+}
+
+func GetMyGroups(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
+
+	userID, ok := middlewares.GetUserID(r)
+	if !ok {
+		utilities.WriteJSON(w, http.StatusUnauthorized, "not logged in", nil)
+		return
+	}
+
+	groups, err := Repos.Group.GetUserGroups(userID)
+	if err != nil {
+		utilities.WriteJSON(w, http.StatusInternalServerError, "could not fetch groups", nil)
+		return
+	}
+
+	utilities.WriteJSON(w, http.StatusOK, "groups fetched", groups)
 }
 
 func GetGroupContent(w http.ResponseWriter, r *http.Request) {

@@ -185,6 +185,15 @@ func RegisterRoutes() {
 		),
 	)
 
+	// user groups
+	http.HandleFunc(
+		"/api/users/groups",
+		middlewares.RateLimit(
+			middlewares.CheckSessionCookie(handlers.GetMyGroups, true),
+			3*time.Second,
+		),
+	)
+
 	http.HandleFunc(
 		"/api/conversations",
 		middlewares.RateLimit(

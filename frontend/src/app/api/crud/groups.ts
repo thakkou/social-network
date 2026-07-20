@@ -232,6 +232,71 @@ export async function requestToJoinGroup(groupId: string) {
   return { success: true };
 }
 
+// ─── Pending Requests ───
+export interface PendingRequest {
+  id: number;
+  user_id: number;
+  nickname: string;
+  firstname: string;
+  lastname: string;
+  avatar: string;
+  status: string;
+  created_at: string;
+}
+
+// Get pending join requests (only group creator)
+export async function getPendingRequests(groupId: string) {
+  if (!groupId) return { error: "Group ID is required." };
+
+  const result = await fetchApi<GroupApiResponse<PendingRequest[]>>(
+    `/api/groups/${groupId}/requests`,
+    { method: "GET" }
+  );
+
+  if (!result.success) return { error: result.error };
+  return { success: true, data: result.data.data };
+}
+
+// Accept a join request
+export async function acceptJoinRequest(groupId: string, userId: number) {
+  const result = await fetchApi<GroupApiResponse<null>>(
+    `/api/groups/${groupId}/requests/${userId}/accept`,
+    { method: "POST" }
+  );
+  if (!result.success) return { error: result.error };
+  return { success: true };
+}
+
+// Reject a join request
+export async function rejectJoinRequest(groupId: string, userId: number) {
+  const result = await fetchApi<GroupApiResponse<null>>(
+    `/api/groups/${groupId}/requests/${userId}/reject`,
+    { method: "POST" }
+  );
+  if (!result.success) return { error: result.error };
+  return { success: true };
+}
+
+// ─── User's Groups ───
+export async function getUserGroups() {
+  const result = await fetchApi<GroupApiResponse<GroupPublic[]>>(
+    `/api/users/groups`,
+    { method: "GET" }
+  );
+  if (!result.success) return { error: result.error };
+  return { success: true, data: result.data.data };
+}
+
+// ─── Privacy ───
+export async function updateProfilePrivacy(isPrivate: boolean) {
+  const result = await fetchApi<GroupApiResponse<null>>(
+    `/api/profile/privacy`,
+    { method: "PUT", body: { is_private: isPrivate ? 1 : 0 } }
+  );
+  if (!result.success) return { error: result.error };
+  return { success: true };
+}
+
 // Respond to a group event (status: "going" | "not_going")
 export async function respondToEvent(
   groupId: string,

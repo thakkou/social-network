@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   getGroupPublic,
   getGroupContent,
@@ -12,8 +13,12 @@ import {
   createGroupEvent,
   respondToEvent,
   requestToJoinGroup,
+  getPendingRequests,
+  acceptJoinRequest,
+  rejectJoinRequest,
   type GroupPublic,
   type GroupFeedItem,
+  type PendingRequest,
 } from "~/app/api/crud/groups";
 
 type FeedFilter = "all" | "posts" | "events";
@@ -34,6 +39,9 @@ export default function GroupDetailPage() {
   const [newPostTitle, setNewPostTitle] = useState("");
   const [newPostImage, setNewPostImage] = useState<File | null>(null);
   const [newPostPreview, setNewPostPreview] = useState<string | null>(null);
+  const { data: session } = useSession();
+  const currentUserId = Number(session?.user?.id ?? 0);
+
   const [posting, setPosting] = useState(false);
 
   // ── Create event state ──
@@ -50,6 +58,19 @@ export default function GroupDetailPage() {
   // ── Join request state ──
   const [joining, setJoining] = useState(false);
   const [joinMessage, setJoinMessage] = useState<string | null>(null);
+  const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
+  const [requestError, setRequestError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isMember || !groupId || group?.creator_id === undefined) return;
+    const fetchRequests = async () => {
+      const res = await getPendingRequests(groupId);
+      if (res.success) setPendingRequests(res.data);
+    };
+    void fetchRequests();
+  }, [isMember, groupId, group?.creator_id]);
+
+  const isCreator = isMember && currentUserId > 0 && currentUserId === group?.creator_id;
 
   useEffect(() => {
     if (!groupId) return;
@@ -401,6 +422,71 @@ export default function GroupDetailPage() {
           </div>
         )}
       </div>
+
+      {/* ── PENDING REQUESTS (creator only) ── */}
+      {isCreator && pendingRequests.length > 0 && (
+        <div className="card">
+          <p style={{ fontSize: 12, color: "#a09c94", marginBottom: 12 }}>
+            Pending join requests ({pendingRequests.length})
+          </p>
+          {pendingRequests.map((req) => (
+            <div
+              key={req.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "6px 0",
+                borderBottom: "0.5px solid #3a3733",
+              }}
+            >
+              <div
+                className="av"
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: "50%",
+                  background: req.avatar ? `url(${req.avatar}) center/cover` : "#2e1e24",
+                  color: "#D4537E",
+                  fontSize: 11,
+                }}
+              >
+                {!req.avatar && (req.nickname?.[0]?.toUpperCase() || req.firstname?.[0]?.toUpperCase() || "?")}
+              </div>
+              <div style={{ flex: 1, fontSize: 12 }}>
+                {req.nickname || `${req.firstname} ${req.lastname}`.trim()}
+              </div>
+              <button
+                className="btn btn-t"
+                style={{ fontSize: 10 }}
+                onClick={async () => {
+                  setRequestError(null);
+                  const res = await acceptJoinRequest(groupId, req.user_id);
+                  if (res.success) setPendingRequests((prev) => prev.filter((r) => r.id !== req.id));
+                  else setRequestError(res.error ?? "accept failed");
+                }}
+              >
+                accept
+              </button>
+              <button
+                className="btn btn-red"
+                style={{ fontSize: 10 }}
+                onClick={async () => {
+                  setRequestError(null);
+                  const res = await rejectJoinRequest(groupId, req.user_id);
+                  if (res.success) setPendingRequests((prev) => prev.filter((r) => r.id !== req.id));
+                  else setRequestError(res.error ?? "reject failed");
+                }}
+              >
+                decline
+              </button>
+            </div>
+          ))}
+          {requestError && (
+            <p style={{ fontSize: 11, color: "#e07070", marginTop: 8 }}>{requestError}</p>
+          )}
+        </div>
+      )}
 
       {/* ── CREATE EVENT FORM ── */}
       {showEventForm && (
