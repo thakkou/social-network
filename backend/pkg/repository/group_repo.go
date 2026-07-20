@@ -423,6 +423,41 @@ WHERE id IN (` + placeholders + `)
 	return authors, rows.Err()
 }
 
+func (r *GroupRepository) LeaveGroup(groupID, userID int) error {
+	tx, err := r.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Delete user's reactions on group posts
+	_, _ = tx.Exec(`DELETE FROM GROUP_POST_REACTIONS WHERE user_id = ? AND group_post_id IN (SELECT id FROM GROUP_POSTS WHERE group_id = ?)`, userID, groupID)
+
+	// Delete user's comments on group posts
+	_, _ = tx.Exec(`DELETE FROM GROUP_POST_COMMENTS WHERE user_id = ? AND group_post_id IN (SELECT id FROM GROUP_POSTS WHERE group_id = ?)`, userID, groupID)
+
+	// Delete user's group posts
+	_, _ = tx.Exec(`DELETE FROM GROUP_POSTS WHERE user_id = ? AND group_id = ?`, userID, groupID)
+
+	// Delete user's group messages
+	_, _ = tx.Exec(`DELETE FROM GROUP_MESSAGES WHERE sender_id = ? AND group_id = ?`, userID, groupID)
+
+	// Delete user's event responses
+	_, _ = tx.Exec(`DELETE FROM EVENT_RESPONSES WHERE user_id = ? AND event_id IN (SELECT id FROM GROUP_EVENTS WHERE group_id = ?)`, userID, groupID)
+
+	// Remove user from group members
+	result, err := tx.Exec(`DELETE FROM GROUP_MEMBERS WHERE group_id = ? AND user_id = ?`, groupID, userID)
+	if err != nil {
+		return err
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("not a member of this group")
+	}
+
+	return tx.Commit()
+}
+
 func (r *GroupRepository) GetGroupContent(groupID, userID, limit, lastID int) ([]GroupFeedItem, error) {
 	if limit <= 0 {
 		limit = 20

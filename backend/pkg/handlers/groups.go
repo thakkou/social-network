@@ -504,6 +504,17 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 		}
 
 		utilities.WriteJSON(w, http.StatusCreated, "group message sent", map[string]any{"message_id": msg.ID})
+	case "leave":
+		if r.Method != http.MethodPost {
+			utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+			return
+		}
+		if err := Repos.Group.LeaveGroup(groupID, userID); err != nil {
+			utilities.WriteJSON(w, http.StatusInternalServerError, err.Error(), nil)
+			return
+		}
+		utilities.WriteJSON(w, http.StatusOK, "left group", nil)
+
 	case "join":
 		if r.Method != http.MethodPost {
 			utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)

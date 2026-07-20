@@ -16,6 +16,7 @@ import {
   getPendingRequests,
   acceptJoinRequest,
   rejectJoinRequest,
+  leaveGroup,
   type GroupPublic,
   type GroupFeedItem,
   type PendingRequest,
@@ -55,9 +56,10 @@ export default function GroupDetailPage() {
   const [commentText, setCommentText] = useState<Record<number, string>>({});
   const [commentingPost, setCommentingPost] = useState<Record<number, boolean>>({});
 
-  // ── Join request state ──
+  // ── Join / Leave state ──
   const [joining, setJoining] = useState(false);
   const [joinMessage, setJoinMessage] = useState<string | null>(null);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [requestError, setRequestError] = useState<string | null>(null);
 
@@ -208,6 +210,21 @@ export default function GroupDetailPage() {
     if (res.success) {
       await refreshFeed();
     }
+  };
+
+  // ── Leave group handlers ──
+  const [leaving, setLeaving] = useState(false);
+
+  const handleLeaveGroup = async () => {
+    setLeaving(true);
+    const res = await leaveGroup(groupId);
+    if (res.success) {
+      setShowLeaveConfirm(false);
+      // Reset to non-member view
+      setIsMember(false);
+      setFeed([]);
+    }
+    setLeaving(false);
   };
 
   // ── Formatting helpers ──
@@ -365,7 +382,10 @@ export default function GroupDetailPage() {
                   <button className="btn btn-g">
                     <i className="ti ti-user-plus" /> invite
                   </button>
-                  <button className="btn btn-red">
+                  <button
+                    className="btn btn-red"
+                    onClick={() => setShowLeaveConfirm(true)}
+                  >
                     <i className="ti ti-door-exit" /> leave
                   </button>
                 </>
@@ -853,6 +873,99 @@ export default function GroupDetailPage() {
             </div>
           </div>
         )
+      )}
+      {/* ── LEAVE CONFIRMATION MODAL ── */}
+      {showLeaveConfirm && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+          }}
+          onClick={() => setShowLeaveConfirm(false)}
+        >
+          <div
+            className="card"
+            style={{
+              maxWidth: 380,
+              width: "90%",
+              textAlign: "center",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: "50%",
+                background: "#3a1e24",
+                color: "#D4537E",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 12px",
+                fontSize: 20,
+              }}
+            >
+              <i className="ti ti-alert-triangle" />
+            </div>
+            <p
+              style={{
+                fontSize: 14,
+                fontWeight: 600,
+                color: "#e8e4dc",
+                marginBottom: 8,
+              }}
+            >
+              Leave &quot;{group.title}&quot;?
+            </p>
+            <p
+              style={{
+                fontSize: 12,
+                color: "#a09c94",
+                lineHeight: 1.5,
+                marginBottom: 16,
+              }}
+            >
+              All your posts, comments, messages and reactions in this group
+              will be permanently deleted. This action cannot be undone.
+            </p>
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                justifyContent: "center",
+              }}
+            >
+              <button
+                className="btn btn-g"
+                style={{ fontSize: 11 }}
+                onClick={() => setShowLeaveConfirm(false)}
+              >
+                cancel
+              </button>
+              <button
+                className="btn btn-red"
+                style={{
+                  fontSize: 11,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  opacity: leaving ? 0.6 : 1,
+                }}
+                disabled={leaving}
+                onClick={() => void handleLeaveGroup()}
+              >
+                <i className="ti ti-door-exit" />{" "}
+                {leaving ? "leaving..." : "leave group"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </main>
   );

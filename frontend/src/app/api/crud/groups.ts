@@ -333,6 +333,20 @@ export async function updateProfileNickname(formData: FormData) {
   return { success: true };
 }
 
+// ─── Leave Group ───
+
+export async function leaveGroup(groupId: string) {
+  if (!groupId) return { error: "Group ID is required." };
+
+  const result = await fetchApi<GroupApiResponse<null>>(
+    `/api/groups/${groupId}/leave`,
+    { method: "POST" }
+  );
+
+  if (!result.success) return { error: result.error };
+  return { success: true };
+}
+
 // Respond to a group event (status: "going" | "not_going")
 export async function respondToEvent(
   groupId: string,
