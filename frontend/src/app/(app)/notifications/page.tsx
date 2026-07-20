@@ -3,6 +3,7 @@
 import { getNotifications, markNotificationAsRead, markAllNotificationsRead, deleteAllNotifications } from "~/app/api/crud/notification";
 import { useState, useEffect } from "react"
 import { acceptFollowRequest,rejectFollowRequest } from "~/app/api/crud/follow";
+import { acceptGroupInvite, rejectGroupInvite, acceptJoinRequest, rejectJoinRequest } from "~/app/api/crud/groups";
 
 // 1. Exact Interface mapping to your JSON response
 interface NotificationActor {
@@ -39,11 +40,19 @@ const NotificationCard = ({
   onMarkRead,
   onAcceptFollow,
   onRejectFollow,
+  onAcceptGroupInvite,
+  onRejectGroupInvite,
+  onAcceptJoinRequest,
+  onRejectJoinRequest,
 }: {
   data: NotificationItem;
   onMarkRead: (id: string | number) => void;
   onAcceptFollow: (userId: number, notificationId: string | number) => void;
   onRejectFollow: (userId: number, notificationId: string | number) => void;
+  onAcceptGroupInvite: (groupId: number, notificationId: string | number) => void;
+  onRejectGroupInvite: (groupId: number, notificationId: string | number) => void;
+  onAcceptJoinRequest: (userId: number, groupId: number, notificationId: string | number) => void;
+  onRejectJoinRequest: (userId: number, groupId: number, notificationId: string | number) => void;
 }) => {
   // Setup dynamic color styling and configurations based on notification type
   const typeStyles = {
@@ -177,11 +186,15 @@ const NotificationCard = ({
       decline
     </button>
   </>
-) : data.type === "group_invite" || data.type === "group_join_request" ? (
+) : data.type === "group_invite" ? (
   <>
     <button
       className="btn btn-t"
       style={{ fontSize: "11px" }}
+      onClick={() => {
+        const gid = data.payload?.group_id;
+        if (gid) onAcceptGroupInvite(gid, data.id);
+      }}
     >
       accept
     </button>
@@ -189,6 +202,36 @@ const NotificationCard = ({
     <button
       className="btn btn-red"
       style={{ fontSize: "11px" }}
+      onClick={() => {
+        const gid = data.payload?.group_id;
+        if (gid) onRejectGroupInvite(gid, data.id);
+      }}
+    >
+      decline
+    </button>
+  </>
+) : data.type === "group_join_request" ? (
+  <>
+    <button
+      className="btn btn-t"
+      style={{ fontSize: "11px" }}
+      onClick={() => {
+        const gid = data.payload?.group_id;
+        const uid = data.actor?.user_id;
+        if (gid && uid) onAcceptJoinRequest(uid, gid, data.id);
+      }}
+    >
+      accept
+    </button>
+
+    <button
+      className="btn btn-red"
+      style={{ fontSize: "11px" }}
+      onClick={() => {
+        const gid = data.payload?.group_id;
+        const uid = data.actor?.user_id;
+        if (gid && uid) onRejectJoinRequest(uid, gid, data.id);
+      }}
     >
       decline
     </button>
@@ -308,6 +351,46 @@ const handleRejectFollow = async (
     loadNotifications(type);
   };
 
+    const handleAcceptGroupInvite = async (groupId: number, notificationId: string | number) => {
+    setActionError(null);
+    const res = await acceptGroupInvite(String(groupId));
+    if ("error" in res) {
+      setActionError(res.error ?? "Failed to accept group invite");
+    } else {
+      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+    }
+  };
+
+  const handleRejectGroupInvite = async (groupId: number, notificationId: string | number) => {
+    setActionError(null);
+    const res = await rejectGroupInvite(String(groupId));
+    if ("error" in res) {
+      setActionError(res.error ?? "Failed to reject group invite");
+    } else {
+      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+    }
+  };
+
+  const handleAcceptJoinRequest = async (userId: number, groupId: number, notificationId: string | number) => {
+    setActionError(null);
+    const res = await acceptJoinRequest(String(groupId), userId);
+    if ("error" in res) {
+      setActionError(res.error ?? "Failed to accept join request");
+    } else {
+      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+    }
+  };
+
+  const handleRejectJoinRequest = async (userId: number, groupId: number, notificationId: string | number) => {
+    setActionError(null);
+    const res = await rejectJoinRequest(String(groupId), userId);
+    if ("error" in res) {
+      setActionError(res.error ?? "Failed to reject join request");
+    } else {
+      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+    }
+  };
+
   useEffect(() => {
     void loadNotifications(filter);
   }, []);
@@ -391,6 +474,10 @@ const handleRejectFollow = async (
   onMarkRead={handleMarkRead}
   onAcceptFollow={handleAcceptFollow}
   onRejectFollow={handleRejectFollow}
+  onAcceptGroupInvite={handleAcceptGroupInvite}
+  onRejectGroupInvite={handleRejectGroupInvite}
+  onAcceptJoinRequest={handleAcceptJoinRequest}
+  onRejectJoinRequest={handleRejectJoinRequest}
 />
           ))}
         </div>

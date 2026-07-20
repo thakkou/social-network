@@ -1,67 +1,19 @@
-#!/bin/bash
+#!/bin/sh
 
-set -e
+echo "Building social network containers..."
 
-MODE="start"
+echo ""
+echo "=== Building Backend ==="
+docker build -t sn-backend -f Dockerfile.backend .
 
-case "$1" in
-    -i|-init)
-        MODE="init"
-        ;;
-    -r|-refresh)
-        MODE="refresh"
-        ;;
-    ""|-start)
-        MODE="start"
-        ;;
-    *)
-        echo "Usage: $0 [-start | -r|-refresh | -i|-init]"
-        exit 1
-        ;;
-esac
+echo ""
+echo "=== Building Frontend ==="
+docker build -t sn-frontend -f Dockerfile.frontend .
 
-if [ "$MODE" = "init" ]; then
-    echo "Installing frontend dependencies..."
-    (
-        cd frontend
-        npm install
-    )
-fi
+echo ""
+echo "=== Starting services ==="
+docker compose up -d
 
-echo "Starting backend..."
-
-(
-    cd backend
-
-    if [ "$MODE" = "init" ]; then
-        echo "Running go mod tidy..."
-        go mod tidy
-    fi
-
-    if [ "$MODE" = "refresh" ] || [ "$MODE" = "init" ]; then
-        go run . -r
-    else
-        go run .
-    fi
-) &
-
-BACKEND_PID=$!
-echo "Backend PID: $BACKEND_PID"
-
-echo "Starting frontend..."
-
-(
-    cd frontend
-    npm run dev
-) &
-
-FRONTEND_PID=$!
-echo "Frontend PID: $FRONTEND_PID"
-
-echo
-echo "========================="
-echo " Backend : $BACKEND_PID"
-echo " Frontend: $FRONTEND_PID"
-echo "========================="
-
-wait $BACKEND_PID $FRONTEND_PID
+echo ""
+echo "Done! Backend running on http://localhost:8080"
+echo "Frontend running on http://localhost:3000"

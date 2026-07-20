@@ -32,36 +32,65 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 		Text   string `json:"text"`
 	}
 
-	if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
-		utilities.WriteJSON(w, http.StatusBadRequest, "Content-Type must be application/json", nil)
+	userID, ok := middlewares.GetUserID(r)
+	if !ok {
+		utilities.WriteJSON(w, http.StatusUnauthorized, "not logged in", nil)
 		return
 	}
 
-	commentReq, err := utilities.ReadJSONRequest[CommentReq](r)
-	if err != nil {
-		utilities.WriteJSON(w, http.StatusBadRequest, "invalid request body", nil)
+	var text string
+	var postID int
+	var imagePath string
+
+	contentType := r.Header.Get("Content-Type")
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			utilities.WriteJSON(w, http.StatusBadRequest, "invalid form data", nil)
+			return
+		}
+
+		pidStr := r.FormValue("postId")
+		pid, err := strconv.Atoi(pidStr)
+		if err != nil || pid <= 0 {
+			utilities.WriteJSON(w, http.StatusBadRequest, "invalid post id", nil)
+			return
+		}
+		postID = pid
+
+		text = strings.TrimSpace(r.FormValue("text"))
+
+		if file, header, err := r.FormFile("image"); err == nil {
+			defer file.Close()
+			if saved, saveErr := utilities.SaveImage(file, header, "uploads/comments/"); saveErr == nil {
+				imagePath = saved
+			}
+		}
+	} else if strings.HasPrefix(contentType, "application/json") {
+		commentReq, err := utilities.ReadJSONRequest[CommentReq](r)
+		if err != nil {
+			utilities.WriteJSON(w, http.StatusBadRequest, "invalid request body", nil)
+			return
+		}
+
+		pid, err := utilities.ToInt(commentReq.PostId)
+		if err != nil || pid <= 0 {
+			utilities.WriteJSON(w, http.StatusBadRequest, "invalid post id", nil)
+			return
+		}
+		postID = pid
+
+		text = strings.TrimSpace(commentReq.Text)
+	} else {
+		utilities.WriteJSON(w, http.StatusBadRequest, "Content-Type must be application/json or multipart/form-data", nil)
 		return
 	}
 
-	postID, err := utilities.ToInt(commentReq.PostId)
-	if err != nil || postID <= 0 {
-		utilities.WriteJSON(w, http.StatusBadRequest, "invalid post id", nil)
-		return
-	}
-
-	text := strings.TrimSpace(commentReq.Text)
 	if text == "" {
 		utilities.WriteJSON(w, http.StatusBadRequest, "comment cannot be empty", nil)
 		return
 	}
 	if len(text) > 1000 {
 		utilities.WriteJSON(w, http.StatusBadRequest, "comment cannot exceed 1000 characters", nil)
-		return
-	}
-
-	userID, ok := middlewares.GetUserID(r)
-	if !ok {
-		utilities.WriteJSON(w, http.StatusUnauthorized, "not logged in", nil)
 		return
 	}
 
@@ -76,6 +105,7 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 		PostID:    postID,
 		CreatedAt: time.Now(),
 		Text:      text,
+		Image:     imagePath,
 	}
 
 	if err := Repos.Comment.AddComment(comment); err != nil {
@@ -188,7 +218,7 @@ func GetCommentsByPostWithPagination(postId, limit, lastID int) ([]dblayer.Comme
 		limit = 10
 	}
 
-	query := `SELECT id, user_id, created_at, text FROM Comments WHERE post_id = ?`
+	query := `SELECT id, user_id, created_at, text, COALESCE(image, '') FROM Comments WHERE post_id = ?`
 	args := []any{postId}
 
 	if lastID > 0 {
@@ -207,7 +237,7 @@ func GetCommentsByPostWithPagination(postId, limit, lastID int) ([]dblayer.Comme
 
 	for rows.Next() {
 		var c dblayer.Comment
-		if err := rows.Scan(&c.Id, &c.UserId, &c.Created_at, &c.Text); err != nil {
+		if err := rows.Scan(&c.Id, &c.UserId, &c.Created_at, &c.Text, &c.Image); err != nil {
 			return nil, fmt.Errorf("getCommentsByPost scan error: %v", err)
 		}
 

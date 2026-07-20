@@ -81,6 +81,7 @@ func enrichComment(c repository.Comment, userId int) (dblayer.Comment, error) {
 		Nickname:     user.Nickname,
 		Created_at:   c.CreatedAt,
 		Text:         c.Text,
+		Image:        c.Image,
 		TimeAgo:      utilities.TimeAgo(c.CreatedAt),
 		LikeCount:    reaction.Likes,
 		DislikeCount: reaction.Dislikes,

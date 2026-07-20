@@ -12,6 +12,7 @@ type Comment struct {
 	PostID    int       `json:"post_id"`
 	CreatedAt time.Time `json:"created_at"`
 	Text      string    `json:"text"`
+	Image     string    `json:"image"`
 }
 
 type CommentRepository struct {
@@ -25,11 +26,12 @@ func NewCommentRepository(db *sql.DB) *CommentRepository {
 // AddComment inserts a new comment for a post.
 func (r *CommentRepository) AddComment(c *Comment) error {
 	res, err := r.DB.Exec(
-		`INSERT INTO COMMENTS (user_id, post_id, created_at, text) VALUES (?, ?, ?, ?)`,
+		`INSERT INTO COMMENTS (user_id, post_id, created_at, text, image) VALUES (?, ?, ?, ?, ?)`,
 		c.UserID,
 		c.PostID,
 		c.CreatedAt.Format("2006-01-02 15:04:05"),
 		c.Text,
+		sql.NullString{String: c.Image, Valid: c.Image != ""},
 	)
 	if err != nil {
 		return err
@@ -80,7 +82,7 @@ func (r *CommentRepository) GetCommentsByPostPaginated(postID, limit, lastID int
 }
 
 func (r *CommentRepository) getComments(postID, limit, lastID int) ([]Comment, error) {
-	query := `SELECT id, user_id, post_id, created_at, text FROM COMMENTS WHERE post_id = ?`
+	query := `SELECT id, user_id, post_id, created_at, text, COALESCE(image, '') FROM COMMENTS WHERE post_id = ?`
 	args := []any{postID}
 
 	if lastID > 0 {
@@ -105,7 +107,7 @@ func (r *CommentRepository) getComments(postID, limit, lastID int) ([]Comment, e
 	for rows.Next() {
 		var c Comment
 		var createdAt string
-		if err := rows.Scan(&c.ID, &c.UserID, &c.PostID, &createdAt, &c.Text); err != nil {
+		if err := rows.Scan(&c.ID, &c.UserID, &c.PostID, &createdAt, &c.Text, &c.Image); err != nil {
 			return nil, err
 		}
 		c.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
@@ -123,7 +125,7 @@ func (r *CommentRepository) GetCommentByID(commentID int) (*Comment, error) {
 	var createdAt string
 
 	err := r.DB.QueryRow(
-		`SELECT id, user_id, post_id, created_at, text 
+		`SELECT id, user_id, post_id, created_at, text, COALESCE(image, '') 
 		 FROM COMMENTS 
 		 WHERE id = ?`,
 		commentID,
@@ -133,6 +135,7 @@ func (r *CommentRepository) GetCommentByID(commentID int) (*Comment, error) {
 		&c.PostID,
 		&createdAt,
 		&c.Text,
+		&c.Image,
 	)
 
 	if err == sql.ErrNoRows {

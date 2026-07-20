@@ -76,8 +76,10 @@ export interface GroupFeedItem {
 
 // Create a new group using FormData (supports file uploads for logo and background)
 export async function createGroup(formData: FormData) {
-  const title = formData.get("title")?.toString().trim();
-  const description = formData.get("description")?.toString().trim();
+  const titleVal = formData.get("title");
+  const descVal = formData.get("description");
+  const title = typeof titleVal === "string" ? titleVal.trim() : "";
+  const description = typeof descVal === "string" ? descVal.trim() : "";
 
   if (!title) {
     return { error: "Title is required." };
@@ -292,6 +294,28 @@ export async function updateProfilePrivacy(isPrivate: boolean) {
   const result = await fetchApi<GroupApiResponse<null>>(
     `/api/profile/privacy`,
     { method: "PUT", body: { is_private: isPrivate ? 1 : 0 } }
+  );
+  if (!result.success) return { error: result.error };
+  return { success: true };
+}
+
+// ─── Group Invite Actions ───
+
+// Accept a group invite
+export async function acceptGroupInvite(groupId: string) {
+  const result = await fetchApi<GroupApiResponse<null>>(
+    `/api/groups/${groupId}/invites/accept`,
+    { method: "POST" }
+  );
+  if (!result.success) return { error: result.error };
+  return { success: true };
+}
+
+// Reject a group invite
+export async function rejectGroupInvite(groupId: string) {
+  const result = await fetchApi<GroupApiResponse<null>>(
+    `/api/groups/${groupId}/invites/reject`,
+    { method: "POST" }
   );
   if (!result.success) return { error: result.error };
   return { success: true };

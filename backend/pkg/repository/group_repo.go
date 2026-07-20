@@ -120,7 +120,8 @@ ORDER BY created_at DESC
 }
 
 func (r *GroupRepository) RequestToJoin(groupID, userID int) error {
-	query := `INSERT INTO GROUP_REQUESTS (group_id, user_id, status) VALUES (?, ?, 'pending')`
+	query := `INSERT INTO GROUP_REQUESTS (group_id, user_id, status) VALUES (?, ?, 'pending')
+		ON CONFLICT(group_id, user_id) DO UPDATE SET status = 'pending'`
 	_, err := r.DB.Exec(query, groupID, userID)
 	return err
 }
@@ -357,6 +358,7 @@ func (r *GroupRepository) GetPublicGroupDetails(groupID int) (*Group, error) {
 	err := r.DB.QueryRow(`
 		SELECT
     id,
+    creator_id,
     title,
     COALESCE(description, ''),
     COALESCE(logo, ''),
@@ -366,6 +368,7 @@ FROM GROUPS
 		WHERE id = ?
 	`, groupID).Scan(
 		&group.ID,
+		&group.CreatorID,
 		&group.Title,
 		&group.Description,
 		&group.Logo,

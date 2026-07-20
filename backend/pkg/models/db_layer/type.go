@@ -25,6 +25,7 @@ type Comment struct {
 	Created_at              time.Time
 	TimeAgo                 string
 	Text                    string
+	Image                   string
 	LikeCount, DislikeCount int
 	IsLiked                 int // 1:liked, 0:none, -1:disliked
 }
