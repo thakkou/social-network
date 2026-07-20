@@ -2,8 +2,21 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
+	"log"
 	"time"
+
+	"01social/pkg/utilities"
 )
+
+// FeedAuthor holds basic profile info for the creator of a feed item.
+type FeedAuthor struct {
+	ID        int    `json:"id"`
+	Nickname  string `json:"nickname"`
+	Firstname string `json:"firstname"`
+	Lastname  string `json:"lastname"`
+	Avatar    string `json:"avatar"`
+}
 
 type Group struct {
 	ID          int       `json:"id"`
@@ -15,32 +28,29 @@ type Group struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
-type GroupPost struct {
-	ID        int       `json:"id"`
-	GroupID   int       `json:"group_id"`
-	UserID    int       `json:"user_id"`
-	CreatedAt time.Time `json:"created_at"`
-	Title     string    `json:"title"`
-	Text      string    `json:"text"`
-	Image     string    `json:"image"`
-}
-
-type GroupPostComment struct {
+type GroupFeedItem struct {
 	ID          int       `json:"id"`
-	GroupPostID int       `json:"group_post_id"`
-	UserID      int       `json:"user_id"`
-	Text        string    `json:"text"`
-	CreatedAt   time.Time `json:"created_at"`
-}
-
-type GroupEvent struct {
-	ID          int       `json:"id"`
+	Type        string    `json:"type"` // "post" or "event"`
 	GroupID     int       `json:"group_id"`
-	CreatorID   int       `json:"creator_id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	EventTime   time.Time `json:"event_time"`
+	UserID      int       `json:"user_id"`
+	Title       string    `json:"title,omitempty"`
+	Text        string    `json:"text,omitempty"`
+	Image       string    `json:"image"`
+	Description string    `json:"description,omitempty"`
+	EventTime   time.Time `json:"event_time,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
+
+	// Creator profile
+	Author FeedAuthor `json:"author"`
+
+	// Populated for Type == "post"
+	LikesCount    int  `json:"likes_count,omitempty"`
+	DislikesCount int  `json:"dislikes_count,omitempty"`
+	IsLiked       bool `json:"is_liked"`
+	CommentsCount int  `json:"comments_count,omitempty"`
+
+	// Populated for Type == "event"
+	EventResponses []EventResponder `json:"event_responses,omitempty"`
 }
 
 type GroupMessage struct {
@@ -216,102 +226,6 @@ func (r *GroupRepository) ListGroupMessages(groupID, limit, offset int) ([]Group
 	return messages, rows.Err()
 }
 
-func (r *GroupRepository) ListGroupPosts(groupID int) ([]GroupPost, error) {
-	rows, err := r.DB.Query(`SELECT id, group_id, user_id, created_at, title, text, image FROM GROUP_POSTS WHERE group_id = ? ORDER BY created_at DESC`, groupID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	posts := make([]GroupPost, 0)
-	for rows.Next() {
-		var p GroupPost
-		var createdAt string
-		if err := rows.Scan(&p.ID, &p.GroupID, &p.UserID, &createdAt, &p.Title, &p.Text, &p.Image); err != nil {
-			return nil, err
-		}
-		p.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
-		posts = append(posts, p)
-	}
-	return posts, rows.Err()
-}
-
-func (r *GroupRepository) ListGroupPostComments(groupPostID int) ([]GroupPostComment, error) {
-	rows, err := r.DB.Query(`SELECT id, group_post_id, user_id, text, created_at FROM GROUP_POST_COMMENTS WHERE group_post_id = ? ORDER BY created_at ASC`, groupPostID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	comments := make([]GroupPostComment, 0)
-	for rows.Next() {
-		var c GroupPostComment
-		var createdAt string
-		if err := rows.Scan(&c.ID, &c.GroupPostID, &c.UserID, &c.Text, &createdAt); err != nil {
-			return nil, err
-		}
-		c.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
-		comments = append(comments, c)
-	}
-	return comments, rows.Err()
-}
-
-func (r *GroupRepository) CreateGroupPost(gp *GroupPost) error {
-	query := `INSERT INTO GROUP_POSTS (group_id, user_id, title, text, image) VALUES (?, ?, ?, ?, ?)`
-	res, err := r.DB.Exec(query, gp.GroupID, gp.UserID, gp.Title, gp.Text, gp.Image)
-	if err != nil {
-		return err
-	}
-	id, _ := res.LastInsertId()
-	gp.ID = int(id)
-	return nil
-}
-
-func (r *GroupRepository) CreateGroupPostComment(groupPostID, userID int, text string) error {
-	_, err := r.DB.Exec(`INSERT INTO GROUP_POST_COMMENTS (group_post_id, user_id, text) VALUES (?, ?, ?)`, groupPostID, userID, text)
-	return err
-}
-
-func (r *GroupRepository) ListGroupEvents(groupID int) ([]GroupEvent, error) {
-	rows, err := r.DB.Query(`SELECT id, group_id, creator_id, title, description, event_time, created_at FROM GROUP_EVENTS WHERE group_id = ? ORDER BY event_time ASC`, groupID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	events := make([]GroupEvent, 0)
-	for rows.Next() {
-		var e GroupEvent
-		var eventTime string
-		var createdAt string
-		if err := rows.Scan(&e.ID, &e.GroupID, &e.CreatorID, &e.Title, &e.Description, &eventTime, &createdAt); err != nil {
-			return nil, err
-		}
-		e.EventTime, _ = time.Parse("2006-01-02 15:04:05", eventTime)
-		e.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
-		events = append(events, e)
-	}
-	return events, rows.Err()
-}
-
-func (r *GroupRepository) CreateEvent(e *GroupEvent) error {
-	query := `INSERT INTO GROUP_EVENTS (group_id, creator_id, title, description, event_time) VALUES (?, ?, ?, ?, ?)`
-	res, err := r.DB.Exec(query, e.GroupID, e.CreatorID, e.Title, e.Description, e.EventTime.Format("2006-01-02 15:04:05"))
-	if err != nil {
-		return err
-	}
-	id, _ := res.LastInsertId()
-	e.ID = int(id)
-	return nil
-}
-
-func (r *GroupRepository) RespondToEvent(eventID, userID int, status string) error {
-	query := `INSERT INTO EVENT_RESPONSES (event_id, user_id, status) VALUES (?, ?, ?)
-	          ON CONFLICT(event_id, user_id) DO UPDATE SET status = ?`
-	_, err := r.DB.Exec(query, eventID, userID, status, status)
-	return err
-}
-
 func (r *GroupRepository) SearchGroups(text string) ([]Group, error) {
 	query := `
 	SELECT
@@ -375,20 +289,234 @@ func (r *GroupRepository) GetPublicGroupDetails(groupID int) (*Group, error) {
     title,
     COALESCE(description, ''),
     COALESCE(logo, ''),
-    COALESCE(backgroun, ''),
+    COALESCE(background, ''),
     created_at
 FROM GROUPS
 		WHERE id = ?
 	`, groupID).Scan(
 		&group.ID,
 		&group.Title,
-		&createdAt,
+		&group.Description,
+		&group.Logo,
+		&group.Background,
+		&group.CreatedAt,
 	)
 	if err != nil {
+		fmt.Println("errors", err)
 		return nil, err
 	}
 
 	group.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
 
 	return &group, nil
+}
+
+// GetUsersByIDs batch-fetches basic profile info for a set of user IDs.
+// Returns a map keyed by user ID; every requested ID is present (zero-valued
+// if the user is not found).
+func (r *GroupRepository) GetUsersByIDs(userIDs []int) (map[int]FeedAuthor, error) {
+	authors := make(map[int]FeedAuthor, len(userIDs))
+	if len(userIDs) == 0 {
+		return authors, nil
+	}
+
+	placeholders, args := utilities.PlaceholdersForInts(userIDs)
+
+	query := `
+SELECT
+    id,
+    COALESCE(nickname, '') AS nickname,
+    firstname,
+    lastname,
+    COALESCE(avatar, '') AS avatar
+FROM USERS
+WHERE id IN (` + placeholders + `)
+`
+	rows, err := r.DB.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var a FeedAuthor
+		if err := rows.Scan(&a.ID, &a.Nickname, &a.Firstname, &a.Lastname, &a.Avatar); err != nil {
+			return nil, err
+		}
+		authors[a.ID] = a
+	}
+
+	return authors, rows.Err()
+}
+
+func (r *GroupRepository) GetGroupContent(groupID, userID, limit, lastID int) ([]GroupFeedItem, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+
+	log.Printf("[GetGroupContent] start groupID=%d userID=%d limit=%d lastID=%d",
+		groupID, userID, limit, lastID)
+
+	query := `
+SELECT *
+FROM (
+	SELECT
+		id,
+		'post' AS type,
+		group_id,
+		user_id,
+		COALESCE(title, '') AS title,
+		COALESCE(text, '') AS text,
+		COALESCE(image, '') AS image,
+		'' AS description,
+		NULL AS event_time,
+		created_at
+	FROM GROUP_POSTS
+	WHERE group_id = ?
+
+	UNION ALL
+
+	SELECT
+		id,
+		'event' AS type,
+		group_id,
+		creator_id AS user_id,
+		COALESCE(title, '') AS title,
+		'' AS text,
+		'' AS image,
+		COALESCE(description, '') AS description,
+		event_time,
+		created_at
+	FROM GROUP_EVENTS
+	WHERE group_id = ?
+) feed
+WHERE (? = 0 OR id < ?)
+ORDER BY created_at DESC
+LIMIT ?
+`
+
+	log.Printf("[GetGroupContent] executing feed query")
+
+	rows, err := r.DB.Query(query, groupID, groupID, lastID, lastID, limit)
+	if err != nil {
+		log.Printf("[GetGroupContent] query failed: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	feed := make([]GroupFeedItem, 0)
+
+	for rows.Next() {
+		var item GroupFeedItem
+
+		var createdAt string
+		var eventTime sql.NullString
+
+		err := rows.Scan(
+			&item.ID,
+			&item.Type,
+			&item.GroupID,
+			&item.UserID,
+			&item.Title,
+			&item.Text,
+			&item.Image,
+			&item.Description,
+			&eventTime,
+			&createdAt,
+		)
+		if err != nil {
+			log.Printf("[GetGroupContent] row scan failed: %v", err)
+			return nil, err
+		}
+
+		item.CreatedAt = utilities.ParseSQLiteTime(createdAt)
+		if err != nil {
+			log.Printf("[GetGroupContent] failed parsing createdAt id=%d value=%s error=%v",
+				item.ID, createdAt, err)
+		}
+
+		if eventTime.Valid {
+			item.EventTime = utilities.ParseSQLiteTime(eventTime.String)
+			if err != nil {
+				log.Printf("[GetGroupContent] failed parsing eventTime id=%d value=%s error=%v",
+					item.ID, eventTime.String, err)
+			}
+		}
+
+		feed = append(feed, item)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Printf("[GetGroupContent] rows iteration failed: %v", err)
+		return nil, err
+	}
+
+	log.Printf("[GetGroupContent] fetched %d feed items", len(feed))
+
+	var postIDs, eventIDs []int
+
+	for _, item := range feed {
+		if item.Type == "post" {
+			postIDs = append(postIDs, item.ID)
+		} else {
+			eventIDs = append(eventIDs, item.ID)
+		}
+	}
+
+	log.Printf("[GetGroupContent] enrichment IDs posts=%v events=%v",
+		postIDs, eventIDs)
+
+	postEngagement, err := r.GetPostsEngagement(postIDs, userID)
+	if err != nil {
+		log.Printf("[GetGroupContent] failed getting post engagement: %v", err)
+		return nil, err
+	}
+
+	eventResponses, err := r.GetEventsResponses(eventIDs)
+	if err != nil {
+		log.Printf("[GetGroupContent] failed getting event responses: %v", err)
+		return nil, err
+	}
+
+	log.Printf("[GetGroupContent] enrichment completed posts=%d events=%d",
+		len(postEngagement), len(eventResponses))
+
+	// Batch-fetch author profiles for all feed items.
+	authorIDs := make([]int, 0, len(feed))
+	seen := make(map[int]bool, len(feed))
+	for _, item := range feed {
+		if !seen[item.UserID] {
+			seen[item.UserID] = true
+			authorIDs = append(authorIDs, item.UserID)
+		}
+	}
+
+	authorMap, err := r.GetUsersByIDs(authorIDs)
+	if err != nil {
+		log.Printf("[GetGroupContent] failed getting authors: %v", err)
+		return nil, err
+	}
+
+	for i := range feed {
+		item := &feed[i]
+
+		if author, ok := authorMap[item.UserID]; ok {
+			item.Author = author
+		}
+
+		if item.Type == "post" {
+			if e, ok := postEngagement[item.ID]; ok {
+				item.LikesCount = e.LikesCount
+				item.DislikesCount = e.DislikesCount
+				item.IsLiked = e.IsLiked
+				item.CommentsCount = e.CommentsCount
+			}
+		} else {
+			item.EventResponses = eventResponses[item.ID]
+		}
+	}
+
+	log.Printf("[GetGroupContent] completed successfully returned=%d items", len(feed))
+
+	return feed, nil
 }

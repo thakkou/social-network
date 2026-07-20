@@ -118,7 +118,7 @@ func RegisterRoutes() {
 			500*time.Millisecond),
 	)
 
-	// groups
+	// list groups
 	http.HandleFunc(
 		"/api/groups",
 		middlewares.RateLimit(
@@ -127,6 +127,7 @@ func RegisterRoutes() {
 		),
 	)
 
+	// create group
 	http.HandleFunc(
 		"/api/groups/create",
 		middlewares.RateLimit(
@@ -135,10 +136,34 @@ func RegisterRoutes() {
 		),
 	)
 
+	// group resolver
+	// /api/groups/{id}/posts
+	// /api/groups/{id}/events
+	// /api/groups/{id}/messages
 	http.HandleFunc(
 		"/api/groups/",
 		middlewares.RateLimit(
 			middlewares.CheckSessionCookie(handlers.GroupResolver, true),
+			500*time.Millisecond,
+		),
+	)
+
+	// public group data
+	// GET /api/groups/12/public
+	http.HandleFunc(
+		"/api/groups/public/{id}",
+		middlewares.RateLimit(
+			middlewares.CheckSessionCookie(handlers.GetGroupPublic, true),
+			500*time.Millisecond,
+		),
+	)
+
+	// group feed
+	// GET /api/groups/12/content?limit=20&last_id=100
+	http.HandleFunc(
+		"/api/groups/content/{id}",
+		middlewares.RateLimit(
+			middlewares.CheckSessionCookie(handlers.GetGroupContent, true),
 			500*time.Millisecond,
 		),
 	)
@@ -214,19 +239,4 @@ func RegisterRoutes() {
 		"/api/notifications/deletAll",
 		middlewares.CheckSessionCookie(handlers.DeletAllNotif, true),
 	)
-	// http.HandleFunc(
-	// 	"/api/users/{id}",
-	// 	middlewares.RateLimit(
-	// 		middlewares.CheckSessionCookie(handlers.GetPostById, true),
-	// 		3*time.Second,
-	// 	),
-	// )
-	// conversation and message conversation
-	// http.HandleFunc(
-	// 	"/api/messages",
-	// 	middlewares.RateLimit(
-	// 		middlewares.CheckSessionCookie(handlers.SendMessage, true),
-	// 		100*time.Millisecond,
-	// 	),
-	// )
 }

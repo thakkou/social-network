@@ -7,6 +7,9 @@
 -start get the conversations and send messages 2 days--done
 
 -creat group,post group invite and events add group avatar , update the avatre 3 days
+->creat a group_contents Repos
+-get the ids then get the events and post detaille(by enrishing follows and coments for events enrish trhe answers)
+-add handlers of the join events,comments, posts
 
 --->here i will change the backend logic 
 -feeds,comments 1 days
@@ -25,3 +28,5 @@
 and make it optional
 -add avatar and bg optionalas
 -fix the Ui messages add nickname and i'm or their write
+-in group invitation ubdate the function onselect to passe it on params
+-check the create time in groups

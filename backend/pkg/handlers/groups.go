@@ -573,3 +573,64 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 		utilities.WriteJSON(w, http.StatusNotFound, "unknown endpoint", nil)
 	}
 }
+
+func GetGroupPublic(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
+	fmt.Println("not found")
+
+	// Extract {id} directly from the route path
+	groupID, err := strconv.Atoi(r.PathValue("id"))
+	fmt.Println("groupID", groupID)
+	if err != nil || groupID <= 0 {
+		utilities.WriteJSON(w, http.StatusBadRequest, "invalid group id", nil)
+		return
+	}
+
+	group, err := Repos.Group.GetPublicGroupDetails(groupID)
+	if err != nil {
+		utilities.WriteJSON(w, http.StatusNotFound, "group not found", nil)
+		return
+	}
+
+	utilities.WriteJSON(w, http.StatusOK, "group fetched", group)
+}
+
+func GetGroupContent(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
+	userID, ok := middlewares.GetUserID(r)
+	if !ok {
+
+		utilities.WriteJSON(w, http.StatusNotFound, "not user found", nil)
+		return
+	}
+	groupID, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		utilities.WriteJSON(w, http.StatusNotFound, "not found", nil)
+		return
+	}
+	fmt.Println("get content groups", groupID)
+
+	limit := 20
+	if v, err := strconv.Atoi(r.URL.Query().Get("limit")); err == nil && v > 0 {
+		limit = v
+	}
+
+	lastID := 0
+	if v, err := strconv.Atoi(r.URL.Query().Get("last_id")); err == nil {
+		lastID = v
+	}
+
+	feed, err := Repos.Group.GetGroupContent(groupID, userID, limit, lastID)
+	if err != nil {
+		utilities.WriteJSON(w, http.StatusInternalServerError, "could not fetch content", nil)
+		return
+	}
+
+	utilities.WriteJSON(w, http.StatusOK, "content fetched", feed)
+}

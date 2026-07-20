@@ -12,6 +12,7 @@ type Repositories struct {
 	Follow       *FollowRepository
 	Profile      *ProfileRepository
 	Reaction     *ReactionRepository
+
 	Notification *NotificationRepository
 }
 

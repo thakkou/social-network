@@ -105,9 +105,12 @@ func Run(db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("seedGroupPosts: %w", err)
 	}
-
 	if err := seedGroupPostComments(db, groupPostIDs, userIDs); err != nil {
 		return fmt.Errorf("seedGroupPostComments: %w", err)
+	}
+
+	if err := seedGroupPostReactions(db, groupPostIDs, userIDs); err != nil {
+		return fmt.Errorf("seedGroupPostReactions: %w", err)
 	}
 
 	convIDs, err := seedConversations(db, userIDs)
@@ -137,7 +140,7 @@ func reset(db *sql.DB) error {
 		"EVENT_RESPONSES", "GROUP_EVENTS", "GROUP_MESSAGES",
 		"GROUP_REQUESTS", "GROUP_INVITES", "GROUP_MEMBERS", "GROUPS",
 		"COMMENT_REACTIONS", "POST_REACTIONS", "COMMENTS",
-		"POST_CATEGORY", "POST_ALLOWED_USERS", "POSTS",
+		"POST_CATEGORY", "POST_ALLOWED_USERS", "POSTS", "GROUP_POST_REACTIONS",
 		"FOLLOWS", "SESSIONS", "USERS",
 	}
 	if _, err := db.Exec("PRAGMA foreign_keys = OFF"); err != nil {
@@ -1154,5 +1157,61 @@ func seedNotifications(db *sql.DB, u []int) error {
 	}
 
 	log.Printf("[SEED] notifications: %d\n", len(notifications))
+	return nil
+}
+
+func seedGroupPostReactions(db *sql.DB, groupPostIDs, u []int) error {
+	type reaction struct {
+		GroupPostID int
+		UserID      int
+		IsLike      int
+	}
+
+	reactions := []reaction{
+		// Gophers United posts
+		{groupPostIDs[0], u[1], 1},
+		{groupPostIDs[0], u[3], 1},
+		{groupPostIDs[0], u[5], -1},
+
+		{groupPostIDs[1], u[0], 1},
+		{groupPostIDs[1], u[3], 1},
+
+		// Sports posts
+		{groupPostIDs[2], u[0], 1},
+		{groupPostIDs[2], u[7], 1},
+
+		{groupPostIDs[3], u[5], 1},
+
+		// Culture posts
+		{groupPostIDs[4], u[2], 1},
+		{groupPostIDs[5], u[7], -1},
+
+		// Travel posts
+		{groupPostIDs[6], u[6], 1},
+		{groupPostIDs[7], u[1], 1},
+	}
+
+	query := `
+	INSERT INTO GROUP_POST_REACTIONS
+	(
+		group_post_id,
+		user_id,
+		is_like
+	)
+	VALUES (?, ?, ?)
+	`
+
+	for _, r := range reactions {
+		if _, err := db.Exec(
+			query,
+			r.GroupPostID,
+			r.UserID,
+			r.IsLike,
+		); err != nil {
+			return err
+		}
+	}
+
+	log.Printf("[SEED] group_post_reactions: %d\n", len(reactions))
 	return nil
 }
