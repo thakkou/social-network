@@ -503,17 +503,63 @@ func seedReactions(db *sql.DB, u, postIDs, commentIDs []int) error {
 
 func seedGroups(db *sql.DB, u []int) ([]int, error) {
 	type g struct {
-		CreatorID          int
-		Title, Description string
+		CreatorID   int
+		Title       string
+		Description string
+		Logo        string
+		Background  string
 	}
 	groups := []g{
-		{u[0], "Gophers United", "Everything about Go programming."},
-		{u[5], "Weekend Hikers", "Organizing hikes and outdoor trips."},
+		{
+			CreatorID:   u[0], // Alice
+			Title:       "Gophers United",
+			Description: "Everything about Go programming, backend development, concurrency and open source.",
+			Logo:        "/uploads/seeder/groups/golage-log.jpeg",
+			Background:  "/uploads/seeder/groups/golang-bg.jpeg",
+		},
+		{
+			CreatorID:   u[5], // Farid
+			Title:       "Sports Club",
+			Description: "Football, basketball, running, fitness and every kind of sport.",
+			Logo:        "/uploads/seeder/groups/sport-logo.jpeg",
+			Background:  "/uploads/seeder/groups/sport-bg.jpeg",
+		},
+		{
+			CreatorID:   u[7], // Hugo
+			Title:       "Culture & Arts",
+			Description: "Books, music, cinema, painting and cultural events.",
+			Logo:        "/uploads/seeder/groups/cultur-log.jpeg",
+			Background:  "/uploads/seeder/groups/culture-bg.jpeg",
+		},
+		{
+			CreatorID:   u[1], // Bob
+			Title:       "Travel Explorers",
+			Description: "Share destinations, travel tips, hiking adventures and unforgettable experiences.",
+			Logo:        "/uploads/seeder/groups/travel-logo.jpeg",
+			Background:  "/uploads/seeder/groups/travel-bg.jpeg",
+		},
 	}
-	query := `INSERT INTO GROUPS (creator_id, title, description) VALUES (?, ?, ?)`
+	query := `
+INSERT INTO GROUPS
+(
+    creator_id,
+    title,
+    description,
+    logo,
+    backgroun
+)
+VALUES (?, ?, ?, ?, ?)
+`
 	ids := make([]int, 0, len(groups))
 	for _, gr := range groups {
-		res, err := db.Exec(query, gr.CreatorID, gr.Title, gr.Description)
+		res, err := db.Exec(
+			query,
+			gr.CreatorID,
+			gr.Title,
+			gr.Description,
+			gr.Logo,
+			gr.Background,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -533,15 +579,29 @@ func seedGroupMembers(db *sql.DB, groupIDs, u []int) error {
 		Role            string
 	}
 	members := []m{
-		// Gophers United (creator = alice = u[0])
+		// ---------- Go ----------
 		{groupIDs[0], u[0], "admin"},
+		{groupIDs[0], u[1], "member"},
 		{groupIDs[0], u[3], "member"},
 		{groupIDs[0], u[5], "member"},
-		{groupIDs[0], u[1], "member"},
-		// Weekend Hikers (creator = farid = u[5])
+
+		// ---------- Sports ----------
 		{groupIDs[1], u[5], "admin"},
 		{groupIDs[1], u[0], "member"},
+		{groupIDs[1], u[6], "member"},
 		{groupIDs[1], u[7], "member"},
+
+		// ---------- Culture ----------
+		{groupIDs[2], u[7], "admin"},
+		{groupIDs[2], u[2], "member"},
+		{groupIDs[2], u[4], "member"},
+		{groupIDs[2], u[1], "member"},
+
+		// ---------- Travel ----------
+		{groupIDs[3], u[1], "admin"},
+		{groupIDs[3], u[0], "member"},
+		{groupIDs[3], u[4], "member"},
+		{groupIDs[3], u[6], "member"},
 	}
 	query := `INSERT INTO GROUP_MEMBERS (group_id, user_id, role) VALUES (?, ?, ?)`
 	for _, mem := range members {
@@ -559,8 +619,10 @@ func seedGroupInvites(db *sql.DB, groupIDs, u []int) error {
 		Status                        string
 	}
 	invites := []inv{
-		{groupIDs[0], u[0], u[6], "pending"}, // alice invites grace to Gophers United
-		{groupIDs[1], u[5], u[4], "pending"}, // farid invites emma to Weekend Hikers
+		{groupIDs[0], u[0], u[6], "pending"},
+		{groupIDs[1], u[5], u[4], "pending"},
+		{groupIDs[2], u[7], u[3], "pending"},
+		{groupIDs[3], u[1], u[2], "pending"},
 	}
 	query := `INSERT INTO GROUP_INVITES (group_id, inviter_id, invited_user_id, status) VALUES (?, ?, ?, ?)`
 	for _, i := range invites {
@@ -597,11 +659,25 @@ func seedGroupMessages(db *sql.DB, groupIDs, u []int) error {
 		Text              string
 	}
 	messages := []gm{
+		// Go
 		{groupIDs[0], u[0], "Welcome to Gophers United!"},
-		{groupIDs[0], u[3], "Excited to be here 🚀"},
-		{groupIDs[0], u[5], "Anyone using generics in prod yet?"},
-		{groupIDs[1], u[5], "Hike this Saturday, who's in?"},
-		{groupIDs[1], u[0], "Count me in!"},
+		{groupIDs[0], u[5], "Anyone using Go 1.25?"},
+		{groupIDs[0], u[3], "Concurrency is amazing."},
+
+		// Sports
+		{groupIDs[1], u[5], "Football match this Friday?"},
+		{groupIDs[1], u[7], "I'm in! ⚽"},
+		{groupIDs[1], u[0], "See you at 7 PM."},
+
+		// Culture
+		{groupIDs[2], u[7], "Movie night this weekend?"},
+		{groupIDs[2], u[1], "Interstellar gets my vote."},
+		{groupIDs[2], u[2], "I'd rather visit a museum."},
+
+		// Travel
+		{groupIDs[3], u[1], "Best destination for summer?"},
+		{groupIDs[3], u[6], "I recommend Morocco 🇲🇦"},
+		{groupIDs[3], u[4], "Japan is on my bucket list."},
 	}
 	query := `INSERT INTO GROUP_MESSAGES (group_id, sender_id, text) VALUES (?, ?, ?)`
 	for _, m := range messages {
@@ -622,8 +698,34 @@ func seedGroupEvents(db *sql.DB, groupIDs, u []int) ([]int, error) {
 		EventTime          time.Time
 	}
 	events := []ev{
-		{groupIDs[0], u[0], "Go Meetup #1", "Monthly meetup to discuss Go internals.", time.Now().Add(7 * 24 * time.Hour)},
-		{groupIDs[1], u[5], "Sunrise Hike", "Meet at the trailhead at 6am.", time.Now().Add(3 * 24 * time.Hour)},
+		{
+			groupIDs[0],
+			u[0],
+			"Go Meetup",
+			"Monthly Go developers meetup.",
+			time.Now().Add(7 * 24 * time.Hour),
+		},
+		{
+			groupIDs[1],
+			u[5],
+			"Football Match",
+			"Friendly football game.",
+			time.Now().Add(3 * 24 * time.Hour),
+		},
+		{
+			groupIDs[2],
+			u[7],
+			"Museum Visit",
+			"Visit the modern art museum together.",
+			time.Now().Add(10 * 24 * time.Hour),
+		},
+		{
+			groupIDs[3],
+			u[1],
+			"Weekend Road Trip",
+			"Two-day trip to the mountains.",
+			time.Now().Add(14 * 24 * time.Hour),
+		},
 	}
 	query := `INSERT INTO GROUP_EVENTS (group_id, creator_id, title, description, event_time) VALUES (?, ?, ?, ?, ?)`
 	ids := make([]int, 0, len(events))
@@ -673,9 +775,21 @@ func seedGroupPosts(db *sql.DB, groupIDs, u []int) ([]int, error) {
 		Title, Text     string
 	}
 	posts := []gp{
-		{groupIDs[0], u[0], "Style guide", "Let's agree on gofmt + golangci-lint for the repo."},
-		{groupIDs[0], u[5], "", "Anyone tried the new slices package?"},
-		{groupIDs[1], u[5], "Trail conditions", "Trail is muddy after yesterday's rain, bring boots."},
+		// Go
+		{groupIDs[0], u[0], "Favorite Go Feature", "Mine is goroutines."},
+		{groupIDs[0], u[5], "", "Who's using generics?"},
+
+		// Sports
+		{groupIDs[1], u[5], "Weekend Match", "Who's available this Saturday?"},
+		{groupIDs[1], u[7], "", "I'll reserve the field."},
+
+		// Culture
+		{groupIDs[2], u[7], "Best Movie", "Recommend your favorite movie."},
+		{groupIDs[2], u[1], "", "I'm reading Dune right now."},
+
+		// Travel
+		{groupIDs[3], u[1], "Dream Destination", "Where do you want to travel next?"},
+		{groupIDs[3], u[4], "", "I want to visit Iceland."},
 	}
 	query := `INSERT INTO GROUP_POSTS (group_id, user_id, title, text) VALUES (?, ?, ?, ?)`
 	ids := make([]int, 0, len(posts))
@@ -701,9 +815,21 @@ func seedGroupPostComments(db *sql.DB, groupPostIDs, u []int) error {
 		Text                string
 	}
 	comments := []c{
-		{groupPostIDs[0], u[3], "Agreed, let's add it to the CI pipeline."},
-		{groupPostIDs[1], u[0], "Yes! Much cleaner than the old sort package."},
-		{groupPostIDs[2], u[0], "Thanks for the heads up, bringing boots."},
+		// Go
+		{groupPostIDs[0], u[3], "Goroutines changed the way I write code."},
+		{groupPostIDs[1], u[0], "Generics are finally mature."},
+
+		// Sports
+		{groupPostIDs[2], u[6], "Count me in!"},
+		{groupPostIDs[3], u[5], "Perfect."},
+
+		// Culture
+		{groupPostIDs[4], u[2], "The Godfather never gets old."},
+		{groupPostIDs[5], u[7], "Great choice!"},
+
+		// Travel
+		{groupPostIDs[6], u[6], "Japan is also my dream destination."},
+		{groupPostIDs[7], u[1], "Iceland looks incredible in winter."},
 	}
 	query := `INSERT INTO GROUP_POST_COMMENTS (group_post_id, user_id, text) VALUES (?, ?, ?)`
 	for _, cm := range comments {
