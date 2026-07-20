@@ -98,6 +98,56 @@ func (r *ConversationRepository) SaveMessage(tx *sql.Tx, conversationID, senderI
 	return msgID, err
 }
 
+// SaveGroupMessage verifies group membership and saves a message to GROUP_MESSAGES.
+func (r *ConversationRepository) SaveGroupMessage(tx *sql.Tx, groupID, senderID int, text string) (int64, error) {
+	// Verify sender is an active member of the group
+	var isMember bool
+	err := tx.QueryRow(`
+		SELECT EXISTS(
+			SELECT 1 FROM GROUP_MEMBERS 
+			WHERE group_id = ? AND user_id = ?
+		)
+	`, groupID, senderID).Scan(&isMember)
+	if err != nil {
+		return 0, err
+	}
+	if !isMember {
+		return 0, sql.ErrNoRows // Used to signify unauthorized access
+	}
+
+	// Insert into GROUP_MESSAGES
+	res, err := tx.Exec(`
+		INSERT INTO GROUP_MESSAGES (group_id, sender_id, text)
+		VALUES (?, ?, ?)
+	`, groupID, senderID, text)
+	if err != nil {
+		return 0, err
+	}
+
+	return res.LastInsertId()
+}
+
+// GetGroupMemberIDs fetches all member user IDs in a group (for WS broadcasting).
+func (r *ConversationRepository) GetGroupMemberIDs(groupID int) ([]int, error) {
+	rows, err := r.db.Query(`
+		SELECT user_id FROM GROUP_MEMBERS WHERE group_id = ?
+	`, groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var memberIDs []int
+	for rows.Next() {
+		var uid int
+		if err := rows.Scan(&uid); err != nil {
+			return nil, err
+		}
+		memberIDs = append(memberIDs, uid)
+	}
+	return memberIDs, nil
+}
+
 // FetchConversationFeed returns ranked direct and group feeds for a user.
 func (r *ConversationRepository) FetchConversationFeed(userID, limit, offset int) ([]ConversationFeedItem, []ConversationFeedItem, error) {
 	rows, err := r.db.Query(`

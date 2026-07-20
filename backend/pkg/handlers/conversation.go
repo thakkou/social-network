@@ -14,13 +14,17 @@ import (
 	"01social/pkg/ws"
 )
 
+// SendMessage handles sending a DM and triggering real-time WS notifications.
+
 type SendMessageRequest struct {
-	ReceiverID     int    `json:"receiver_id"`
-	Text           string `json:"text"`
-	ConversationID *int   `json:"conversation_id"`
+	Type           string `json:"type"`            // "direct" | "group"
+	Text           string `json:"text"`            // Message body
+	ReceiverID     int    `json:"receiver_id"`     // Required for direct messages
+	ConversationID *int   `json:"conversation_id"` // Optional for direct messages
+	GroupID        int    `json:"group_id"`        // Required for group messages
 }
 
-// SendMessage handles sending a DM and triggering real-time WS notifications.
+// SendMessage handles sending both direct and group messages and dispatching WS notifications.
 func SendMessage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
@@ -40,13 +44,176 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req.Text = strings.TrimSpace(req.Text)
-	if req.ReceiverID == 0 || req.Text == "" {
-		utilities.WriteJSON(w, http.StatusBadRequest, "missing fields", nil)
+	if req.Text == "" {
+		utilities.WriteJSON(w, http.StatusBadRequest, "message text cannot be empty", nil)
 		return
 	}
 
-	if senderID == req.ReceiverID {
-		utilities.WriteJSON(w, http.StatusBadRequest, "cannot send message to yourself", nil)
+	// Default to direct if type is omitted for backward compatibility
+	if req.Type == "" {
+		req.Type = "direct"
+	}
+
+	tx, err := db.Database.Begin()
+	if err != nil {
+		utilities.WriteJSON(w, http.StatusInternalServerError, "db error", nil)
+		return
+	}
+	defer tx.Rollback()
+
+	// Fetch sender profile details before commit for WS metadata
+	senderProfile, err := Repos.User.GetByID(senderID)
+	if err != nil {
+		utilities.WriteJSON(w, http.StatusInternalServerError, "user profile fetch error", nil)
+		return
+	}
+
+	switch req.Type {
+	case "direct":
+		if req.ReceiverID == 0 {
+			utilities.WriteJSON(w, http.StatusBadRequest, "missing receiver_id for direct message", nil)
+			return
+		}
+
+		if senderID == req.ReceiverID {
+			utilities.WriteJSON(w, http.StatusBadRequest, "cannot send message to yourself", nil)
+			return
+		}
+
+		var conversationID int
+		var isNew bool
+
+		if req.ConversationID != nil && *req.ConversationID > 0 {
+			conversationID = *req.ConversationID
+		} else {
+			convID, newlyCreated, err := Repos.Conversation.FindOrCreateDirectConversation(tx, senderID, req.ReceiverID)
+			if err != nil {
+				utilities.WriteJSON(w, http.StatusInternalServerError, "failed to resolve conversation", nil)
+				return
+			}
+			conversationID = convID
+			isNew = newlyCreated
+		}
+
+		messageID, err := Repos.Conversation.SaveMessage(tx, conversationID, senderID, req.Text)
+		if err != nil {
+			utilities.WriteJSON(w, http.StatusInternalServerError, "failed to save message", nil)
+			return
+		}
+
+		if err := tx.Commit(); err != nil {
+			utilities.WriteJSON(w, http.StatusInternalServerError, "commit failed", nil)
+			return
+		}
+
+		// Dispatch WebSocket push notifications for direct message
+		wsPayload := map[string]interface{}{
+			"type":              "direct",
+			"isNewConversation": isNew,
+			"nickname":          senderProfile.Nickname,
+			"conversation_id":   conversationID,
+			"message_id":        messageID,
+			"sender_id":         senderID,
+			"text":              req.Text,
+		}
+
+		wsPayload["isMine"] = false
+		ws.NotifyUser(strconv.Itoa(req.ReceiverID), "new_message", wsPayload)
+
+		wsPayload["isMine"] = true
+		ws.NotifyUser(strconv.Itoa(senderID), "new_message", wsPayload)
+
+		utilities.WriteJSON(
+			w,
+			http.StatusOK,
+			"message sent success",
+			map[string]interface{}{
+				"type":            "direct",
+				"conversation_id": conversationID,
+				"message_id":      messageID,
+			},
+		)
+
+	case "group":
+		if req.GroupID == 0 {
+			utilities.WriteJSON(w, http.StatusBadRequest, "missing group_id for group message", nil)
+			return
+		}
+
+		messageID, err := Repos.Conversation.SaveGroupMessage(tx, req.GroupID, senderID, req.Text)
+		if err == sql.ErrNoRows {
+			utilities.WriteJSON(w, http.StatusForbidden, "you are not a member of this group", nil)
+			return
+		} else if err != nil {
+			utilities.WriteJSON(w, http.StatusInternalServerError, "failed to save group message", nil)
+			return
+		}
+
+		if err := tx.Commit(); err != nil {
+			utilities.WriteJSON(w, http.StatusInternalServerError, "commit failed", nil)
+			return
+		}
+
+		// Fetch group members and broadcast via WebSockets
+		memberIDs, err := Repos.Conversation.GetGroupMemberIDs(req.GroupID)
+		if err == nil {
+			for _, memberID := range memberIDs {
+				wsPayload := map[string]interface{}{
+					"type":       "group",
+					"group_id":   req.GroupID,
+					"message_id": messageID,
+					"sender_id":  senderID,
+					"nickname":   senderProfile.Nickname,
+					"text":       req.Text,
+					"isMine":     memberID == senderID,
+				}
+				ws.NotifyUser(strconv.Itoa(memberID), "new_group_message", wsPayload)
+			}
+		}
+
+		utilities.WriteJSON(
+			w,
+			http.StatusOK,
+			"group message sent success",
+			map[string]interface{}{
+				"type":       "group",
+				"group_id":   req.GroupID,
+				"message_id": messageID,
+			},
+		)
+
+	default:
+		utilities.WriteJSON(w, http.StatusBadRequest, "invalid message type (must be 'direct' or 'group')", nil)
+	}
+}
+
+type SendGroupMessageRequest struct {
+	GroupID int    `json:"group_id"`
+	Text    string `json:"text"`
+}
+
+// SendGroupMessage handles sending a group chat message and broadcasting via WebSockets.
+func SendGroupMessage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
+
+	senderID, ok := middlewares.GetUserID(r)
+	if !ok {
+		utilities.WriteJSON(w, http.StatusUnauthorized, "unauthorized", nil)
+		return
+	}
+
+	var req SendGroupMessageRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utilities.WriteJSON(w, http.StatusBadRequest, "invalid request body", nil)
+		return
+	}
+
+	req.Text = strings.TrimSpace(req.Text)
+	if req.GroupID == 0 || req.Text == "" {
+		utilities.WriteJSON(w, http.StatusBadRequest, "missing group_id or text", nil)
 		return
 	}
 
@@ -57,28 +224,17 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	var conversationID int
-	var isNew bool
-
-	if req.ConversationID != nil {
-		conversationID = *req.ConversationID
-	} else {
-		convID, newlyCreated, err := Repos.Conversation.FindOrCreateDirectConversation(tx, senderID, req.ReceiverID)
-		if err != nil {
-			utilities.WriteJSON(w, http.StatusInternalServerError, "failed to resolve conversation", nil)
-			return
-		}
-		conversationID = convID
-		isNew = newlyCreated
-	}
-
-	messageID, err := Repos.Conversation.SaveMessage(tx, conversationID, senderID, req.Text)
-	if err != nil {
+	// Save group message
+	messageID, err := Repos.Conversation.SaveGroupMessage(tx, req.GroupID, senderID, req.Text)
+	if err == sql.ErrNoRows {
+		utilities.WriteJSON(w, http.StatusForbidden, "you are not a member of this group", nil)
+		return
+	} else if err != nil {
 		utilities.WriteJSON(w, http.StatusInternalServerError, "failed to save message", nil)
 		return
 	}
 
-	// Fetch sender profile details before commit
+	// Fetch sender details for real-time client metadata
 	senderProfile, err := Repos.User.GetByID(senderID)
 	if err != nil {
 		utilities.WriteJSON(w, http.StatusInternalServerError, "user profile fetch error", nil)
@@ -90,29 +246,30 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// WebSocket push notifications
-	wsPayload := map[string]interface{}{
-		"isNewConversation": isNew,
-		"nickname":          senderProfile.Nickname,
-		"conversation_id":   conversationID,
-		"message_id":        messageID,
-		"sender_id":         senderID,
-		"text":              req.Text,
+	// Fetch group members to broadcast WS notification
+	memberIDs, err := Repos.Conversation.GetGroupMemberIDs(req.GroupID)
+	if err == nil {
+		for _, memberID := range memberIDs {
+			wsPayload := map[string]interface{}{
+				"group_id":   req.GroupID,
+				"message_id": messageID,
+				"sender_id":  senderID,
+				"nickname":   senderProfile.Nickname,
+				"text":       req.Text,
+				"isMine":     memberID == senderID,
+				"type":       "group",
+			}
+			ws.NotifyUser(strconv.Itoa(memberID), "new_group_message", wsPayload)
+		}
 	}
-
-	wsPayload["isMine"] = false
-	ws.NotifyUser(strconv.Itoa(req.ReceiverID), "new_message", wsPayload)
-
-	wsPayload["isMine"] = true
-	ws.NotifyUser(strconv.Itoa(senderID), "new_message", wsPayload)
 
 	utilities.WriteJSON(
 		w,
 		http.StatusOK,
-		"message sent success",
+		"group message sent success",
 		map[string]interface{}{
-			"conversation_id": conversationID,
-			"message_id":      messageID,
+			"group_id":   req.GroupID,
+			"message_id": messageID,
 		},
 	)
 }

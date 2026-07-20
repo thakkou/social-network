@@ -10,3 +10,5 @@
 -update the stylecss 1 days
 
 -structure layers front end 
+
+-in get conversation i will add the nickname or sender firstname and last name 10char...
