@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useChat } from "~/app/_providers/chatProvider"; // Adjust path if needed
+import { useChat } from "~/app/_providers/chatProvider";
 import {
   getConversationById,
+  sendMessage,
   ConversationType,
   ConversationMessage,
-} from "~/app/api/crud/conversations"; // Adjust relative path to actions
+} from "~/app/api/crud/conversations";
 
 const AVATAR_COLORS = ["#FBEAF0", "#EAF3FB", "#EAFBEF", "#FFF3E8", "#F3EAFB"];
 const GROUP_COLORS = ["#D4537E", "#1D9E75", "#3B82F6", "#F59E0B", "#8B5CF6"];
@@ -31,6 +32,7 @@ interface DisplayMessage {
   type: "me" | "them";
   text: string;
   senderId: number;
+  isSending?: boolean; // Track optimistic state
 }
 
 export default function Chat({ currentUserId }: { currentUserId: number }) {
@@ -49,7 +51,7 @@ export default function Chat({ currentUserId }: { currentUserId: number }) {
   // Map conversation type to API string
   const convType: ConversationType = isGroup ? "group" : "direct";
   // Extract conversation ID directly from selectedChat.id
-  const convId = selectedChat?.id
+  const convId = selectedChat?.id;
   // Read metadata dynamically from payload
   const displayName = chatData.display_name || "Select a conversation";
   const avatarUrl = chatData.avatar || null;
@@ -71,7 +73,7 @@ export default function Chat({ currentUserId }: { currentUserId: number }) {
     async function loadMessages() {
       setIsLoading(true);
       setError(null);
-console.log("get the converstaion",convType,convId,0,30)
+
       const response = await getConversationById(convType, convId, 0, 30);
 
       if (response.error) {
@@ -97,22 +99,56 @@ console.log("get the converstaion",convType,convId,0,30)
     loadMessages();
   }, [convType, convId, currentUserId]);
 
-  function sendMsg() {
+  async function sendMsg() {
     const val = message.trim();
     if (!val || !selectedChat) return;
 
-    // Optimistic UI append for local sending
+    const tempId = Date.now();
+
+    // 1. Optimistic UI update
     const tempMsg: DisplayMessage = {
-      id: Date.now(),
+      id: tempId,
       type: "me",
       text: val,
       senderId: currentUserId,
+      isSending: true,
     };
 
     setMessages((prev) => [...prev, tempMsg]);
     setMessage("");
 
-    // TODO: Trigger WS notification or API send action here
+    // 2. Build payload based on direct vs group chat
+    const payload =
+      convType === "group"
+        ? {
+            type: "group" as const,
+            text: val,
+            group_id: Number(convId),
+          }
+        : {
+            type: "direct" as const,
+            text: val,
+            receiver_id: chatData.other_user_id || Number(convId),
+            conversation_id: Number(convId),
+          };
+
+    // 3. Send message request to backend
+    const res = await sendMessage(payload);
+
+    if (res.error) {
+      // Rollback optimistic message on failure
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      setError(res.error);
+    } else if (res.success && res.data) {
+      // 4. Update message ID with real DB message_id upon success
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId
+            ? { ...m, id: res.data.message_id, isSending: false }
+            : m
+        )
+      );
+    }
   }
 
   return (
@@ -242,6 +278,7 @@ console.log("get the converstaion",convType,convId,0,30)
                       display: "flex",
                       flexDirection: "column",
                       alignItems: msg.type === "me" ? "flex-end" : "flex-start",
+                      opacity: msg.isSending ? 0.6 : 1, // Visual indication while sending
                     }}
                   >
                     <div
@@ -301,7 +338,7 @@ console.log("get the converstaion",convType,convId,0,30)
           <button
             className="btn btn-p"
             onClick={sendMsg}
-            disabled={!selectedChat || isLoading}
+            disabled={!selectedChat || isLoading || !message.trim()}
           >
             <i className="ti ti-send" />
           </button>

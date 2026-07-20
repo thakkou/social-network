@@ -26,6 +26,7 @@ type SendMessageRequest struct {
 
 // SendMessage handles sending both direct and group messages and dispatching WS notifications.
 func SendMessage(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("=========start sending the messages")
 	if r.Method != http.MethodPost {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
 		return

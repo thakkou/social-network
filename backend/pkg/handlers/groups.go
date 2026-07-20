@@ -169,6 +169,7 @@ func CreateGroup(w http.ResponseWriter, r *http.Request) {
 		Logo:        logoPath,
 		Background:  backgroundPath,
 	}
+	log.Printf("[CREATE_GROUP] DB insertion failed for group %q by user %d: %v", title, userID, err)
 
 	if err := Repos.Group.CreateGroup(group); err != nil {
 		log.Printf("[CREATE_GROUP] DB insertion failed for group %q by user %d: %v", title, userID, err)
