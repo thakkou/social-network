@@ -179,7 +179,7 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 	var imagePath string
 	if file, header, err := r.FormFile("image"); err == nil {
 		defer file.Close()
-		if saved, saveErr := utilities.SaveImage(file, header); saveErr == nil {
+		if saved, saveErr := utilities.SaveImage(file, header, "uploads/posts/"); saveErr == nil {
 			imagePath = saved
 		} else {
 			log.Printf("[CREATE POST] failed saving image: %v", saveErr)

@@ -87,6 +87,8 @@ function UserItem({ user, onClick }: { user: any; onClick: () => void }) {
 }
 
 function GroupItem({ group, onClick }: { group: any; onClick: () => void }) {
+ 
+
   return (
     <Link
       href={`/groups/${group.id}`}
@@ -101,24 +103,41 @@ function GroupItem({ group, onClick }: { group: any; onClick: () => void }) {
         color: "inherit",
       }}
     >
-      <div
-        className="av"
-        style={{
-          width: "28px",
-          height: "28px",
-          borderRadius: "6px",
-          background: "#162820",
-          color: "#4dbf95",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <i className="ti ti-users" />
-      </div>
+      {group.logo ? (
+        <Image
+          src={group.logo}
+          alt={group.title}
+          width={28}
+          height={28}
+          style={{
+            width: "28px",
+            height: "28px",
+            borderRadius: "6px",
+            objectFit: "cover",
+          }}
+        />
+      ) : (
+        <div
+          className="av"
+          style={{
+            width: "28px",
+            height: "28px",
+            borderRadius: "6px",
+            background: "#162820",
+            color: "#4dbf95",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <i className="ti ti-users" />
+        </div>
+      )}
 
       <div>
-        <div style={{ fontSize: "12px" }}>{group.title}</div>
+        <div style={{ fontSize: "12px" }}>
+          {group.title}
+        </div>
 
         <div
           style={{

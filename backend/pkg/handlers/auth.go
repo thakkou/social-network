@@ -2,11 +2,8 @@ package handlers
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -254,40 +251,29 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var avatarPath string
+
 	file, header, err := r.FormFile("avatar")
 	if err == nil {
 		defer file.Close()
 
-		ext := filepath.Ext(header.Filename)
-		if ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".gif" {
-			log.Printf("[REGISTER] Rejected file type for avatar upload: %q", ext)
-			http.Error(w, "invalid file type", http.StatusBadRequest)
-			return
-		}
-
-		filename := fmt.Sprintf("%s%s", uuid.NewString(), ext)
-		if err := os.MkdirAll("uploads/avatars", os.ModePerm); err != nil {
-			log.Printf("[REGISTER] Failed to create destination directories: %v", err)
-			http.Error(w, "could not process upload", http.StatusInternalServerError)
-			return
-		}
-		dst, err := os.Create(filepath.Join("uploads/avatars", filename))
+		avatarPath, err = utilities.SaveImage(
+			file,
+			header,
+			"uploads/avatars",
+		)
 		if err != nil {
-			log.Printf("[REGISTER] Failed to create file on filesystem: %v", err)
-			http.Error(w, "could not save file", http.StatusInternalServerError)
-			return
-		}
-		defer dst.Close()
-
-		if _, err := io.Copy(dst, file); err != nil {
-			log.Printf("[REGISTER] Failed copy stream to destination file: %v", err)
-			http.Error(w, "could not save file", http.StatusInternalServerError)
+			log.Printf("[REGISTER] Failed saving avatar: %v", err)
+			utilities.WriteJSON(
+				w,
+				http.StatusBadRequest,
+				err.Error(),
+				nil,
+			)
 			return
 		}
 
-		avatarPath = "/uploads/avatars/" + filename
 	} else if err != http.ErrMissingFile {
-		log.Printf("[REGISTER] Non-standard error retrieving uploaded file: %v", err)
+		log.Printf("[REGISTER] Upload error: %v", err)
 	}
 
 	// Create structural model for the repository

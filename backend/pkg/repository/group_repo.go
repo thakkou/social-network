@@ -10,6 +10,8 @@ type Group struct {
 	CreatorID   int       `json:"creator_id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
+	Logo        string    `json:"logo,omitempty"`
+	Background  string    `json:"background,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -58,20 +60,37 @@ func NewGroupRepository(db *sql.DB) *GroupRepository {
 }
 
 func (r *GroupRepository) CreateGroup(g *Group) error {
-	query := `INSERT INTO GROUPS (creator_id, title, description) VALUES (?, ?, ?)`
-	res, err := r.DB.Exec(query, g.CreatorID, g.Title, g.Description)
+	description := sql.NullString{String: g.Description, Valid: g.Description != ""}
+	logo := sql.NullString{String: g.Logo, Valid: g.Logo != ""}
+	background := sql.NullString{String: g.Background, Valid: g.Background != ""}
+
+	query := `INSERT INTO GROUPS (creator_id, title, description, logo, backgroun) VALUES (?, ?, ?, ?, ?)`
+	res, err := r.DB.Exec(query, g.CreatorID, g.Title, description, logo, background)
 	if err != nil {
 		return err
 	}
-	id, _ := res.LastInsertId()
-	g.ID = int(id)
 
+	id, err := res.LastInsertId()
+	if err == nil {
+		g.ID = int(id)
+	}
+
+	// Creator automatically becomes the group admin
 	_, err = r.DB.Exec(`INSERT INTO GROUP_MEMBERS (group_id, user_id, role) VALUES (?, ?, 'admin')`, g.ID, g.CreatorID)
 	return err
 }
 
 func (r *GroupRepository) ListGroups() ([]Group, error) {
-	rows, err := r.DB.Query(`SELECT id, creator_id, title, description, created_at FROM GROUPS ORDER BY created_at DESC`)
+	rows, err := r.DB.Query(`
+SELECT 
+    id,
+    creator_id,
+    title,
+    COALESCE(description, ''),
+    created_at
+FROM GROUPS
+ORDER BY created_at DESC
+`)
 	if err != nil {
 		return nil, err
 	}
@@ -299,8 +318,10 @@ func (r *GroupRepository) SearchGroups(text string) ([]Group, error) {
 		id,
 		creator_id,
 		title,
-		description,
-		created_at
+		COALESCE(description, ''),	
+		logo,
+		background,
+	created_at
 	FROM GROUPS
 	WHERE
 		title LIKE ?
@@ -328,6 +349,8 @@ func (r *GroupRepository) SearchGroups(text string) ([]Group, error) {
 			&g.CreatorID,
 			&g.Title,
 			&g.Description,
+			&g.Logo,
+			&g.Background,
 			&createdAt,
 		); err != nil {
 			return nil, err
@@ -347,11 +370,14 @@ func (r *GroupRepository) GetPublicGroupDetails(groupID int) (*Group, error) {
 	var createdAt string
 
 	err := r.DB.QueryRow(`
-		SELECT 
-			id,
-			title,
-			created_at
-		FROM GROUPS
+		SELECT
+    id,
+    title,
+    COALESCE(description, ''),
+    COALESCE(logo, ''),
+    COALESCE(backgroun, ''),
+    created_at
+FROM GROUPS
 		WHERE id = ?
 	`, groupID).Scan(
 		&group.ID,

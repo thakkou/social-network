@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -83,46 +84,105 @@ func parseGroupPath(path string) (groupID int, endpoint string, targetID int, ac
 }
 
 func CreateGroup(w http.ResponseWriter, r *http.Request) {
+	log.Println("[CREATE_GROUP] Start group creation process")
+
 	if r.Method != http.MethodPost {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
 		return
 	}
 
-	if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
-		utilities.WriteJSON(w, http.StatusBadRequest, "Content-Type must be application/json", nil)
-		return
-	}
-
-	var payload struct {
-		Title       string `json:"title"`
-		Description string `json:"description"`
-	}
-
-	if err := utilities.ReadJSONRequestIntoStruct(r, &payload); err != nil {
-		utilities.WriteJSON(w, http.StatusBadRequest, "invalid request body", nil)
-		return
-	}
-
-	payload.Title = strings.TrimSpace(payload.Title)
-	payload.Description = strings.TrimSpace(payload.Description)
-	if payload.Title == "" {
-		utilities.WriteJSON(w, http.StatusBadRequest, "title is required", nil)
-		return
-	}
-
+	// 1. Check User Session / Auth
 	userID, ok := middlewares.GetUserID(r)
 	if !ok {
+		log.Printf("[CREATE_GROUP] Unauthorized attempt to create group")
 		utilities.WriteJSON(w, http.StatusUnauthorized, "not logged in", nil)
 		return
 	}
 
-	group := &repository.Group{CreatorID: userID, Title: payload.Title, Description: payload.Description}
-	if err := Repos.Group.CreateGroup(group); err != nil {
-		utilities.WriteJSON(w, http.StatusInternalServerError, "could not create group", nil)
+	// 2. Limit request body size to 2 MB (for logo + background uploads combined)
+	const maxUploadSize int64 = 2 << 20 // 2 MB
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+
+	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
+		log.Printf("[CREATE_GROUP] Failed parsing multipart form (file limit exceeded): %v", err)
+		utilities.WriteJSON(w, http.StatusBadRequest, "Max combined file size is 2MB", nil)
 		return
 	}
 
-	utilities.WriteJSON(w, http.StatusCreated, "group created", map[string]any{"group_id": group.ID})
+	// 3. Extract & Validate Required Fields
+	title := strings.TrimSpace(r.FormValue("title"))
+	description := strings.TrimSpace(r.FormValue("description"))
+
+	if title == "" {
+		log.Printf("[CREATE_GROUP] Validation failed: empty title field by User %d", userID)
+		utilities.WriteJSON(w, http.StatusBadRequest, "title is required", nil)
+		return
+	}
+
+	if !utilities.IsValidName(title) { // Or your custom string check
+		log.Printf("[CREATE_GROUP] Validation failed: invalid title format %q", title)
+		utilities.WriteJSON(w, http.StatusBadRequest, "invalid group title", nil)
+		return
+	}
+
+	if description != "" && !utilities.IsValidDescription(description) {
+		log.Printf("[CREATE_GROUP] Validation failed: description exceeds length limit")
+		utilities.WriteJSON(w, http.StatusBadRequest, "description is too long", nil)
+		return
+	}
+
+	// 4. Handle Optional Logo Upload
+	var logoPath string
+	logoFile, logoHeader, err := r.FormFile("logo")
+	if err == nil {
+		path, err := utilities.SaveImage(logoFile, logoHeader, "uploads/groups/logo")
+		if err != nil {
+			log.Printf("[CREATE_GROUP] Failed to process logo upload: %v", err)
+			utilities.WriteJSON(w, http.StatusBadRequest, err.Error(), nil)
+			return
+		}
+		logoPath = path
+	} else if err != http.ErrMissingFile {
+		log.Printf("[CREATE_GROUP] Non-standard error reading logo file: %v", err)
+	}
+
+	// 5. Handle Optional Background Upload
+	var backgroundPath string
+	bgFile, bgHeader, err := r.FormFile("background")
+	if err == nil {
+		path, err := utilities.SaveImage(bgFile, bgHeader, "uploads/groups/backgrounds")
+		if err != nil {
+			log.Printf("[CREATE_GROUP] Failed to process background upload: %v", err)
+			utilities.WriteJSON(w, http.StatusBadRequest, err.Error(), nil)
+			return
+		}
+		backgroundPath = path
+	} else if err != http.ErrMissingFile {
+		log.Printf("[CREATE_GROUP] Non-standard error reading background file: %v", err)
+	}
+
+	// 6. Construct Model & Save via Repository
+	group := &repository.Group{
+		CreatorID:   userID,
+		Title:       title,
+		Description: description,
+		Logo:        logoPath,
+		Background:  backgroundPath,
+	}
+
+	if err := Repos.Group.CreateGroup(group); err != nil {
+		log.Printf("[CREATE_GROUP] DB insertion failed for group %q by user %d: %v", title, userID, err)
+		utilities.WriteJSON(w, http.StatusInternalServerError, "internal server error", nil)
+		return
+	}
+
+	log.Printf("[CREATE_GROUP] Successfully created group %q (ID: %d) by User %d", group.Title, group.ID, userID)
+
+	// 7. Success Response
+	utilities.WriteJSON(w, http.StatusCreated, "group created success", map[string]any{
+		"group_id": group.ID,
+		"title":    group.Title,
+	})
 }
 
 func ListGroups(w http.ResponseWriter, r *http.Request) {

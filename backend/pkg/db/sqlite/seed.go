@@ -546,7 +546,7 @@ INSERT INTO GROUPS
     title,
     description,
     logo,
-    backgroun
+    background
 )
 VALUES (?, ?, ?, ?, ?)
 `
