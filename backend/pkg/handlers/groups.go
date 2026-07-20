@@ -225,6 +225,46 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 		endpoint = segments[3]
 	}
 
+	if len(segments) >= 6 && segments[3] == "posts" && segments[5] == "reaction" {
+		member, err := Repos.Group.IsGroupMember(groupID, userID)
+		if err != nil || !member {
+			utilities.WriteJSON(w, http.StatusForbidden, "not a group member", nil)
+			return
+		}
+
+		postID, err := strconv.Atoi(segments[4])
+		if err != nil {
+			utilities.WriteJSON(w, http.StatusBadRequest, "invalid post id", nil)
+			return
+		}
+
+		if r.Method != http.MethodPost {
+			utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+			return
+		}
+
+		var payload struct {
+			IsLike int `json:"is_like"`
+		}
+		if err := utilities.ReadJSONRequestIntoStruct(r, &payload); err != nil {
+			utilities.WriteJSON(w, http.StatusBadRequest, "invalid request body", nil)
+			return
+		}
+
+		code, err := ReactToGroupPost(userID, postID, payload.IsLike)
+		if err != nil {
+			if code == http.StatusBadRequest || code == http.StatusNotFound {
+				utilities.WriteJSON(w, code, err.Error(), nil)
+			} else {
+				utilities.WriteJSON(w, http.StatusInternalServerError, "could not process reaction", nil)
+			}
+			return
+		}
+
+		utilities.WriteJSON(w, http.StatusOK, "reaction saved", nil)
+		return
+	}
+
 	if len(segments) >= 6 && segments[3] == "posts" && segments[5] == "comments" {
 		member, err := Repos.Group.IsGroupMember(groupID, userID)
 		if err != nil || !member {

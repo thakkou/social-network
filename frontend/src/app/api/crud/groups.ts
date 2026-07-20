@@ -11,6 +11,60 @@ interface CreateGroupResponse {
   };
 }
 
+interface GroupApiResponse<T> {
+  status_code: number;
+  message: string;
+  data: T;
+}
+
+// ─── Types for Group Public Details ───
+export interface GroupPublic {
+  id: number;
+  creator_id: number;
+  title: string;
+  description: string;
+  logo: string;
+  background: string;
+  created_at: string;
+}
+
+// ─── Types for Feed Items (Posts & Events) ───
+export interface FeedAuthor {
+  id: number;
+  nickname: string;
+  firstname: string;
+  lastname: string;
+  avatar: string;
+}
+
+export interface EventResponder {
+  user_id: number;
+  status: string;
+  nickname: string;
+  firstname: string;
+  lastname: string;
+  avatar: string;
+}
+
+export interface GroupFeedItem {
+  id: number;
+  type: "post" | "event";
+  group_id: number;
+  user_id: number;
+  title: string;
+  text: string;
+  image: string;
+  description: string;
+  event_time: string;
+  created_at: string;
+  author: FeedAuthor;
+  likes_count: number;
+  dislikes_count: number;
+  is_liked: boolean;
+  comments_count: number;
+  event_responses: EventResponder[];
+}
+
 // Create a new group using FormData (supports file uploads for logo and background)
 export async function createGroup(formData: FormData) {
   const title = formData.get("title")?.toString().trim();
@@ -35,4 +89,124 @@ export async function createGroup(formData: FormData) {
     message: result.data.message,
     group: result.data.data,
   };
+}
+
+// Fetch public group details by ID
+export async function getGroupPublic(groupId: string) {
+  if (!groupId) return { error: "Group ID is required." };
+
+  const result = await fetchApi<GroupApiResponse<GroupPublic>>(
+    `/api/groups/public/${groupId}`,
+    { method: "GET" }
+  );
+
+  if (!result.success) return { error: result.error };
+  return { success: true, data: result.data.data };
+}
+
+// Fetch group content feed (posts + events)
+export async function getGroupContent(
+  groupId: string,
+  params?: { limit?: number; last_id?: number }
+) {
+  if (!groupId) return { error: "Group ID is required." };
+
+  const result = await fetchApi<GroupApiResponse<GroupFeedItem[]>>(
+    `/api/groups/content/${groupId}`,
+    {
+      method: "GET",
+      searchParams: {
+        limit: params?.limit ?? 20,
+        last_id: params?.last_id ?? 0,
+      },
+    }
+  );
+
+  if (!result.success) return { error: result.error };
+  return { success: true, data: result.data.data };
+}
+
+// ─── Mutations ───
+
+// Create a group post
+export async function createGroupPost(
+  groupId: string,
+  payload: { title?: string; text?: string }
+) {
+  if (!groupId) return { error: "Group ID is required." };
+
+  const result = await fetchApi<GroupApiResponse<{ post_id: number }>>(
+    `/api/groups/${groupId}/posts`,
+    { method: "POST", body: payload }
+  );
+
+  if (!result.success) return { error: result.error };
+  return { success: true, data: result.data.data };
+}
+
+// Like or dislike a group post (isLike: 1 = like, -1 = dislike)
+export async function toggleGroupPostReaction(
+  groupId: string,
+  postId: number,
+  isLike: number
+) {
+  if (!groupId) return { error: "Group ID is required." };
+
+  const result = await fetchApi<GroupApiResponse<null>>(
+    `/api/groups/${groupId}/posts/${postId}/reaction`,
+    { method: "POST", body: { is_like: isLike } }
+  );
+
+  if (!result.success) return { error: result.error };
+  return { success: true };
+}
+
+// Comment on a group post
+export async function createGroupPostComment(
+  groupId: string,
+  postId: number,
+  text: string
+) {
+  if (!groupId) return { error: "Group ID is required." };
+
+  const result = await fetchApi<GroupApiResponse<null>>(
+    `/api/groups/${groupId}/posts/${postId}/comments`,
+    { method: "POST", body: { text } }
+  );
+
+  if (!result.success) return { error: result.error };
+  return { success: true };
+}
+
+// Create a group event
+export async function createGroupEvent(
+  groupId: string,
+  payload: { title: string; description?: string; event_time: string }
+) {
+  if (!groupId) return { error: "Group ID is required." };
+
+  const result = await fetchApi<GroupApiResponse<{ event_id: number }>>(
+    `/api/groups/${groupId}/events`,
+    { method: "POST", body: payload }
+  );
+
+  if (!result.success) return { error: result.error };
+  return { success: true, data: result.data.data };
+}
+
+// Respond to a group event (status: "going" | "not_going")
+export async function respondToEvent(
+  groupId: string,
+  eventId: number,
+  status: string
+) {
+  if (!groupId) return { error: "Group ID is required." };
+
+  const result = await fetchApi<GroupApiResponse<null>>(
+    `/api/groups/${groupId}/events/${eventId}/respond`,
+    { method: "POST", body: { status } }
+  );
+
+  if (!result.success) return { error: result.error };
+  return { success: true };
 }

@@ -8,6 +8,75 @@ import (
 	db "01social/pkg/db/sqlite"
 )
 
+// ReactToGroupPost handles like/dislike toggle for group posts.
+func ReactToGroupPost(userID, groupPostID int, isLikeInt int) (int, error) {
+	if isLikeInt != 1 && isLikeInt != -1 {
+		return http.StatusBadRequest, fmt.Errorf("invalid reaction")
+	}
+
+	var exists int
+	err := db.Database.QueryRow(
+		"SELECT id FROM GROUP_POSTS WHERE id = ?",
+		groupPostID,
+	).Scan(&exists)
+	if err == sql.ErrNoRows {
+		return http.StatusNotFound, fmt.Errorf("group post not found")
+	}
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Errorf("checking group post: %w", err)
+	}
+
+	var oldReaction int
+	err = db.Database.QueryRow(
+		"SELECT is_like FROM GROUP_POST_REACTIONS WHERE user_id = ? AND group_post_id = ?",
+		userID,
+		groupPostID,
+	).Scan(&oldReaction)
+
+	if err != nil && err != sql.ErrNoRows {
+		return http.StatusInternalServerError, fmt.Errorf("checking reaction: %w", err)
+	}
+
+	if err == nil {
+		// Same reaction -> remove (toggle off)
+		if oldReaction == isLikeInt {
+			_, err = db.Database.Exec(
+				"DELETE FROM GROUP_POST_REACTIONS WHERE user_id = ? AND group_post_id = ?",
+				userID,
+				groupPostID,
+			)
+			if err != nil {
+				return http.StatusInternalServerError, err
+			}
+			return http.StatusOK, nil
+		}
+
+		// Different reaction -> update
+		_, err = db.Database.Exec(
+			"UPDATE GROUP_POST_REACTIONS SET is_like = ? WHERE user_id = ? AND group_post_id = ?",
+			isLikeInt,
+			userID,
+			groupPostID,
+		)
+		if err != nil {
+			return http.StatusInternalServerError, err
+		}
+		return http.StatusOK, nil
+	}
+
+	// No reaction -> insert
+	_, err = db.Database.Exec(
+		"INSERT INTO GROUP_POST_REACTIONS (user_id, group_post_id, is_like) VALUES (?, ?, ?)",
+		userID,
+		groupPostID,
+		isLikeInt,
+	)
+	if err != nil {
+		return http.StatusInternalServerError, err
+	}
+	return http.StatusCreated, nil
+}
+
 func ReactToPost(userId, postId int, isLikeInt int) (int, error) {
 	// Validate reaction
 	if isLikeInt != 1 && isLikeInt != -1 {
