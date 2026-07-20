@@ -1,0 +1,9 @@
+-- SESSIONS
+CREATE TABLE IF NOT EXISTS SESSIONS (
+    id TEXT PRIMARY KEY UNIQUE, -- uuid
+    expires_at DATETIME NOT NULL,
+    user_id INTEGER NOT NULL,
+    FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+);

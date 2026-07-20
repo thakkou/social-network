@@ -1,0 +1,15 @@
+--group table 
+CREATE TABLE IF NOT EXISTS GROUPS (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    creator_id INTEGER NOT NULL,
+
+    title TEXT NOT NULL,
+    description TEXT,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (creator_id)
+        REFERENCES USERS(id)
+        ON DELETE CASCADE
+);

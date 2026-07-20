@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	db "01social/pkg/db/sqlite"
+	"01social/pkg/db/sqlite"
 	"01social/pkg/utilities"
 )
 
@@ -25,12 +25,12 @@ func RateLimit(handler http.HandlerFunc, minInterval time.Duration) http.Handler
 
 		var lastRequest time.Time
 
-		err = db.Database.QueryRow(
+		err = sqlite.DB().QueryRow(
 			"SELECT last_request FROM rate_limits WHERE ip = ? AND route = ?", ip, r.URL.Path,
 		).Scan(&lastRequest)
 
 		if err == sql.ErrNoRows {
-			_, err = db.Database.Exec(
+			_, err = sqlite.DB().Exec(
 				"INSERT INTO rate_limits (ip, route, last_request) VALUES (?, ?, ?)",
 				ip, r.URL.Path, time.Now(),
 			)
@@ -53,7 +53,7 @@ func RateLimit(handler http.HandlerFunc, minInterval time.Duration) http.Handler
 			return
 		}
 
-		_, err = db.Database.Exec(
+		_, err = sqlite.DB().Exec(
 			"UPDATE rate_limits SET last_request = ? WHERE ip = ? AND route = ?",
 			time.Now(), ip, r.URL.Path,
 		)

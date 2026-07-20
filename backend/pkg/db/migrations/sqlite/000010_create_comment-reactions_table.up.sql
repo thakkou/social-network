@@ -1,0 +1,13 @@
+-- COMMENT REACTIONS
+CREATE TABLE IF NOT EXISTS COMMENT_REACTIONS (
+  user_id INTEGER NOT NULL,
+  comment_id INTEGER NOT NULL,
+  is_like INTEGER NOT NULL DEFAULT 1 CHECK (is_like IN (-1, 1)), -- 1 for like / -1 for dislike
+
+  FOREIGN KEY (user_id)
+    REFERENCES USERS (id)
+    ON DELETE CASCADE ,
+  FOREIGN KEY (comment_id)
+    REFERENCES COMMENTS (id)
+    ON DELETE CASCADE 
+);

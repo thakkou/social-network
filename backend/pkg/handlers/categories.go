@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"net/http"
 
-	db "01social/pkg/db/sqlite"
+	"01social/pkg/db/sqlite"
 	"01social/pkg/utilities"
 )
 
 func GetCategoriesByPost(postId int) ([]string, error) {
 	var categories []string
 
-	rows, err := db.Database.Query(`
+	rows, err := sqlite.DB().Query(`
 		SELECT c.name
 		FROM category c
 		JOIN post_category pc ON c.id = pc.category_id
@@ -44,7 +44,7 @@ func GetAllCategories(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.Database.Query(`SELECT name FROM CATEGORY ORDER BY name ASC`)
+	rows, err := sqlite.DB().Query(`SELECT name FROM CATEGORY ORDER BY name ASC`)
 	if err != nil {
 		utilities.WriteJSON(w, http.StatusInternalServerError, "could not fetch categories", nil)
 		return

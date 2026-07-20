@@ -1,0 +1,16 @@
+CREATE TABLE IF NOT EXISTS GROUP_POSTS (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    title TEXT,
+    text TEXT,
+    image TEXT,
+
+    FOREIGN KEY (group_id)
+        REFERENCES GROUPS(id)
+        ON DELETE CASCADE,
+    FOREIGN KEY (user_id)
+        REFERENCES USERS(id)
+        ON DELETE CASCADE
+);

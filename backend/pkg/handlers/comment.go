@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	db "01social/pkg/db/sqlite"
+	"01social/pkg/db/sqlite"
 	"01social/pkg/middlewares"
 	dblayer "01social/pkg/models/db_layer"
 	"01social/pkg/repository"
@@ -199,7 +199,7 @@ func GetCommentsByPostWithPagination(postId, limit, lastID int) ([]dblayer.Comme
 	query += " ORDER BY id DESC LIMIT ?"
 	args = append(args, limit)
 
-	rows, err := db.Database.Query(query, args...)
+	rows, err := sqlite.DB().Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("getCommentsByPost error: %v", err)
 	}
@@ -212,7 +212,7 @@ func GetCommentsByPostWithPagination(postId, limit, lastID int) ([]dblayer.Comme
 		}
 
 		// get username
-		if err := db.Database.QueryRow(
+		if err := sqlite.DB().QueryRow(
 			"SELECT u.nickname FROM users u INNER JOIN comments c ON c.user_id = u.id WHERE c.id = ?",
 			c.Id,
 		).Scan(&c.Nickname); err != nil {
@@ -238,7 +238,7 @@ func GetCommentsByPostWithPagination(postId, limit, lastID int) ([]dblayer.Comme
 
 // DeleteComment
 func DeleteComment(commentId, userId int) error {
-	tx, err := db.Database.Begin()
+	tx, err := sqlite.DB().Begin()
 	if err != nil {
 		return err
 	}

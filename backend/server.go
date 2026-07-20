@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
-	db "01social/pkg/db/sqlite"
+	"01social/pkg/db/sqlite"
 	"01social/pkg/handlers"
 	"01social/pkg/repository"
 	"01social/pkg/routes"
@@ -56,13 +55,18 @@ func corsMiddleware(next http.Handler) http.Handler {
 
 func main() {
 	// Check for refresh command
-	refresh := len(os.Args) > 1 && (os.Args[1] == "refresh" || os.Args[1] == "-r")
+	// refresh := len(os.Args) > 1 && (os.Args[1] == "refresh" || os.Args[1] == "-r")
 
-	if err := db.Init(refresh); err != nil {
+	// if err := sqlite.Init(refresh); err != nil {
+	// 	log.Fatalf("Database initialization failed: %v", err)
+	// }
+	if err := sqlite.Init(); err != nil {
 		log.Fatalf("Database initialization failed: %v", err)
 	}
-	// here init reposotory
-	repos := repository.NewRepositories(db.Database)
+	defer sqlite.Close()
+
+	// here init repository
+	repos := repository.NewRepositories(sqlite.DB())
 	handlers.Init(repos)
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/assets/", handlers.Static)

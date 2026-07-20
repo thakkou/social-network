@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	db "01social/pkg/db/sqlite"
+	"01social/pkg/db/sqlite"
 	"01social/pkg/utilities"
 	"01social/pkg/ws"
 )
@@ -109,7 +109,7 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 	// -------------------------
 	// Start transaction
 	// -------------------------
-	tx, err := db.Database.Begin()
+	tx, err := sqlite.DB().Begin()
 	if err != nil {
 		// fmt.Println("[DB] begin transaction error:", err)
 		utilities.WriteJSON(w, 500, "db error", nil)
@@ -366,7 +366,7 @@ func GetConversation(w http.ResponseWriter, r *http.Request) {
 	// STEP 1: rank DMs + groups together by last activity,
 	// return only the page window of (id, type).
 	// =========================================================
-	rankRows, err := db.Database.Query(`
+	rankRows, err := sqlite.DB().Query(`
 		SELECT id, type, last_message_at FROM (
 			SELECT c.id AS id, 'direct' AS type, c.last_message_at AS last_message_at
 			FROM CONVERSATIONS c
@@ -433,7 +433,7 @@ func GetConversation(w http.ResponseWriter, r *http.Request) {
 			WHERE c.id IN (%s)
 		`, []interface{}{userId, userId, userId, userId, userId}, directIDs)
 
-		rows, err := db.Database.Query(query, args...)
+		rows, err := sqlite.DB().Query(query, args...)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
@@ -459,7 +459,7 @@ func GetConversation(w http.ResponseWriter, r *http.Request) {
 			}
 
 			var unread int
-			_ = db.Database.QueryRow(`
+			_ = sqlite.DB().QueryRow(`
 				SELECT COUNT(*) FROM MESSAGES
 				WHERE conversation_id = ? AND sender_id != ? AND is_read = 0
 			`, convID, userId).Scan(&unread)
@@ -510,7 +510,7 @@ func GetConversation(w http.ResponseWriter, r *http.Request) {
 			WHERE g.id IN (%s)
 		`, nil, groupIDs)
 
-		rows, err := db.Database.Query(query, args...)
+		rows, err := sqlite.DB().Query(query, args...)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
@@ -531,7 +531,7 @@ func GetConversation(w http.ResponseWriter, r *http.Request) {
 			// unread = messages after this user's last_read_message_id
 			// (requires GROUP_MESSAGE_READS table)
 			var unread int
-			_ = db.Database.QueryRow(`
+			_ = sqlite.DB().QueryRow(`
 				SELECT COUNT(*) FROM GROUP_MESSAGES gmsg
 				WHERE gmsg.group_id = ?
 				AND gmsg.sender_id != ?
@@ -634,7 +634,7 @@ func GetConversationByID(w http.ResponseWriter, r *http.Request) {
 
 	case "direct":
 		var convID int
-		err = db.Database.QueryRow(`
+		err = sqlite.DB().QueryRow(`
 			SELECT id FROM CONVERSATIONS
 			WHERE id = ? AND (user1_id = ? OR user2_id = ?)
 		`, id, userID, userID).Scan(&convID)
@@ -647,7 +647,7 @@ func GetConversationByID(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		rows, err := db.Database.Query(`
+		rows, err := sqlite.DB().Query(`
 			SELECT id, sender_id, text, created_at
 			FROM MESSAGES
 			WHERE conversation_id = ?
@@ -670,7 +670,7 @@ func GetConversationByID(w http.ResponseWriter, r *http.Request) {
 
 	case "group":
 		var groupID int
-		err = db.Database.QueryRow(`
+		err = sqlite.DB().QueryRow(`
 			SELECT g.id FROM GROUPS g
 			JOIN GROUP_MEMBERS m ON m.group_id = g.id
 			WHERE g.id = ? AND m.user_id = ?
@@ -684,7 +684,7 @@ func GetConversationByID(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		rows, err := db.Database.Query(`
+		rows, err := sqlite.DB().Query(`
 			SELECT id, sender_id, text, created_at
 			FROM GROUP_MESSAGES
 			WHERE group_id = ?
