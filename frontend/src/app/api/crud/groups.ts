@@ -28,6 +28,15 @@ export interface GroupPublic {
   created_at: string;
 }
 
+interface GroupPublicResponse {
+  status_code: number;
+  message: string;
+  data: {
+    group: GroupPublic;
+    is_member: boolean;
+  };
+}
+
 // ─── Types for Feed Items (Posts & Events) ───
 export interface FeedAuthor {
   id: number;
@@ -95,13 +104,17 @@ export async function createGroup(formData: FormData) {
 export async function getGroupPublic(groupId: string) {
   if (!groupId) return { error: "Group ID is required." };
 
-  const result = await fetchApi<GroupApiResponse<GroupPublic>>(
+  const result = await fetchApi<GroupPublicResponse>(
     `/api/groups/public/${groupId}`,
     { method: "GET" }
   );
 
   if (!result.success) return { error: result.error };
-  return { success: true, data: result.data.data };
+  return {
+    success: true,
+    data: result.data.data.group,
+    isMember: result.data.data.is_member,
+  };
 }
 
 // Fetch group content feed (posts + events)
@@ -128,16 +141,28 @@ export async function getGroupContent(
 
 // ─── Mutations ───
 
-// Create a group post
+// Create a group post (supports FormData with image)
 export async function createGroupPost(
   groupId: string,
-  payload: { title?: string; text?: string }
+  payload: { title?: string; text?: string; image?: File }
 ) {
   if (!groupId) return { error: "Group ID is required." };
 
+  let body: FormData | { title?: string; text?: string };
+
+  if (payload.image) {
+    const formData = new FormData();
+    if (payload.title) formData.set("title", payload.title);
+    if (payload.text) formData.set("text", payload.text);
+    formData.set("image", payload.image);
+    body = formData;
+  } else {
+    body = { title: payload.title, text: payload.text };
+  }
+
   const result = await fetchApi<GroupApiResponse<{ post_id: number }>>(
     `/api/groups/${groupId}/posts`,
-    { method: "POST", body: payload }
+    { method: "POST", body }
   );
 
   if (!result.success) return { error: result.error };
@@ -192,6 +217,19 @@ export async function createGroupEvent(
 
   if (!result.success) return { error: result.error };
   return { success: true, data: result.data.data };
+}
+
+// Request to join a group
+export async function requestToJoinGroup(groupId: string) {
+  if (!groupId) return { error: "Group ID is required." };
+
+  const result = await fetchApi<GroupApiResponse<null>>(
+    `/api/groups/${groupId}/join`,
+    { method: "POST" }
+  );
+
+  if (!result.success) return { error: result.error };
+  return { success: true };
 }
 
 // Respond to a group event (status: "going" | "not_going")

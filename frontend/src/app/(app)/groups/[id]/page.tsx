@@ -11,6 +11,7 @@ import {
   createGroupPostComment,
   createGroupEvent,
   respondToEvent,
+  requestToJoinGroup,
   type GroupPublic,
   type GroupFeedItem,
 } from "~/app/api/crud/groups";
@@ -24,12 +25,15 @@ export default function GroupDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [group, setGroup] = useState<GroupPublic | null>(null);
+  const [isMember, setIsMember] = useState(false);
   const [feed, setFeed] = useState<GroupFeedItem[]>([]);
   const [filter, setFilter] = useState<FeedFilter>("all");
 
   // ── Create post state ──
   const [newPostText, setNewPostText] = useState("");
   const [newPostTitle, setNewPostTitle] = useState("");
+  const [newPostImage, setNewPostImage] = useState<File | null>(null);
+  const [newPostPreview, setNewPostPreview] = useState<string | null>(null);
   const [posting, setPosting] = useState(false);
 
   // ── Create event state ──
@@ -42,6 +46,10 @@ export default function GroupDetailPage() {
   // ── Comment state ──
   const [commentText, setCommentText] = useState<Record<number, string>>({});
   const [commentingPost, setCommentingPost] = useState<Record<number, boolean>>({});
+
+  // ── Join request state ──
+  const [joining, setJoining] = useState(false);
+  const [joinMessage, setJoinMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!groupId) return;
@@ -57,16 +65,21 @@ export default function GroupDetailPage() {
         ]);
 
         if (!groupRes.success) {
-          setError(groupRes.error);
-          return;
-        }
-        if (!contentRes.success) {
-          setError(contentRes.error);
+          setError(groupRes.error ?? "Failed to load group");
           return;
         }
 
         setGroup(groupRes.data);
-        setFeed(contentRes.data);
+        setIsMember(groupRes.isMember ?? false);
+
+        // Only fetch content if member
+        if (groupRes.isMember) {
+          if (!contentRes.success) {
+            setError(contentRes.error ?? "Failed to load content");
+            return;
+          }
+          setFeed(contentRes.data);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load group");
       } finally {
@@ -93,10 +106,13 @@ export default function GroupDetailPage() {
       const res = await createGroupPost(groupId, {
         title: newPostTitle.trim() || undefined,
         text: newPostText.trim() || undefined,
+        image: newPostImage ?? undefined,
       });
       if (res.success) {
         setNewPostText("");
         setNewPostTitle("");
+        setNewPostImage(null);
+        setNewPostPreview(null);
         await refreshFeed();
       }
     } finally {
@@ -149,6 +165,23 @@ export default function GroupDetailPage() {
     }
   };
 
+  const handleRequestToJoin = async () => {
+    setJoining(true);
+    setJoinMessage(null);
+    try {
+      const res = await requestToJoinGroup(groupId);
+      if (res.success) {
+        setJoinMessage("request sent!");
+      } else {
+        setJoinMessage(res.error ?? "failed");
+      }
+    } catch {
+      setJoinMessage("something went wrong");
+    } finally {
+      setJoining(false);
+    }
+  };
+
   const handleEventResponse = async (eventId: number, status: string) => {
     const res = await respondToEvent(groupId, eventId, status);
     if (res.success) {
@@ -187,7 +220,9 @@ export default function GroupDetailPage() {
 
   const filteredFeed = feed.filter((item) => {
     if (filter === "all") return true;
-    return item.type === filter;
+    if (filter === "posts") return item.type === "post";
+    if (filter === "events") return item.type === "event";
+    return false;
   });
 
   const createTime = group?.created_at
@@ -301,15 +336,36 @@ export default function GroupDetailPage() {
             </div>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button className="btn btn-p">
-                <i className="ti ti-message" /> chat
-              </button>
-              <button className="btn btn-g">
-                <i className="ti ti-user-plus" /> invite
-              </button>
-              <button className="btn btn-red">
-                <i className="ti ti-door-exit" /> leave
-              </button>
+              {isMember ? (
+                <>
+                  <button className="btn btn-p">
+                    <i className="ti ti-message" /> chat
+                  </button>
+                  <button className="btn btn-g">
+                    <i className="ti ti-user-plus" /> invite
+                  </button>
+                  <button className="btn btn-red">
+                    <i className="ti ti-door-exit" /> leave
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    className="btn btn-p"
+                    disabled={joining}
+                    onClick={() => void handleRequestToJoin()}
+                  >
+                    {joining
+                      ? "requesting..."
+                      : joinMessage
+                        ? joinMessage
+                        : <><i className="ti ti-user-plus" /> request to join</>}
+                  </button>
+                  <span className="tag tag-gray" style={{ alignSelf: "center" }}>
+                    not a member
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -334,14 +390,16 @@ export default function GroupDetailPage() {
             {f === "all" ? "all" : f}
           </button>
         ))}
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          <button
-            className="btn btn-t"
-            onClick={() => setShowEventForm((v) => !v)}
-          >
-            <i className="ti ti-calendar-plus" /> {showEventForm ? "cancel" : "event"}
-          </button>
-        </div>
+        {isMember && (
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+            <button
+              className="btn btn-t"
+              onClick={() => setShowEventForm((v) => !v)}
+            >
+              <i className="ti ti-calendar-plus" /> {showEventForm ? "cancel" : "event"}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── CREATE EVENT FORM ── */}
@@ -411,10 +469,62 @@ export default function GroupDetailPage() {
           placeholder="Share something with the group..."
           style={{ resize: "none" }}
         />
+        {/* Image preview */}
+        {newPostPreview && (
+          <div style={{ position: "relative", marginTop: 8 }}>
+            <img
+              src={newPostPreview}
+              alt="Preview"
+              style={{
+                width: "100%",
+                maxHeight: 200,
+                objectFit: "cover",
+                border: "0.5px solid #3a3733",
+              }}
+            />
+            <button
+              onClick={() => {
+                setNewPostImage(null);
+                setNewPostPreview(null);
+              }}
+              style={{
+                position: "absolute",
+                top: 4,
+                right: 4,
+                background: "#2a1818",
+                border: "0.5px solid #7a2c2c",
+                color: "#e07070",
+                cursor: "pointer",
+                width: 22,
+                height: 22,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 12,
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12 }}>
-          <button className="btn btn-g">
-            <i className="ti ti-photo" /> image
-          </button>
+          <label className="btn btn-g" style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+            <i className="ti ti-photo" />
+            {newPostImage ? "change" : "image"}
+            <input
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setNewPostImage(file);
+                  setNewPostPreview(URL.createObjectURL(file));
+                }
+              }}
+            />
+          </label>
           <button
             className="btn btn-p"
             disabled={posting || (!newPostText.trim() && !newPostTitle.trim())}

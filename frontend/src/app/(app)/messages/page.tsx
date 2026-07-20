@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { useChat } from "~/app/_providers/chatProvider";
 import {
   getConversationById,
   sendMessage,
-  ConversationType,
-  ConversationMessage,
+  type ConversationType,
+  type ConversationMessage,
 } from "~/app/api/crud/conversations";
 
 const AVATAR_COLORS = ["#FBEAF0", "#EAF3FB", "#EAFBEF", "#FFF3E8", "#F3EAFB"];
@@ -35,7 +36,10 @@ interface DisplayMessage {
   isSending?: boolean; // Track optimistic state
 }
 
-export default function Chat({ currentUserId }: { currentUserId: number }) {
+export default function Chat() {
+  const { data: session } = useSession();
+  const currentUserId = Number(session?.user?.id ?? 0);
+
   const { selectedChat } = useChat();
   const [message, setMessage] = useState("");
 
@@ -60,8 +64,8 @@ export default function Chat({ currentUserId }: { currentUserId: number }) {
 
   // Background color calculation if no image avatar is present
   const fallbackBg = isGroup
-    ? colorFor(convId, GROUP_COLORS)
-    : colorFor(convId, AVATAR_COLORS);
+    ? colorFor(convId ?? 0, GROUP_COLORS)
+    : colorFor(convId ?? 0, AVATAR_COLORS);
 
   // Fetch messages from backend when selectedChat changes
   useEffect(() => {
@@ -74,7 +78,7 @@ export default function Chat({ currentUserId }: { currentUserId: number }) {
       setIsLoading(true);
       setError(null);
 
-      const response = await getConversationById(convType, convId, 0, 30);
+      const response = await getConversationById(convType, convId as string | number, 0, 30);
 
       if (response.error) {
         setError(response.error);
@@ -123,13 +127,13 @@ export default function Chat({ currentUserId }: { currentUserId: number }) {
         ? {
             type: "group" as const,
             text: val,
-            group_id: Number(convId),
+            group_id: Number(convId as string | number),
           }
         : {
             type: "direct" as const,
             text: val,
-            receiver_id: chatData.other_user_id || Number(convId),
-            conversation_id: Number(convId),
+            receiver_id: chatData.other_user_id || Number(convId as string | number),
+            conversation_id: Number(convId as string | number),
           };
 
     // 3. Send message request to backend
@@ -323,7 +327,7 @@ export default function Chat({ currentUserId }: { currentUserId: number }) {
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                sendMsg();
+                void sendMsg();
               }
             }}
             placeholder={

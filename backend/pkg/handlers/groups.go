@@ -548,15 +548,54 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
 			return
 		}
-		var payload struct {
-			Title string `json:"title"`
-			Text  string `json:"text"`
+
+		var title, text, imagePath string
+
+		contentType := r.Header.Get("Content-Type")
+		if strings.Contains(contentType, "multipart/form-data") {
+			// Handle multipart form (with optional image)
+			const maxUploadSize int64 = 10 << 20 // 10 MB
+			r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+			if err := r.ParseMultipartForm(maxUploadSize); err != nil {
+				utilities.WriteJSON(w, http.StatusBadRequest, "file too large or invalid form", nil)
+				return
+			}
+			title = strings.TrimSpace(r.FormValue("title"))
+			text = strings.TrimSpace(r.FormValue("text"))
+
+			if imageFile, imageHeader, err := r.FormFile("image"); err == nil {
+				defer imageFile.Close()
+				path, err := utilities.SaveImage(imageFile, imageHeader, "uploads/groups/posts")
+				if err != nil {
+					utilities.WriteJSON(w, http.StatusBadRequest, err.Error(), nil)
+					return
+				}
+				imagePath = path
+			} else if err != http.ErrMissingFile {
+				log.Printf("[CREATE_GROUP_POST] Error reading image: %v", err)
+			}
+		} else {
+			// Handle regular JSON body
+			var payload struct {
+				Title string `json:"title"`
+				Text  string `json:"text"`
+			}
+			if err := utilities.ReadJSONRequestIntoStruct(r, &payload); err != nil {
+				utilities.WriteJSON(w, http.StatusBadRequest, "invalid request body", nil)
+				return
+			}
+			title = strings.TrimSpace(payload.Title)
+			text = strings.TrimSpace(payload.Text)
 		}
-		if err := utilities.ReadJSONRequestIntoStruct(r, &payload); err != nil {
-			utilities.WriteJSON(w, http.StatusBadRequest, "invalid request body", nil)
-			return
+
+		post := &repository.GroupPost{
+			GroupID:   groupID,
+			UserID:    userID,
+			Title:     title,
+			Text:      text,
+			Image:     imagePath,
+			CreatedAt: time.Now(),
 		}
-		post := &repository.GroupPost{GroupID: groupID, UserID: userID, Title: payload.Title, Text: payload.Text, CreatedAt: time.Now()}
 		if err := Repos.Group.CreateGroupPost(post); err != nil {
 			utilities.WriteJSON(w, http.StatusInternalServerError, "could not create group post", nil)
 			return
@@ -619,11 +658,8 @@ func GetGroupPublic(w http.ResponseWriter, r *http.Request) {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
 		return
 	}
-	fmt.Println("not found")
 
-	// Extract {id} directly from the route path
 	groupID, err := strconv.Atoi(r.PathValue("id"))
-	fmt.Println("groupID", groupID)
 	if err != nil || groupID <= 0 {
 		utilities.WriteJSON(w, http.StatusBadRequest, "invalid group id", nil)
 		return
@@ -635,7 +671,19 @@ func GetGroupPublic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utilities.WriteJSON(w, http.StatusOK, "group fetched", group)
+	// Include membership status
+	isMember := false
+	if userID, ok := middlewares.GetUserID(r); ok {
+		member, err := Repos.Group.IsGroupMember(groupID, userID)
+		if err == nil {
+			isMember = member
+		}
+	}
+
+	utilities.WriteJSON(w, http.StatusOK, "group fetched", map[string]any{
+		"group":    group,
+		"is_member": isMember,
+	})
 }
 
 func GetGroupContent(w http.ResponseWriter, r *http.Request) {
