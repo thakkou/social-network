@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"sort"
 	"strconv"
@@ -21,13 +22,17 @@ var upgrader = websocket.Upgrader{
 
 func HandlerWs(w http.ResponseWriter, r *http.Request) {
 	ticket := r.URL.Query().Get("ticket")
+	fmt.Println("get the ticket ws", ticket)
+
 	if ticket == "" {
+		fmt.Println("missing ticket")
 		http.Error(w, `{"error":"missing ticket"}`, http.StatusUnauthorized)
 		return
 	}
 
 	id, err := utilities.RedeemTicket(ticket)
 	if err != nil {
+		fmt.Printf("RedeemTicket error: %v\n", err)
 		http.Error(w, `{"error":"invalid or expired ticket"}`, http.StatusUnauthorized)
 		return
 	}
@@ -38,6 +43,7 @@ func HandlerWs(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
+	fmt.Println("start handling ws")
 
 	client := ws.StoreClient(userId, conn)
 	go ws.HandleClient(client)
