@@ -79,6 +79,23 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Permission check: at least one user must be following the other (accepted follow)
+		senderFollowsReceiver, err := Repos.Follow.IsFollowing(senderID, req.ReceiverID)
+		if err != nil {
+			utilities.WriteJSON(w, http.StatusInternalServerError, "failed to check follow status", nil)
+			return
+		}
+		receiverFollowsSender, err := Repos.Follow.IsFollowing(req.ReceiverID, senderID)
+		if err != nil {
+			utilities.WriteJSON(w, http.StatusInternalServerError, "failed to check follow status", nil)
+			return
+		}
+
+		if !senderFollowsReceiver && !receiverFollowsSender {
+			utilities.WriteJSON(w, http.StatusForbidden, "you can only message users who follow you or you follow", nil)
+			return
+		}
+
 		var conversationID int
 		var isNew bool
 

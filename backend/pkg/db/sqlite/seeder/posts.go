@@ -14,6 +14,7 @@ func seedPosts(db *sql.DB, u []int) ([]int, error) {
 		Privacy     string
 	}
 	posts := []p{
+		// Original posts
 		{u[0], "Hello world", "My very first post on this network!", "/uploads/seeder/posts/dev.jpeg", "public"},
 		{u[1], "Weekend trip", "Just got back from the mountains 🏔️", "/uploads/seeder/posts/travel.jpeg", "public"},
 		{u[3], "", "Debugging is 90% of my job today.", "/uploads/seeder/posts/dev2.jpeg", "almost_private"},
@@ -34,6 +35,23 @@ func seedPosts(db *sql.DB, u []int) ([]int, error) {
 		{u[7], "Studio update", "New soundproof panels in the studio. Check it out!", "/uploads/seeder/posts/dev.jpeg", "public"},
 		{u[2], "Book club", "Reading 'The Pragmatic Programmer' with the Go group. Join us!", "", "public"},
 		{u[4], "Sunset shots", "Golden hour at the lake today. Nature is healing.", "/uploads/seeder/posts/travel2.jpeg", "public"},
+
+		// New seed posts for even richer data
+		{u[8], "Art Exhibition", "Visited the modern art museum today. Absolutely inspiring pieces!", "/uploads/seeder/posts/travel.jpeg", "public"},
+		{u[9], "Open Source Saturday", "Contributed to my first open source project today! Feeling great.", "/uploads/seeder/posts/dev2.jpeg", "public"},
+		{u[6], "Baking bread", "Made sourdough from scratch for the first time. Turned out amazing!", "/uploads/seeder/posts/cooking1.jpeg", "public"},
+		{u[0], "Microservices talk", "Went to a great meetup about microservices patterns. Event sourcing is fascinating.", "/uploads/seeder/posts/dev3.jpeg", "public"},
+		{u[2], "Coding playlist", "Share your favorite coding playlist! I need new recommendations.", "", "public"},
+		{u[5], "Docker tips", "Multi-stage builds are a game changer for reducing image size. Here's how...", "/uploads/seeder/posts/dev.jpeg", "public"},
+		{u[3], "Night sky", "Captured the Milky Way with my telescope last night. Astro-photography is hard!", "/uploads/seeder/posts/travel2.jpeg", "almost_private"},
+		{u[7], "New single out now", "My new single 'Midnight Code' is out on all platforms! Link in bio 🎶", "", "public"},
+		{u[8], "Digital art", "Experimenting with procedural art generation using Go. Unexpectedly beautiful results!", "/uploads/seeder/posts/learning.jpeg", "public"},
+		{u[1], "Travel tips", "Best travel destinations for digital nomads in 2026: full guide in thread.", "/uploads/seeder/posts/travel.jpeg", "public"},
+		{u[4], "Film photography", "Got my first film roll developed. There's something magical about analog.", "/uploads/seeder/posts/learning2.jpeg", "public"},
+		{u[9], "Terminal tools", "My favorite terminal tools: fzf, ripgrep, bat, and lazygit. What are yours?", "/uploads/seeder/posts/dev3.jpeg", "public"},
+		{u[6], "Hiking adventure", "Summited Mount Toubkal! Toughest hike of my life but the view was worth it.", "/uploads/seeder/posts/travel2.jpeg", "public"},
+		{u[0], "AI pair programming", "Been using AI tools for code reviews. They catch things I miss!", "/uploads/seeder/posts/dev2.jpeg", "public"},
+		{u[3], "Minimalist setup", "My new WFH setup: minimal, clean, productive. Less is more.", "/uploads/seeder/posts/dev.jpeg", "public"},
 	}
 
 	query := `INSERT INTO POSTS (user_id, created_at, title, text, image, privacy) VALUES (?, ?, ?, ?, ?, ?)`
@@ -92,6 +110,10 @@ func seedPostCategories(db *sql.DB, postIDs []int) error {
 	if err != nil {
 		return err
 	}
+	sports, err := catID("Sports")
+	if err != nil {
+		return err
+	}
 	links := map[int][]int{
 		postIDs[0]:  {general},
 		postIDs[1]:  {travel},
@@ -99,6 +121,15 @@ func seedPostCategories(db *sql.DB, postIDs []int) error {
 		postIDs[6]:  {ent},
 		postIDs[11]: {edu},
 		postIDs[12]: {edu},
+		postIDs[18]: {ent},
+		postIDs[20]: {general},
+		postIDs[21]: {edu},
+		postIDs[23]: {edu},
+		postIDs[24]: {edu},
+		postIDs[25]: {ent},
+		postIDs[26]: {travel},
+		postIDs[27]: {travel, sports},
+		postIDs[28]: {ent},
 	}
 	query := `INSERT INTO POST_CATEGORY (post_id, category_id) VALUES (?, ?)`
 	count := 0

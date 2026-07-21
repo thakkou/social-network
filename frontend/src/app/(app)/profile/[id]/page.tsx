@@ -9,6 +9,7 @@ import Followers from "~/app/_components/Followers";
 import { getProfileData } from "~/app/api/crud/getProfile";
 import PrivateProfile from "~/app/_components/PrivateProfile";
 import { toggleFollow } from "~/app/api/crud/follow";
+import { useChat } from "~/app/_providers/chatProvider";
 interface TabItem {
     label: string;
     Component: React.ComponentType<any>;
@@ -34,6 +35,7 @@ export default function Profile() {
     const [profileExists, setProfileExists] = useState(true);
     const [profile, setProfile] = useState<any>(null);
     const [isFollowLoading, setIsFollowLoading] = useState(false);
+    const { selectChat } = useChat();
 
     // `tabs` depends on `profile`, so it must be declared after the state above
     const tabs: TabItem[] = [
@@ -216,12 +218,30 @@ if (isPrivateBlocked) {
                         <span className={`tag ${isPrivate ? 'tag-gray' : 'tag-purple'}`} id="profile-visibility-tag">{isPrivate ? 'private' : 'public'}</span>
                         <button
                             className="btn btn-g"
-                            style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '3px', marginLeft: 'auto' }}
+                            style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '3px' }}
                             id="follow-btn"
                             disabled={profile?.following_status === 'pending' || isFollowLoading}
                             onClick={() => void handleFollowClick()}
                         >
                             <i className={`ti ${followIcon}`} style={{ fontSize: '12px' }} aria-hidden="true"></i> {isFollowLoading ? '...' : followLabel}
+                        </button>
+                        <button
+                            className="btn btn-p"
+                            style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '3px' }}
+                            onClick={() => {
+                                selectChat({
+                                    id: String(userId),
+                                    type: "user",
+                                    data: {
+                                        other_user_id: Number(userId),
+                                        display_name: displayName,
+                                        avatar: profile?.avatar || "",
+                                    },
+                                });
+                                router.push('/messages');
+                            }}
+                        >
+                            <i className="ti ti-message" style={{ fontSize: '12px' }} aria-hidden="true"></i> message
                         </button>
                     </div>
                     {/* Show email + birth only if following */}

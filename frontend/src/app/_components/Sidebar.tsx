@@ -32,6 +32,7 @@ export default function Sidebar() {
 
   const [myGroups, setMyGroups] = useState<MyGroup[]>([]);
   const [following, setFollowing] = useState<FollowingUser[]>([]);
+  const [followers, setFollowers] = useState<FollowingUser[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(true);
   const [loadingDirect, setLoadingDirect] = useState(true);
 
@@ -51,8 +52,9 @@ export default function Sidebar() {
     const load = async () => {
       setLoadingDirect(true);
       const res = await getProfileData(userId);
-      if (res.success && res.data?.following) {
-        setFollowing(res.data.following ?? []);
+      if (res.success) {
+        if (res.data?.following) setFollowing(res.data.following ?? []);
+        if (res.data?.followers) setFollowers(res.data.followers ?? []);
       }
       setLoadingDirect(false);
     };
@@ -107,14 +109,41 @@ export default function Sidebar() {
 
       <div className="divider" style={{ margin: '0.5rem 0.75rem' }}></div>
 
-      {/* DIRECT - users I follow */}
-      <p className="sec-label">following</p>
+      {/* DIRECT - who I follow */}
+      <p className="sec-label">following ({following?.length || 0})</p>
       {loadingDirect ? (
         <div className="navlink" style={{ fontSize: '10px', color: '#6b6760' }}>loading...</div>
       ) : (following?.length ?? 0) === 0 ? (
         <div className="navlink" style={{ fontSize: '10px', color: '#6b6760' }}>not following anyone yet</div>
       ) : (
         following?.map(u => (
+          <Link
+            key={u?.id ?? 0}
+            href={`/profile/${u?.id ?? 0}`}
+            className="navlink"
+            style={{ fontSize: '11px', textDecoration: 'none' }}
+          >
+            <div className="av" style={{ width:'20px', height:'20px', background: colorFor(u?.id ?? 0), color: '#fff', fontSize:'9px', display:'flex', alignItems:'center', justifyContent:'center', flexShrink: 0 }}>
+              {u?.nickname
+                ? (u.nickname[0]?.toUpperCase() ?? '?')
+                : (u?.firstname?.[0]?.toUpperCase() ?? '?')
+              }
+            </div>
+            {u?.nickname || `${u?.firstname ?? ''} ${u?.lastname ?? ''}`.trim()}
+          </Link>
+        ))
+      )}
+
+      <div className="divider" style={{ margin: '0.5rem 0.75rem' }}></div>
+
+      {/* DIRECT - followers */}
+      <p className="sec-label">followers ({followers?.length || 0})</p>
+      {loadingDirect ? (
+        <div className="navlink" style={{ fontSize: '10px', color: '#6b6760' }}>loading...</div>
+      ) : (followers?.length ?? 0) === 0 ? (
+        <div className="navlink" style={{ fontSize: '10px', color: '#6b6760' }}>no followers yet</div>
+      ) : (
+        followers?.map(u => (
           <Link
             key={u?.id ?? 0}
             href={`/profile/${u?.id ?? 0}`}

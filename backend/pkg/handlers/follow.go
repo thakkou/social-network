@@ -9,6 +9,7 @@ import (
 	"01social/pkg/middlewares"
 	"01social/pkg/repository"
 	"01social/pkg/utilities"
+	"01social/pkg/ws"
 )
 
 // this func handle the follow logic
@@ -135,16 +136,31 @@ func FollowResolver(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Notify based on follow type:
+		// - Public follow: "new_follower" (someone started following you)
+		// - Private follow (pending): "follow_request" (someone wants to follow you)
+		notifType := "new_follower"
 		if status == "pending" {
-			if err := Repos.Notification.Create(&repository.Notification{
-				UserID:     targetID, // receiver
-				ActorID:    userID,   // requester
-				Type:       "follow_request",
-				ObjectType: "follow",
-				ObjectID:   userID, // or the FOLLOWS row ID if you add one
-			}); err != nil {
-				fmt.Printf("failed to create notification: %v\n", err)
-			}
+			notifType = "follow_request"
+		}
+
+		// Create DB notification for the target user
+		if err := Repos.Notification.Create(&repository.Notification{
+			UserID:     targetID,
+			ActorID:    userID,
+			Type:       notifType,
+			ObjectType: "follow",
+			ObjectID:   userID,
+		}); err != nil {
+			fmt.Printf("failed to create follow notification: %v\n", err)
+		}
+
+		// Notify target user via WS
+		if requester, err := Repos.User.GetByID(userID); err == nil {
+			ws.NotifyUser(strconv.Itoa(targetID), notifType, map[string]any{
+				"user_id":  userID,
+				"nickname": requester.Nickname,
+			})
 		}
 		utilities.WriteJSON(
 			w,
@@ -209,6 +225,14 @@ func FollowResolver(w http.ResponseWriter, r *http.Request) {
 			ObjectID:   targetID,
 		}); err != nil {
 			fmt.Printf("failed to create follow_accepted notification: %v\n", err)
+		}
+
+		// Notify via WS
+		if acceptor, err := Repos.User.GetByID(userID); err == nil {
+			ws.NotifyUser(strconv.Itoa(targetID), "follow_accepted", map[string]any{
+				"user_id":  userID,
+				"nickname": acceptor.Nickname,
+			})
 		}
 
 		utilities.WriteJSON(

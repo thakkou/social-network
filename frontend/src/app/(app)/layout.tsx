@@ -1,12 +1,14 @@
 import Header from "../_components/Header";
 import Sidebar from "../_components/Sidebar";
 import Sidebar2 from "../_components/Sidebar2";
+import MobileNav from "../_components/MobileNav";
 
 export default function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <>
       <Header />
-      <div className="screen active"> {/* + screen id */}
+      <MobileNav />
+      <div className="screen active">
         <div className="layout">
             <Sidebar />
             {children}

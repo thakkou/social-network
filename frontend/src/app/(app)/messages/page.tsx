@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useChat } from "~/app/_providers/chatProvider";
 import { useWS } from "~/app/_providers/ws-provider";
+import { MessagesSidebar } from "~/app/_components/sideBars/message";
+import { EmojiPicker } from "~/app/_components/EmojiPicker";
 import {
   getConversationById,
   sendMessage,
@@ -59,7 +61,7 @@ export default function Chat() {
   const { data: session } = useSession();
   const currentUserId = Number(session?.user?.id ?? 0);
 
-  const { selectedChat } = useChat();
+  const { selectedChat, selectChat } = useChat();
   const { send: wsSend, on: wsOn, onlineUsers } = useWS();
   const [message, setMessage] = useState("");
 
@@ -103,6 +105,14 @@ export default function Chat() {
       return;
     }
 
+    // If convId matches a user ID (new conversation from discover/profile), skip loading
+    const isNewConv = chatData.other_user_id && String(convId) === String(chatData.other_user_id);
+    if (isNewConv) {
+      setMessages([]);
+      setError(null);
+      return;
+    }
+
     async function loadMessages() {
       setIsLoading(true);
       setError(null);
@@ -130,12 +140,14 @@ export default function Chat() {
     }
 
     loadMessages();
-  }, [convType, convId, currentUserId]);
+  }, [convType, convId, currentUserId, chatData.other_user_id]);
 
   // Listen for incoming live messages via WS
   useEffect(() => {
     const unsubs = [
       wsOn("new_message", (data: any) => {
+        // Skip messages we sent ourselves — they're already in the list via optimistic update
+        if (data.isMine) return;
         const incomingConvId = String(data.conversation_id);
         if (incomingConvId !== String(convId)) return;
 
@@ -145,7 +157,7 @@ export default function Chat() {
             ...prev,
             {
               id: data.message_id,
-              type: (data.sender_id === currentUserId ? "me" : "them") as "me" | "them",
+              type: "them" as const,
               text: data.text,
               senderId: data.sender_id,
               nickname: data.nickname || "unknown",
@@ -156,6 +168,8 @@ export default function Chat() {
         });
       }),
       wsOn("new_group_message", (data: any) => {
+        // Skip messages we sent ourselves — they're already in the list via optimistic update
+        if (data.isMine) return;
         const incomingGroupId = String(data.group_id);
         if (incomingGroupId !== String(convId)) return;
 
@@ -165,7 +179,7 @@ export default function Chat() {
             ...prev,
             {
               id: data.message_id,
-              type: (data.sender_id === currentUserId ? "me" : "them") as "me" | "them",
+              type: "them" as const,
               text: data.text,
               senderId: data.sender_id,
               nickname: data.nickname || "unknown",
@@ -271,6 +285,9 @@ export default function Chat() {
     setMessages((prev) => [...prev, tempMsg]);
     setMessage("");
 
+    // Determine if convId is a real conversation ID or a user ID (from discover/profile)
+    const isNewConversation = chatData.other_user_id && String(convId) === String(chatData.other_user_id);
+
     const payload =
       convType === "group"
         ? {
@@ -282,7 +299,7 @@ export default function Chat() {
             type: "direct" as const,
             text: val,
             receiver_id: chatData.other_user_id || Number(convId as string | number),
-            conversation_id: Number(convId as string | number),
+            ...(isNewConversation ? {} : { conversation_id: Number(convId as string | number) }),
           };
 
     const res = await sendMessage(payload);
@@ -298,8 +315,29 @@ export default function Chat() {
             : m
         )
       );
+
+      // If this was a new conversation, update convId to the real conversation ID
+      if (isNewConversation && res.data.conversation_id) {
+        selectChat({
+          id: String(res.data.conversation_id),
+          type: "user",
+          data: {
+            ...chatData,
+            // Keep other_user_id so future messages still know who to send to
+          },
+        });
+      }
     }
   }
+
+  const [showSidebar, setShowSidebar] = useState(true);
+
+  // On mobile, when a chat is selected, show the chat panel
+  useEffect(() => {
+    if (selectedChat) {
+      setShowSidebar(false);
+    }
+  }, [selectedChat]);
 
   return (
     <main
@@ -310,9 +348,18 @@ export default function Chat() {
         display: "flex",
         height: "100%",
         minHeight: "480px",
+        position: "relative",
       }}
     >
+      {/* Mobile: show conversation list instead of chat */}
+      {showSidebar && (
+        <div className="mobile-sidebar-overlay">
+          <MessagesSidebar />
+        </div>
+      )}
+
       <div
+        className={showSidebar ? "messages-chat-panel" : "messages-chat-panel show"}
         style={{
           flex: 1,
           display: "flex",
@@ -320,6 +367,32 @@ export default function Chat() {
           position: "relative",
         }}
       >
+        {/* Mobile header with back button */}
+        {selectedChat && (
+          <div
+            style={{
+              display: "none",  /* visible via CSS below */
+              padding: "6px 8px",
+              background: "var(--color-background-primary)",
+              borderBottom: "0.5px solid var(--color-border-tertiary)",
+            }}
+            className="mobile-chat-header"
+          >
+            <button
+              className="btn btn-g"
+              onClick={() => setShowSidebar(true)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                fontSize: "11px",
+                padding: "3px 8px",
+              }}
+            >
+              <i className="ti ti-arrow-left" /> back
+            </button>
+          </div>
+        )}
         {/* Header */}
         <div
           style={{
@@ -559,6 +632,11 @@ export default function Chat() {
             alignItems: "center",
           }}
         >
+          <EmojiPicker
+            onSelect={(emoji) => {
+              setMessage((prev) => prev + emoji);
+            }}
+          />
           <input
             className="inp"
             disabled={!selectedChat || isLoading}

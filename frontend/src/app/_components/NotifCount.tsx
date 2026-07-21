@@ -12,6 +12,7 @@ const NOTIF_EVENTS = [
   "group_event",
   "group_invite",
   "group_join_request",
+  "new_follower",
   "follow_request",
   "follow_accepted",
 ];

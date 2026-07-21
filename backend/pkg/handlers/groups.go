@@ -33,6 +33,9 @@ func notifyGroupUsers(
 		excluded[userID] = struct{}{}
 	}
 
+	// Fetch group details once (for WS event payload)
+	groupData, _ := Repos.Group.GetPublicGroupDetails(groupID)
+
 	for _, userID := range memberIDs {
 
 		if _, skip := excluded[userID]; skip {
@@ -48,6 +51,16 @@ func notifyGroupUsers(
 		})
 		if err != nil {
 			fmt.Printf("notification error: %v\n", err)
+		}
+
+		// Send live WS event for group events
+		if eventType == "group_event" {
+			ws.NotifyUser(strconv.Itoa(userID), eventType, map[string]any{
+				"event_id":   objectID,
+				"group_id":   groupID,
+				"group_name": groupData.Title,
+				"user_id":    actorID,
+			})
 		}
 	}
 }
@@ -727,6 +740,15 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 				ObjectType: "group_request",
 				ObjectID:   groupID,
 			})
+
+			// Send live WS notification
+			if requester, err := Repos.User.GetByID(userID); err == nil {
+				ws.NotifyUser(strconv.Itoa(creatorID), "group_join_request", map[string]any{
+					"user_id":  userID,
+					"nickname": requester.Nickname,
+					"group_id": groupID,
+				})
+			}
 		}
 		utilities.WriteJSON(w, http.StatusOK, "join request sent", nil)
 	case "invite":
@@ -756,6 +778,15 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			ObjectType: "group_invite",
 			ObjectID:   groupID,
 		})
+
+		// Send live WS invite notification
+		groupData, _ := Repos.Group.GetPublicGroupDetails(groupID)
+		ws.NotifyUser(strconv.Itoa(payload.UserID), "group_invite", map[string]any{
+			"user_id":    userID,
+			"group_id":   groupID,
+			"group_name": groupData.Title,
+		})
+
 		utilities.WriteJSON(w, http.StatusOK, "invite sent", nil)
 	case "posts":
 		member, err := Repos.Group.IsGroupMember(groupID, userID)

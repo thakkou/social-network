@@ -199,6 +199,18 @@ func (r *FollowRepository) scanUsers(rows *sql.Rows) ([]User, error) {
 	return users, nil
 }
 
+// IsFollowing returns true if followerID has an accepted follow relationship with followingID.
+func (r *FollowRepository) IsFollowing(followerID, followingID int) (bool, error) {
+	var exists bool
+	err := r.DB.QueryRow(`
+		SELECT EXISTS(
+			SELECT 1 FROM FOLLOWS
+			WHERE follower_id = ? AND following_id = ? AND status = 'accepted'
+		)
+	`, followerID, followingID).Scan(&exists)
+	return exists, err
+}
+
 // GetFollowStatus returns the current relationship status.
 //
 // Returns:

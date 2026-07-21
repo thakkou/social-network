@@ -1,7 +1,8 @@
 'use client';
 
-import React from "react";
-import Image from "next/image";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { likePost, dislikePost } from "~/app/api/crud/post";
 
 interface Post {
   id: number;
@@ -25,8 +26,17 @@ interface ProfilePostsProps {
 }
 
 export default function ProfilePosts({ posts }: ProfilePostsProps) {
+  const router = useRouter();
 
-  if (!posts || posts.length === 0) {
+  // Local state for optimistic like/dislike updates
+  const [localPosts, setLocalPosts] = useState<Post[]>(posts);
+
+  // Sync local state when prop changes
+  React.useEffect(() => {
+    setLocalPosts(posts);
+  }, [posts]);
+
+  if (!localPosts || localPosts.length === 0) {
     return (
       <div
         id="profile-posts"
@@ -59,6 +69,51 @@ export default function ProfilePosts({ posts }: ProfilePostsProps) {
     }
   };
 
+  const handleLikeToggle = async (postId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const res = await likePost(postId);
+    if (res.success) {
+      setLocalPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? {
+                ...p,
+                is_liked: res.data!.is_liked,
+                like_count: res.data!.likes,
+                dislike_count: res.data!.dislikes,
+              }
+            : p
+        )
+      );
+    }
+  };
+
+  const handleDislikeToggle = async (postId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const res = await dislikePost(postId);
+    if (res.success) {
+      setLocalPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? {
+                ...p,
+                is_liked: res.data!.is_liked,
+                like_count: res.data!.likes,
+                dislike_count: res.data!.dislikes,
+              }
+            : p
+        )
+      );
+    }
+  };
+
+  const commentCount = (post: Post): number => {
+    if (post.comments && Array.isArray(post.comments)) {
+      return post.comments.length;
+    }
+    return 0;
+  };
+
   return (
     <div
       id="profile-posts"
@@ -68,9 +123,14 @@ export default function ProfilePosts({ posts }: ProfilePostsProps) {
         gap: "8px",
       }}
     >
-      {posts.map((post) => (
-        <div key={post.id} className="card">
-
+      {localPosts.map((post) => (
+        <div
+          key={post.id}
+          className="card"
+          style={{ cursor: "pointer" }}
+          onClick={() => router.push(`/posts/${post.id}`)}
+        >
+          {/* Header row: timestamp + privacy tag */}
           <div
             style={{
               display: "flex",
@@ -82,13 +142,19 @@ export default function ProfilePosts({ posts }: ProfilePostsProps) {
             <p style={{ fontSize: "10px", color: "#6b6760" }}>
               {post.time_ago ||
                 new Date(post.created_at).toLocaleDateString()}
+              {post.categories && post.categories.length > 0 && (
+                <>
+                  {" · "}
+                  {post.categories.join(", ")}
+                </>
+              )}
             </p>
-
             <span className={`tag ${getPrivacyTagClass(post.privacy)}`}>
               {post.privacy.replace("_", " ")}
             </span>
           </div>
 
+          {/* Title */}
           {post.title && (
             <h4
               style={{
@@ -102,83 +168,109 @@ export default function ProfilePosts({ posts }: ProfilePostsProps) {
             </h4>
           )}
 
+          {/* Text */}
           <p
             style={{
               fontSize: "12px",
               color: "#e8e4dc",
               lineHeight: 1.5,
               whiteSpace: "pre-wrap",
+              marginBottom: post.image ? "8px" : "0",
             }}
           >
             {post.text}
           </p>
 
+          {/* Image */}
           {post.image && (
             <div
               style={{
-                marginTop: "8px",
-                border: "0.5px solid #3a3733",
+                marginBottom: "10px",
+                borderRadius: "6px",
                 overflow: "hidden",
-                background: "#1a1917",
-                position: "relative",
-                width: "100%",
-                height: "280px",
+                border: "0.5px solid #3a3733",
               }}
             >
-              <Image
+              <img
                 src={post.image}
-                alt={post.title || "Post media attachment"}
-                fill
+                alt={post.title || "Post media"}
                 style={{
+                  width: "100%",
+                  maxHeight: "300px",
                   objectFit: "cover",
                 }}
               />
             </div>
           )}
 
-          <div className="divider" style={{ margin: "8px 0 6px 0" }} />
+          <div className="divider" />
 
+          {/* Action buttons */}
           <div
             style={{
               display: "flex",
+              gap: "6px",
               alignItems: "center",
-              gap: "16px",
             }}
           >
-            <span
+            <button
+              className={`btn ${post.is_liked === 1 ? "btn-t" : "btn-g"}`}
               style={{
-                fontSize: "11px",
-                color: post.is_liked === 1 ? "#D4537E" : "#a09c94",
                 display: "flex",
                 alignItems: "center",
-                gap: "4px",
-                cursor: "pointer",
+                gap: "3px",
+                fontSize: "11px",
+              }}
+              onClick={(e) => void handleLikeToggle(post.id, e)}
+            >
+              <i
+                className="ti ti-thumb-up"
+                style={{
+                  fontSize: "12px",
+                  color: post.is_liked === 1 ? "#1D9E75" : undefined,
+                }}
+              />{" "}
+              {post.like_count || 0}
+            </button>
+            <button
+              className={`btn ${post.is_liked === -1 ? "btn-red" : "btn-g"}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "3px",
+                fontSize: "11px",
+              }}
+              onClick={(e) => void handleDislikeToggle(post.id, e)}
+            >
+              <i
+                className="ti ti-thumb-down"
+                style={{
+                  fontSize: "12px",
+                  color: post.is_liked === -1 ? "#D4537E" : undefined,
+                }}
+              />{" "}
+              {post.dislike_count || 0}
+            </button>
+            <button
+              className="btn btn-g"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "3px",
+                fontSize: "11px",
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/posts/${post.id}`);
               }}
             >
               <i
-                className={`ti ${
-                  post.is_liked === 1
-                    ? "ti-heart-filled"
-                    : "ti-heart"
-                }`}
-              />
-              {post.like_count}
-            </span>
-
-            <span
-              style={{
-                fontSize: "11px",
-                color: "#a09c94",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-              }}
-            >
-              <i className="ti ti-thumb-down" />
-              {post.dislike_count}
-            </span>
+                className="ti ti-message-circle"
+                style={{ fontSize: "12px" }}
+              />{" "}
+              {commentCount(post)}
+            </button>
           </div>
-
         </div>
       ))}
     </div>

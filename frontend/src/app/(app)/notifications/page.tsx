@@ -29,7 +29,7 @@ interface NotificationPayload {
 
 interface NotificationItem {
   id: string | number;
-  type: "follow_request" | "follow_accepted" | "group_invite" | "group_join_request" | "post_reaction" | "comment" | "group_event";
+  type: "new_follower" | "follow_request" | "follow_accepted" | "group_invite" | "group_join_request" | "post_reaction" | "comment" | "group_event";
   object_type: string;
   is_read: boolean;
   created_at: string;
@@ -57,8 +57,9 @@ const NotificationCard = ({
 }) => {
   // Setup dynamic color styling and configurations based on notification type
   const typeStyles = {
+    new_follower: { border: '#1D9E75', tagClass: 'tag-teal', label: 'new follower' },
     follow_request: { border: '#D4537E', tagClass: 'tag-pink', label: 'follow request' },
-    follow_accepted: { border: '#1D9E75', tagClass: 'tag-teal', label: 'follow accepted' },
+    follow_accepted: { border: '#534AB7', tagClass: 'tag-purple', label: 'follow accepted' },
     group_invite: { border: '#7F77DD', tagClass: 'tag-purple', label: 'group invite' },
     group_join_request: { border: '#7F77DD', tagClass: 'tag-purple', label: 'join request' },    
     post_reaction: { border: '#E28743', tagClass: 'tag-orange', label: 'reaction' },
@@ -112,6 +113,11 @@ const NotificationCard = ({
           </div>
         )}
         <p style={{ fontSize: '12px', color: 'var(--color-text-primary)' }}>
+          {data.type === 'new_follower' && (
+            <>
+              <span style={{ fontWeight: 500 }}>{getActorName()}</span> started following you
+            </>
+          )}
           {data.type === 'follow_request' && (
             <>
               <span style={{ fontWeight: 500 }}>{getActorName()}</span> sent you a follow request
@@ -313,6 +319,7 @@ export default function Notifications() {
       on("group_event", (data: any) => handleLiveNotif("group_event", data)),
       on("group_invite", (data: any) => handleLiveNotif("group_invite", data)),
       on("group_join_request", (data: any) => handleLiveNotif("group_join_request", data)),
+      on("new_follower", (data: any) => handleLiveNotif("new_follower", data)),
       on("follow_request", (data: any) => handleLiveNotif("follow_request", data)),
       on("follow_accepted", (data: any) => handleLiveNotif("follow_accepted", data)),
     ];
