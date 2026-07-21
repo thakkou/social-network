@@ -75,7 +75,7 @@ export async function fetchApi<T>(
       const errorData = await res.json().catch(() => null);
       return {
         success: false,
-        error: errorData?.error ?? `Request failed with status ${res.status}`,
+        error: errorData?.message ?? errorData?.error ?? `Request failed with status ${res.status}`,
       };
     }
 

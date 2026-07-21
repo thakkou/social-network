@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getConversations } from "~/app/api/crud/conversations";
 import type { ConversationFeedItem } from "~/app/api/crud/conversations";
 import { useChat } from "~/app/_providers/chatProvider"; // Adjust import path to match your ChatContext location
@@ -29,6 +30,7 @@ interface MessagesSidebarProps {
 export const MessagesSidebar: React.ComponentType<MessagesSidebarProps> = ({
   onSelect,
 }) => {
+  const router = useRouter();
   const { selectedChat, selectChat } = useChat();
 
   const [users, setUsers] = useState<ConversationFeedItem[]>([]);
@@ -69,6 +71,7 @@ const handleSelect = (item: ConversationFeedItem, type: "user" | "group") => {
   });
 
   onSelect?.(item);
+  router.push('/messages');
 };
 
   if (loading) {

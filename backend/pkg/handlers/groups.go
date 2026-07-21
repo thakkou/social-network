@@ -99,8 +99,8 @@ func CreateGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. Limit request body size to 2 MB (for logo + background uploads combined)
-	const maxUploadSize int64 = 2 << 20 // 2 MB
+	// 2. Limit request body size to 10 MB (for logo + background uploads combined)
+	const maxUploadSize int64 = 10 << 20 // 10 MB
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
 
 	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
@@ -362,6 +362,100 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		utilities.WriteJSON(w, http.StatusOK, "event response saved", nil)
+		return
+	}
+
+	// Delete a group post: POST /api/groups/{groupId}/posts/{postId}/delete
+	if len(segments) >= 6 && segments[3] == "posts" && segments[5] == "delete" {
+		if r.Method != http.MethodPost {
+			utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+			return
+		}
+		postID, err := strconv.Atoi(segments[4])
+		if err != nil {
+			utilities.WriteJSON(w, http.StatusBadRequest, "invalid post id", nil)
+			return
+		}
+		creatorID, err := Repos.Group.GetGroupCreatorID(groupID)
+		if err != nil {
+			utilities.WriteJSON(w, http.StatusNotFound, "group not found", nil)
+			return
+		}
+		if err := Repos.Group.DeleteGroupPost(postID, userID, creatorID); err != nil {
+			utilities.WriteJSON(w, http.StatusForbidden, err.Error(), nil)
+			return
+		}
+		utilities.WriteJSON(w, http.StatusOK, "post deleted", nil)
+		return
+	}
+
+	// Delete a group event: POST /api/groups/{groupId}/events/{eventId}/delete
+	if len(segments) >= 6 && segments[3] == "events" && segments[5] == "delete" {
+		if r.Method != http.MethodPost {
+			utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+			return
+		}
+		eventID, err := strconv.Atoi(segments[4])
+		if err != nil {
+			utilities.WriteJSON(w, http.StatusBadRequest, "invalid event id", nil)
+			return
+		}
+		creatorID, err := Repos.Group.GetGroupCreatorID(groupID)
+		if err != nil {
+			utilities.WriteJSON(w, http.StatusNotFound, "group not found", nil)
+			return
+		}
+		if err := Repos.Group.DeleteGroupEvent(eventID, userID, creatorID); err != nil {
+			utilities.WriteJSON(w, http.StatusForbidden, err.Error(), nil)
+			return
+		}
+		utilities.WriteJSON(w, http.StatusOK, "event deleted", nil)
+		return
+	}
+
+	// Delete a group post comment: POST /api/groups/{groupId}/posts/{postId}/comments/{commentId}/delete
+	if len(segments) >= 8 && segments[3] == "posts" && segments[5] == "comments" && segments[7] == "delete" {
+		if r.Method != http.MethodPost {
+			utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+			return
+		}
+		commentID, err := strconv.Atoi(segments[6])
+		if err != nil {
+			utilities.WriteJSON(w, http.StatusBadRequest, "invalid comment id", nil)
+			return
+		}
+		creatorID, err := Repos.Group.GetGroupCreatorID(groupID)
+		if err != nil {
+			utilities.WriteJSON(w, http.StatusNotFound, "group not found", nil)
+			return
+		}
+		if err := Repos.Group.DeleteGroupPostComment(commentID, userID, creatorID); err != nil {
+			utilities.WriteJSON(w, http.StatusForbidden, err.Error(), nil)
+			return
+		}
+		utilities.WriteJSON(w, http.StatusOK, "comment deleted", nil)
+		return
+	}
+
+	// Kick a member: POST /api/groups/{groupId}/members/{userId}/kick
+	if len(segments) >= 6 && segments[3] == "members" && segments[5] == "kick" {
+		if r.Method != http.MethodPost {
+			utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+			return
+		}
+		memberID, err := strconv.Atoi(segments[4])
+		if err != nil {
+			utilities.WriteJSON(w, http.StatusBadRequest, "invalid user id", nil)
+			return
+		}
+		if err := Repos.Group.KickMember(groupID, memberID, userID); err != nil {
+			utilities.WriteJSON(w, http.StatusForbidden, err.Error(), nil)
+			return
+		}
+		// Remove notifications about this group for the kicked user
+		_ = Repos.Notification.DeleteNotificationsByTypeAndObject(memberID, "group_invite", groupID)
+		_ = Repos.Notification.DeleteNotificationsByTypeAndObject(memberID, "group_join_request", groupID)
+		utilities.WriteJSON(w, http.StatusOK, "member kicked", nil)
 		return
 	}
 

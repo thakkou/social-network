@@ -446,6 +446,44 @@ WHERE id IN (` + placeholders + `)
 	return authors, rows.Err()
 }
 
+// KickMember removes a member from a group. Only the group creator can kick.
+func (r *GroupRepository) KickMember(groupID, memberID, creatorID int) error {
+	// Verify the caller is the group creator
+	var actualCreator int
+	err := r.DB.QueryRow(`SELECT creator_id FROM GROUPS WHERE id = ?`, groupID).Scan(&actualCreator)
+	if err != nil {
+		return fmt.Errorf("group not found")
+	}
+	if actualCreator != creatorID {
+		return fmt.Errorf("only the group creator can kick members")
+	}
+	if memberID == creatorID {
+		return fmt.Errorf("cannot kick the group creator")
+	}
+
+	tx, err := r.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Delete member's reactions on group posts
+	_, _ = tx.Exec(`DELETE FROM GROUP_POST_REACTIONS WHERE user_id = ? AND group_post_id IN (SELECT id FROM GROUP_POSTS WHERE group_id = ?)`, memberID, groupID)
+	// Delete member's comments on group posts
+	_, _ = tx.Exec(`DELETE FROM GROUP_POST_COMMENTS WHERE user_id = ? AND group_post_id IN (SELECT id FROM GROUP_POSTS WHERE group_id = ?)`, memberID, groupID)
+	// Delete member's group posts
+	_, _ = tx.Exec(`DELETE FROM GROUP_POSTS WHERE user_id = ? AND group_id = ?`, memberID, groupID)
+	// Delete member's event responses
+	_, _ = tx.Exec(`DELETE FROM EVENT_RESPONSES WHERE user_id = ? AND event_id IN (SELECT id FROM GROUP_EVENTS WHERE group_id = ?)`, memberID, groupID)
+	// Remove member from group members
+	_, err = tx.Exec(`DELETE FROM GROUP_MEMBERS WHERE group_id = ? AND user_id = ?`, groupID, memberID)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
 func (r *GroupRepository) LeaveGroup(groupID, userID int) error {
 	tx, err := r.DB.Begin()
 	if err != nil {

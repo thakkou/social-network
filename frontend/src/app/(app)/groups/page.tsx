@@ -1,75 +1,209 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { getUserGroups, getGroupContent, type GroupPublic, type GroupFeedItem } from "~/app/api/crud/groups";
 import SearchInput from "~/app/_components/SearchInput";
-import CreateGroupForm from "~/app/_components/Forms/CreateGroupForm"; // Adjust import path as needed
+import CreateGroupForm from "~/app/_components/Forms/CreateGroupForm";
 
 export default function Groups() {
+  const { data: session } = useSession();
+  const [myGroups, setMyGroups] = useState<GroupPublic[]>([]);
+  const [groupFeeds, setGroupFeeds] = useState<{ group: GroupPublic; items: GroupFeedItem[] }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      const res = await getUserGroups();
+      if (res.success) {
+        setMyGroups(res.data);
+
+        // Fetch content from each group in parallel
+        const feeds = await Promise.all(
+          res.data.map(async (g) => {
+            const contentRes = await getGroupContent(String(g.id), { limit: 5 });
+            return {
+              group: g,
+              items: contentRes.success ? contentRes.data : [],
+            };
+          })
+        );
+        setGroupFeeds(feeds);
+      }
+      setLoading(false);
+    };
+    void load();
+  }, []);
+
+  const formatTimeAgo = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHrs = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHrs / 24);
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHrs < 24) return `${diffHrs}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
   return (
     <main className="main">
-      {/* Client Component handling the interactive toggle & form */}
       <CreateGroupForm />
 
       <div style={{ marginBottom: "16px" }}>
         <SearchInput placeholder="Search groups..." typeSearch="groups" />
       </div>
 
-      {/* Member Group Card */}
-      <div className="card">
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-          <span style={{ width: "8px", height: "8px", background: "#D4537E", flexShrink: 0 }} />
-          <p style={{ fontSize: "13px", fontWeight: 500, color: "var(--color-text-primary)" }}>go devs</p>
-          <span className="tag tag-pink" style={{ marginLeft: "auto" }}>member</span>
+      {loading ? (
+        <div className="card" style={{ textAlign: "center", padding: "24px" }}>
+          <p style={{ fontSize: 12, color: "#a09c94" }}>Loading your groups...</p>
         </div>
-        <p style={{ fontSize: "12px", color: "var(--color-text-secondary)", marginBottom: "8px" }}>
-          A space for Go enthusiasts — sharing projects, tips and co-building the social network backend.
-        </p>
-        <div style={{ fontSize: "11px", color: "var(--color-text-tertiary)", marginBottom: "10px" }}>
-          34 members · created by Amir K.
-        </div>
-
-        <div className="event-card" style={{ marginBottom: "8px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-            <p style={{ fontSize: "12px", fontWeight: 500, color: "var(--color-text-primary)" }}>Docker deep dive</p>
-            <span className="tag tag-amber">Fri 18:00</span>
-          </div>
-          <p style={{ fontSize: "11px", color: "var(--color-text-secondary)", marginBottom: "6px" }}>
-            Multi-stage builds, compose, and deployment pipelines.
+      ) : groupFeeds.length === 0 ? (
+        <div className="card" style={{ textAlign: "center", padding: "24px" }}>
+          <p style={{ fontSize: 14, color: "#e8e4dc" }}>Not a member of any group yet</p>
+          <p style={{ fontSize: 11, color: "#6b6760", marginTop: 4 }}>
+            Create a group or accept an invite to see content here.
           </p>
-          <div style={{ display: "flex", gap: "6px" }}>
-            <button className="btn btn-t" style={{ fontSize: "10px", display: "flex", alignItems: "center", gap: "3px" }}>
-              <i className="ti ti-check" style={{ fontSize: "11px" }} aria-hidden="true" /> going (11)
-            </button>
-            <button className="btn btn-g" style={{ fontSize: "10px" }}>not going (3)</button>
+        </div>
+      ) : (
+        groupFeeds.map(({ group, items }) => (
+          <div key={group.id} className="card">
+            {/* Group header */}
+            <Link
+              href={`/groups/${group.id}`}
+              style={{ textDecoration: "none" }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginBottom: items.length > 0 ? 12 : 0,
+                }}
+              >
+                <div
+                  className="av"
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: "50%",
+                    background: group.logo
+                      ? `url(${group.logo}) center/cover`
+                      : "#D4537E",
+                    fontSize: group.logo ? 0 : 10,
+                    color: "#fff",
+                    flexShrink: 0,
+                  }}
+                >
+                  {!group.logo &&
+                    group.title
+                      .split(" ")
+                      .map((w) => w[0])
+                      .join("")
+                      .toUpperCase()
+                      .slice(0, 2)}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#e8e4dc", margin: 0 }}>
+                    {group.title}
+                  </p>
+                  {group.description && (
+                    <p style={{ fontSize: 11, color: "#6b6760", margin: 0 }}>
+                      {group.description}
+                    </p>
+                  )}
+                </div>
+                <span className="tag tag-pink" style={{ fontSize: 9 }}>
+                  member
+                </span>
+              </div>
+            </Link>
+
+            {/* Feed items from this group */}
+            {items.length > 0 ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {items.map((item) => (
+                  <div key={`${item.type}-${item.id}`} className="event-card" style={{ fontSize: 12 }}>
+                    {item.type === "post" ? (
+                      <div>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                          <strong style={{ fontSize: 12 }}>
+                            {item.title || "Untitled"}
+                          </strong>
+                          <span style={{ fontSize: 10, color: "#6b6760" }}>
+                            {formatTimeAgo(item.created_at)}
+                          </span>
+                        </div>
+                        {item.text && (
+                          <p style={{ fontSize: 11, color: "#a09c94", margin: 0 }}>
+                            {item.text.slice(0, 150)}
+                            {item.text.length > 150 ? "..." : ""}
+                          </p>
+                        )}
+                        <div style={{ display: "flex", gap: 6, marginTop: 6, fontSize: 10, color: "#6b6760" }}>
+                          <span>
+                            <i className="ti ti-thumb-up" /> {item.likes_count || 0}
+                          </span>
+                          <span>
+                            <i className="ti ti-message-circle" /> {item.comments_count || 0}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                          <strong style={{ fontSize: 12 }}>{item.title}</strong>
+                          <span className="tag tag-amber" style={{ fontSize: 9 }}>
+                            {item.event_time
+                              ? new Date(item.event_time).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                })
+                              : ""}
+                          </span>
+                        </div>
+                        {item.description && (
+                          <p style={{ fontSize: 11, color: "#a09c94", margin: 0 }}>
+                            {item.description.slice(0, 120)}
+                            {item.description.length > 120 ? "..." : ""}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ fontSize: 11, color: "#6b6760", margin: 0 }}>
+                No recent activity in this group.
+              </p>
+            )}
+
+            {/* Quick actions */}
+            <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+              <Link
+                className="btn btn-p"
+                href={`/groups/${group.id}`}
+                style={{ fontSize: 11, display: "flex", alignItems: "center", gap: 3 }}
+              >
+                <i className="ti ti-arrow-right" style={{ fontSize: 12 }} /> view group
+              </Link>
+              <Link
+                className="btn btn-g"
+                href={`/messages`}
+                style={{ fontSize: 11, display: "flex", alignItems: "center", gap: 3 }}
+              >
+                <i className="ti ti-message" style={{ fontSize: 12 }} /> chat
+              </Link>
+            </div>
           </div>
-        </div>
-
-        <div style={{ display: "flex", gap: "6px" }}>
-          <Link className="btn btn-p" href="/messages" style={{ fontSize: "11px", display: "flex", alignItems: "center", gap: "3px" }}>
-            <i className="ti ti-message" style={{ fontSize: "12px" }} aria-hidden="true" /> group chat
-          </Link>
-          <button className="btn btn-g" style={{ fontSize: "11px", display: "flex", alignItems: "center", gap: "3px" }}>
-            <i className="ti ti-calendar-plus" style={{ fontSize: "12px" }} aria-hidden="true" /> add event
-          </button>
-          <button className="btn btn-g" style={{ fontSize: "11px", display: "flex", alignItems: "center", gap: "3px" }}>
-            <i className="ti ti-user-plus" style={{ fontSize: "12px" }} aria-hidden="true" /> invite
-          </button>
-        </div>
-      </div>
-
-      {/* Non-Member Group Card */}
-      <div className="card">
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-          <span style={{ width: "8px", height: "8px", background: "#534AB7", flexShrink: 0 }} />
-          <p style={{ fontSize: "13px", fontWeight: 500, color: "var(--color-text-primary)" }}>design systems</p>
-          <span className="tag tag-gray" style={{ marginLeft: "auto" }}>not a member</span>
-        </div>
-        <p style={{ fontSize: "12px", color: "var(--color-text-secondary)", marginBottom: "8px" }}>
-          Discussing component libraries, tokens, and consistent UI patterns across projects.
-        </p>
-        <div style={{ fontSize: "11px", color: "var(--color-text-tertiary)", marginBottom: "10px" }}>
-          21 members · created by Selin R.
-        </div>
-        <button className="btn btn-p" style={{ fontSize: "11px" }}>request to join →</button>
-      </div>
+        ))
+      )}
     </main>
   );
 }

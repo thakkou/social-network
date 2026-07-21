@@ -7,6 +7,7 @@ import (
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -47,13 +48,14 @@ func OldSaveImage(file multipart.File, fileHeader *multipart.FileHeader, uploadD
 }
 
 func SaveImage(file multipart.File, fileHeader *multipart.FileHeader, uploadDir string) (string, error) {
-	ext := filepath.Ext(fileHeader.Filename)
+	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
 
 	allowedExtensions := map[string]bool{
 		".jpg":  true,
 		".jpeg": true,
 		".png":  true,
 		".gif":  true,
+		".webp": true,
 	}
 
 	if !allowedExtensions[ext] {

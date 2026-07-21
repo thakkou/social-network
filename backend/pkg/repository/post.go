@@ -421,3 +421,13 @@ func (r *PostRepository) GetCommentCount(postID int) (int, error) {
 	err := r.DB.QueryRow(`SELECT COUNT(*) FROM COMMENTS WHERE post_id = ?`, postID).Scan(&count)
 	return count, err
 }
+
+// GetPostAuthor returns the user_id of the post author (the creator of the post).
+func (r *PostRepository) GetPostAuthor(postID int) (int, error) {
+	var authorID int
+	err := r.DB.QueryRow(`SELECT user_id FROM POSTS WHERE id = ?`, postID).Scan(&authorID)
+	if err != nil {
+		return 0, err
+	}
+	return authorID, nil
+}

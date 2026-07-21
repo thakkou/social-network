@@ -135,7 +135,11 @@ export default function PostDetailPage() {
     if (res.success) {
       setPost((prev) =>
         prev
-          ? { ...prev, comments: prev.comments.filter((c) => c.id !== commentId) }
+          ? {
+              ...prev,
+              comments: prev.comments.filter((c) => c.id !== commentId),
+              comment_count: Math.max(0, prev.comment_count - 1),
+            }
           : prev
       );
     }

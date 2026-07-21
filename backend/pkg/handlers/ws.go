@@ -20,30 +20,35 @@ var upgrader = websocket.Upgrader{
 }
 
 func HandlerWs(w http.ResponseWriter, r *http.Request) {
-	var userId string
+	var sessionToken string
 
+	// Try cookie first, then fall back to query parameter (for cross-origin frontends)
 	cookie, err := r.Cookie("session_id")
-	if err != nil || cookie.Value == "" {
+	if err == nil && cookie.Value != "" {
+		sessionToken = cookie.Value
+	} else {
+		sessionToken = r.URL.Query().Get("session_id")
+	}
+
+	if sessionToken == "" {
 		http.Error(w, `{"error":"not authenticated"}`, http.StatusUnauthorized)
 		return
 	}
 
-	id, err := utilities.GetUserIDFromCookie(cookie.Value)
+	id, err := utilities.GetUserIDFromCookie(sessionToken)
 	if err != nil {
 		http.Error(w, `{"error":"not authenticated"}`, http.StatusUnauthorized)
 		return
 	}
 
-	userId = strconv.Itoa(id)
+	userId := strconv.Itoa(id)
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		// fmt.Println("upgrade error:", err)
 		return
 	}
 
 	client := ws.StoreClient(userId, conn)
-
 	go ws.HandleClient(client)
 }
 

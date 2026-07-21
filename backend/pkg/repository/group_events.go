@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"database/sql"
+	"fmt"
 	"time"
 
 	"01social/pkg/utilities"
@@ -47,6 +49,37 @@ func (r *GroupRepository) CreateEvent(e *GroupEvent) error {
 	id, _ := res.LastInsertId()
 	e.ID = int(id)
 	return nil
+}
+
+// DeleteGroupEvent deletes a group event if the user is the event creator OR the group creator.
+func (r *GroupRepository) DeleteGroupEvent(eventID, userID, creatorID int) error {
+	var authorID int
+	err := r.DB.QueryRow(`SELECT creator_id FROM GROUP_EVENTS WHERE id = ?`, eventID).Scan(&authorID)
+	if err == sql.ErrNoRows {
+		return fmt.Errorf("event not found")
+	}
+	if err != nil {
+		return err
+	}
+	if userID != authorID && userID != creatorID {
+		return fmt.Errorf("not authorized to delete this event")
+	}
+
+	tx, err := r.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Delete event responses
+	_, _ = tx.Exec(`DELETE FROM EVENT_RESPONSES WHERE event_id = ?`, eventID)
+	// Delete the event itself
+	_, err = tx.Exec(`DELETE FROM GROUP_EVENTS WHERE id = ?`, eventID)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (r *GroupRepository) RespondToEvent(eventID, userID int, status string) error {

@@ -11,8 +11,8 @@ import (
 
 // IsValidName
 func IsValidName(name string) bool {
-	re := regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_ ]{1,49}$`)
-	return re.MatchString(name) && !strings.Contains(name, "  ")
+	re := regexp.MustCompile(`^[a-zA-Z0-9_ \-\'\\.]{1,100}$`)
+	return len(name) >= 1 && len(name) <= 100 && re.MatchString(name) && !strings.Contains(name, "  ") && !strings.HasPrefix(name, " ")
 }
 
 // IsValidEmail

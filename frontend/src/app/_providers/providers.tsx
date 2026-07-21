@@ -1,6 +1,7 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
+import { ToastProvider } from "~/app/_components/Toast";
 import { WSProvider } from "./ws-provider";
 import { ChatProvider } from "./chatProvider";
 
@@ -11,13 +12,13 @@ export function Providers({
 }) {
   return (
     <SessionProvider>
-
-      <WSProvider>
-        
-        <ChatProvider>
-          {children}
-        </ChatProvider>
-      </WSProvider>
+      <ToastProvider>
+        <WSProvider>
+          <ChatProvider>
+            {children}
+          </ChatProvider>
+        </WSProvider>
+      </ToastProvider>
     </SessionProvider>
   );
 }

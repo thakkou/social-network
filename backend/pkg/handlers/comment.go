@@ -13,6 +13,7 @@ import (
 	dblayer "01social/pkg/models/db_layer"
 	"01social/pkg/repository"
 	"01social/pkg/utilities"
+	"01social/pkg/ws"
 )
 
 // CreateComment
@@ -129,6 +130,18 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 		UserID:    comment.UserID,
 		CreatedAt: comment.CreatedAt,
 		Nickname:  user.Nickname,
+	}
+
+	// Notify the post author about the new comment via WS
+	postAuthor, err := Repos.Post.GetPostAuthor(postID)
+	if err == nil && postAuthor != userID {
+		ws.NotifyUser(strconv.Itoa(postAuthor), "new_comments", map[string]any{
+			"post_id":    postID,
+			"comment_id": comment.ID,
+			"user_id":    userID,
+			"nickname":   user.Nickname,
+			"text":       comment.Text[:min(len(comment.Text), 80)],
+		})
 	}
 
 	utilities.WriteJSON(w, http.StatusCreated, "comment created successfully", res)

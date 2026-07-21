@@ -1,8 +1,16 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
-import SearchInput from "~/app/_components/SearchInput";
-import { createGroup } from "~/app/api/crud/groups"; // Adjust import path as needed
+import { useState, useTransition, useEffect, useRef } from "react";
+import { createGroup } from "~/app/api/crud/groups";
+import { search } from "~/app/api/crud/search";
+
+interface InviteUser {
+  id: number;
+  nickname: string;
+  firstname: string;
+  lastname: string;
+  avatar: string;
+}
 
 export default function CreateGroupForm() {
   const [showCreateGroup, setShowCreateGroup] = useState(false);
@@ -13,12 +21,19 @@ export default function CreateGroupForm() {
   const [description, setDescription] = useState("");
   const [logo, setLogo] = useState<File | null>(null);
   const [background, setBackground] = useState<File | null>(null);
-  
+
   // Image Preview States
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [backgroundPreview, setBackgroundPreview] = useState<string | null>(null);
-  
+
   const [error, setError] = useState<string | null>(null);
+
+  // ── Invite state ──
+  const [inviteQuery, setInviteQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<InviteUser[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<InviteUser[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Handle preview memory cleanup & updates
   useEffect(() => {
@@ -28,7 +43,6 @@ export default function CreateGroupForm() {
     }
     const objectUrl = URL.createObjectURL(logo);
     setLogoPreview(objectUrl);
-
     return () => URL.revokeObjectURL(objectUrl);
   }, [logo]);
 
@@ -39,15 +53,57 @@ export default function CreateGroupForm() {
     }
     const objectUrl = URL.createObjectURL(background);
     setBackgroundPreview(objectUrl);
-
     return () => URL.revokeObjectURL(objectUrl);
   }, [background]);
+
+  // ── Invite search with debounce ──
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!inviteQuery.trim()) {
+      setSearchResults([]);
+      setSearchOpen(false);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      const res = await search(inviteQuery.trim());
+      if (res.success) {
+        setSearchResults(
+          res.data.profiles
+            .filter((u: any) => !selectedUsers.some((s) => s.id === u.id))
+            .map((u: any) => ({
+              id: u.id,
+              nickname: u.nickname || `${u.firstname} ${u.lastname}`.trim(),
+              firstname: u.firstname,
+              lastname: u.lastname,
+              avatar: u.avatar || "",
+            }))
+        );
+        setSearchOpen(true);
+      }
+    }, 400);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [inviteQuery, selectedUsers]);
+
+  const addUser = (user: InviteUser) => {
+    setSelectedUsers((prev) => [...prev, user]);
+    setInviteQuery("");
+    setSearchResults([]);
+    setSearchOpen(false);
+  };
+
+  const removeUser = (userId: number) => {
+    setSelectedUsers((prev) => prev.filter((u) => u.id !== userId));
+  };
 
   const handleReset = () => {
     setTitle("");
     setDescription("");
     setLogo(null);
     setBackground(null);
+    setSelectedUsers([]);
+    setInviteQuery("");
     setError(null);
     setShowCreateGroup(false);
   };
@@ -64,11 +120,12 @@ export default function CreateGroupForm() {
     formData.append("title", title.trim());
     formData.append("description", description.trim());
 
-    if (logo) {
-      formData.append("logo", logo);
-    }
-    if (background) {
-      formData.append("background", background);
+    if (logo) formData.append("logo", logo);
+    if (background) formData.append("background", background);
+
+    // Pass selected invite user IDs as a JSON string in the FormData
+    if (selectedUsers.length > 0) {
+      formData.append("invite_ids", JSON.stringify(selectedUsers.map((u) => u.id)));
     }
 
     startTransition(async () => {
@@ -78,7 +135,11 @@ export default function CreateGroupForm() {
         setError(res.error);
       } else {
         handleReset();
-        // Optional: Trigger a refresh or redirect to the new group
+        if (res.inviteErrors && res.inviteErrors.length > 0) {
+          alert(
+            `Group created! ${res.invitesSent?.length ?? 0} invited, ${res.inviteErrors.length} failed.\n\nFailed: ${res.inviteErrors.join(", ")}`
+          );
+        }
         window.location.reload();
       }
     });
@@ -109,7 +170,6 @@ export default function CreateGroupForm() {
 
       {showCreateGroup && (
         <div id="create-group-panel" style={{ marginBottom: "16px" }}>
-          {/* Changed from <form> to <div> to avoid nesting <form> elements from SearchInput */}
           <div className="card">
             <p
               style={{
@@ -172,7 +232,6 @@ export default function CreateGroupForm() {
               />
               {logoPreview && (
                 <div style={{ marginTop: "8px", position: "relative", width: "fit-content" }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={logoPreview}
                     alt="Logo preview"
@@ -219,7 +278,6 @@ export default function CreateGroupForm() {
               />
               {backgroundPreview && (
                 <div style={{ marginTop: "8px", position: "relative", width: "100%" }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={backgroundPreview}
                     alt="Banner preview"
@@ -254,10 +312,100 @@ export default function CreateGroupForm() {
               )}
             </div>
 
-            {/* Invite Members */}
+            {/* ── Invite Members ── */}
             <div className="form-row">
               <span className="form-label">invite members</span>
-              <SearchInput className="inp" placeholder="search by name..." typeSearch="users" />
+
+              {/* Selected users chips */}
+              {selectedUsers.length > 0 && (
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 6,
+                    marginBottom: 8,
+                  }}
+                >
+                  {selectedUsers.map((u) => (
+                    <span
+                      key={u.id}
+                      className="tag tag-pink"
+                      style={{ fontSize: 10, cursor: "default", display: "flex", alignItems: "center", gap: 4 }}
+                    >
+                      {u.nickname || `${u.firstname} ${u.lastname}`.trim()}
+                      <span
+                        style={{ cursor: "pointer", marginLeft: 2 }}
+                        onClick={() => removeUser(u.id)}
+                      >
+                        ×
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ position: "relative" }}>
+                <input
+                  className="inp"
+                  placeholder="search by name..."
+                  value={inviteQuery}
+                  onChange={(e) => setInviteQuery(e.target.value)}
+                  onFocus={() => searchResults.length > 0 && setSearchOpen(true)}
+                />
+
+                {searchOpen && searchResults.length > 0 && (
+                  <div
+                    className="card"
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 2px)",
+                      left: 0,
+                      right: 0,
+                      zIndex: 10,
+                      padding: "4px 0",
+                      maxHeight: 180,
+                      overflowY: "auto",
+                    }}
+                  >
+                    {searchResults.map((u) => (
+                      <div
+                        key={u.id}
+                        onClick={() => addUser(u)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          padding: "6px 10px",
+                          cursor: "pointer",
+                          fontSize: 11,
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLElement).style.background = "#2e2b27";
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLElement).style.background = "transparent";
+                        }}
+                      >
+                        <div
+                          className="av"
+                          style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: "50%",
+                            background: u.avatar ? `url(${u.avatar}) center/cover` : "#2e1e24",
+                            color: "#D4537E",
+                            fontSize: 9,
+                          }}
+                        >
+                          {!u.avatar && (u.nickname?.[0]?.toUpperCase() || u.firstname?.[0]?.toUpperCase() || "?")}
+                        </div>
+                        <span>{u.nickname || `${u.firstname} ${u.lastname}`.trim()}</span>
+                        <span style={{ marginLeft: "auto", color: "#D4537E", fontSize: 10 }}>+ add</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Submit & Cancel Buttons */}

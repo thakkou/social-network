@@ -11,6 +11,7 @@ import (
 	dblayer "01social/pkg/models/db_layer"
 	"01social/pkg/repository"
 	"01social/pkg/utilities"
+	"01social/pkg/ws"
 )
 
 // =========================
@@ -281,6 +282,16 @@ func PostResolver(w http.ResponseWriter, r *http.Request) {
 		if err := Repos.Reaction.SetPostReaction(userID, postID, isLike); err != nil {
 			utilities.WriteJSON(w, http.StatusInternalServerError, err.Error(), nil)
 			return
+		}
+
+		// Notify the post author about the reaction
+		postAuthor, err := Repos.Post.GetPostAuthor(postID)
+		if err == nil && postAuthor != userID {
+			ws.NotifyUser(strconv.Itoa(postAuthor), "like_posts", map[string]any{
+				"post_id":  postID,
+				"user_id":  userID,
+				"reaction": endpoint,
+			})
 		}
 
 		reactionCounts, err := Repos.Reaction.GetReactionPost(postID, userID)

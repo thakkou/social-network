@@ -20,6 +20,10 @@ import {
   rejectJoinRequest,
   leaveGroup,
   getGroupMembers,
+  deleteGroupPost,
+  deleteGroupEvent,
+  deleteGroupPostComment,
+  kickMember,
   type GroupPublic,
   type GroupFeedItem,
   type GroupFeedComment,
@@ -283,6 +287,36 @@ export default function GroupDetailPage() {
     }
   };
 
+  // ── Delete handlers ──
+
+  const handleDeletePost = async (postId: number) => {
+    const res = await deleteGroupPost(groupId, postId);
+    if (res.success) {
+      await refreshFeed();
+    }
+  };
+
+  const handleDeleteEvent = async (eventId: number) => {
+    const res = await deleteGroupEvent(groupId, eventId);
+    if (res.success) {
+      await refreshFeed();
+    }
+  };
+
+  const handleDeleteComment = async (postId: number, commentId: number) => {
+    const res = await deleteGroupPostComment(groupId, postId, commentId);
+    if (res.success) {
+      await refreshFeed();
+    }
+  };
+
+  const handleKickMember = async (userId: number) => {
+    const res = await kickMember(groupId, userId);
+    if (res.success) {
+      setMembers((prev) => prev.filter((m) => m.id !== userId));
+    }
+  };
+
   // ── Leave group handlers ──
   const [leaving, setLeaving] = useState(false);
 
@@ -468,12 +502,14 @@ export default function GroupDetailPage() {
                   >
                     <i className="ti ti-user-plus" /> invite
                   </button>
-                  <button
-                    className="btn btn-red"
-                    onClick={() => setShowLeaveConfirm(true)}
-                  >
-                    <i className="ti ti-door-exit" /> leave
-                  </button>
+                  {!isCreator && (
+                    <button
+                      className="btn btn-red"
+                      onClick={() => setShowLeaveConfirm(true)}
+                    >
+                      <i className="ti ti-door-exit" /> leave
+                    </button>
+                  )}
                 </>
               ) : (
                 <>
@@ -827,7 +863,7 @@ export default function GroupDetailPage() {
             )}
 
             {/* Response buttons */}
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <button
                 className="btn btn-t"
                 onClick={() => void handleEventResponse(item.id, "going")}
@@ -843,6 +879,15 @@ export default function GroupDetailPage() {
                 {item.event_responses?.filter((r) => r.status === "not_going").length || 0} not
                 going)
               </button>
+              {(item.user_id === currentUserId || isCreator) && (
+                <button
+                  className="btn btn-red"
+                  style={{ marginLeft: "auto", fontSize: 10 }}
+                  onClick={() => void handleDeleteEvent(item.id)}
+                >
+                  <i className="ti ti-trash" />
+                </button>
+              )}
             </div>
 
             {/* Responders */}
@@ -938,7 +983,7 @@ export default function GroupDetailPage() {
             )}
 
             {/* Action buttons */}
-            <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+            <div style={{ display: "flex", gap: 8, marginTop: 14, alignItems: "center" }}>
               <button
                 className={item.is_liked === 1 ? "btn btn-p" : "btn btn-g"}
                 style={{ display: "flex", alignItems: "center", gap: 4 }}
@@ -959,6 +1004,15 @@ export default function GroupDetailPage() {
               >
                 <i className="ti ti-message-circle" /> {item.comments_count}
               </button>
+              {(item.user_id === currentUserId || isCreator) && (
+                <button
+                  className="btn btn-red"
+                  style={{ marginLeft: "auto", fontSize: 10 }}
+                  onClick={() => void handleDeletePost(item.id)}
+                >
+                  <i className="ti ti-trash" />
+                </button>
+              )}
             </div>
 
             {/* Comments list */}
@@ -1028,6 +1082,24 @@ export default function GroupDetailPage() {
                         </span>
                       </div>
                       <p style={{ fontSize: 12 }}>{c.text}</p>
+                      {/* Comment delete button (owner or admin) */}
+                      {(c.user_id === currentUserId || isCreator) && (
+                        <button
+                          style={{
+                            fontSize: 9,
+                            color: "#6b6760",
+                            cursor: "pointer",
+                            border: "none",
+                            background: "none",
+                            padding: 0,
+                            marginTop: 4,
+                            textDecoration: "underline",
+                          }}
+                          onClick={() => void handleDeleteComment(item.id, c.id)}
+                        >
+                          delete
+                        </button>
+                      )}
                       {/* Comment reaction buttons */}
                       <div
                         style={{
@@ -1314,14 +1386,21 @@ export default function GroupDetailPage() {
                         `${m.firstname} ${m.lastname}`.trim() ||
                         "Unknown"}
                     </div>
-                    {m.id === group?.creator_id && (
-                      <span
-                        className="tag tag-pink"
-                        style={{ fontSize: 9, marginLeft: "auto" }}
-                      >
-                        admin
-                      </span>
-                    )}
+                    <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
+                      {m.id === group?.creator_id ? (
+                        <span className="tag tag-pink" style={{ fontSize: 9 }}>
+                          admin
+                        </span>
+                      ) : isCreator ? (
+                        <button
+                          className="btn btn-red"
+                          style={{ fontSize: 9, padding: "2px 6px" }}
+                          onClick={() => void handleKickMember(m.id)}
+                        >
+                          <i className="ti ti-door-exit" style={{ fontSize: 10 }} /> kick
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 ))
               )}

@@ -256,6 +256,58 @@ func (r *GroupRepository) ReactToGroupPostComment(commentID, userID, isLike int)
 	return err
 }
 
+// DeleteGroupPost deletes a group post if the user is the post author OR the group creator.
+func (r *GroupRepository) DeleteGroupPost(postID, userID, creatorID int) error {
+	// Check post exists and get its author
+	var authorID int
+	err := r.DB.QueryRow(`SELECT user_id FROM GROUP_POSTS WHERE id = ?`, postID).Scan(&authorID)
+	if err == sql.ErrNoRows {
+		return fmt.Errorf("post not found")
+	}
+	if err != nil {
+		return err
+	}
+	if userID != authorID && userID != creatorID {
+		return fmt.Errorf("not authorized to delete this post")
+	}
+
+	tx, err := r.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Delete reactions on this post
+	_, _ = tx.Exec(`DELETE FROM GROUP_POST_REACTIONS WHERE group_post_id = ?`, postID)
+	// Delete comments on this post
+	_, _ = tx.Exec(`DELETE FROM GROUP_POST_COMMENTS WHERE group_post_id = ?`, postID)
+	// Delete the post itself
+	_, err = tx.Exec(`DELETE FROM GROUP_POSTS WHERE id = ?`, postID)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+// DeleteGroupPostComment deletes a group post comment if the user is the comment author OR the group creator.
+func (r *GroupRepository) DeleteGroupPostComment(commentID, userID, creatorID int) error {
+	var authorID int
+	err := r.DB.QueryRow(`SELECT user_id FROM GROUP_POST_COMMENTS WHERE id = ?`, commentID).Scan(&authorID)
+	if err == sql.ErrNoRows {
+		return fmt.Errorf("comment not found")
+	}
+	if err != nil {
+		return err
+	}
+	if userID != authorID && userID != creatorID {
+		return fmt.Errorf("not authorized to delete this comment")
+	}
+
+	_, err = r.DB.Exec(`DELETE FROM GROUP_POST_COMMENTS WHERE id = ?`, commentID)
+	return err
+}
+
 // PostEngagement holds the enrichment data attached to a post in the feed:
 // like/dislike counts, whether the requesting user liked it, and comment count.
 // IsLiked: 1 = liked, -1 = disliked, 0 = no reaction

@@ -90,6 +90,7 @@ export interface GroupFeedItem {
 }
 
 // Create a new group using FormData (supports file uploads for logo and background)
+// If FormData contains "invite_ids" (JSON array of user IDs), invites are sent after group creation.
 export async function createGroup(formData: FormData) {
   const titleVal = formData.get("title");
   const descVal = formData.get("description");
@@ -110,10 +111,40 @@ export async function createGroup(formData: FormData) {
     return { error: result.error };
   }
 
+  const groupData = result.data.data;
+
+  // If invite IDs were included in the FormData, send invites from the server
+  const inviteIdsRaw = formData.get("invite_ids");
+  const invited: number[] = [];
+  const failedInvites: string[] = [];
+
+  if (inviteIdsRaw && typeof inviteIdsRaw === "string") {
+    try {
+      const inviteIds: number[] = JSON.parse(inviteIdsRaw);
+      for (const userId of inviteIds) {
+        const inviteRes = await fetchApi<GroupApiResponse<null>>(
+          `/api/groups/${groupData.group_id}/invite`,
+          { method: "POST", body: { user_id: userId } }
+        );
+        if (!inviteRes.success) {
+          failedInvites.push(`user ${userId}: ${inviteRes.error}`);
+        } else {
+          invited.push(userId);
+        }
+        // Small delay to avoid hitting the backend rate limiter (500ms on /api/groups/)
+        await new Promise((r) => setTimeout(r, 600));
+      }
+    } catch (e) {
+      console.error("[CREATE_GROUP] Failed to parse invite_ids:", e);
+    }
+  }
+
   return {
     success: true,
     message: result.data.message,
-    group: result.data.data,
+    group: groupData,
+    invitesSent: invited,
+    inviteErrors: failedInvites,
   };
 }
 
@@ -417,6 +448,62 @@ export async function updateGroup(groupId: string, formData: FormData) {
   const result = await fetchApi<GroupApiResponse<null>>(
     `/api/groups/${groupId}/update`,
     { method: "PUT", body: formData }
+  );
+
+  if (!result.success) return { error: result.error };
+  return { success: true };
+}
+
+// ─── Delete Group Post ───
+
+export async function deleteGroupPost(groupId: string, postId: number) {
+  if (!groupId) return { error: "Group ID is required." };
+
+  const result = await fetchApi<GroupApiResponse<null>>(
+    `/api/groups/${groupId}/posts/${postId}/delete`,
+    { method: "POST" }
+  );
+
+  if (!result.success) return { error: result.error };
+  return { success: true };
+}
+
+// ─── Delete Group Event ───
+
+export async function deleteGroupEvent(groupId: string, eventId: number) {
+  if (!groupId) return { error: "Group ID is required." };
+
+  const result = await fetchApi<GroupApiResponse<null>>(
+    `/api/groups/${groupId}/events/${eventId}/delete`,
+    { method: "POST" }
+  );
+
+  if (!result.success) return { error: result.error };
+  return { success: true };
+}
+
+// ─── Delete Group Post Comment ───
+
+export async function deleteGroupPostComment(groupId: string, postId: number, commentId: number) {
+  if (!groupId) return { error: "Group ID is required." };
+
+  const result = await fetchApi<GroupApiResponse<null>>(
+    `/api/groups/${groupId}/posts/${postId}/comments/${commentId}/delete`,
+    { method: "POST" }
+  );
+
+  if (!result.success) return { error: result.error };
+  return { success: true };
+}
+
+// ─── Kick Member ───
+
+export async function kickMember(groupId: string, userId: number) {
+  if (!groupId) return { error: "Group ID is required." };
+
+  const result = await fetchApi<GroupApiResponse<null>>(
+    `/api/groups/${groupId}/members/${userId}/kick`,
+    { method: "POST" }
   );
 
   if (!result.success) return { error: result.error };
