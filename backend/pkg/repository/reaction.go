@@ -76,30 +76,82 @@ func (r *ReactionRepository) GetReactionComment(commentID, userID int) (Reaction
 	return counts, err
 }
 
-// SetPostReaction creates, updates, or toggles a user's reaction on a post
-// isLike values: 1 -> like, 0 -> clear/neutral, -1 -> dislike
+// SetPostReaction toggles a user's reaction on a post.
+// - If no reaction → inserts it
+// - If same reaction exists → deletes it (removes the reaction)
+// - If different reaction exists → updates it
 func (r *ReactionRepository) SetPostReaction(userID, postID, isLike int) error {
-	query := `
-        INSERT INTO POST_REACTIONS 
-        (user_id, post_id, is_like)
-        VALUES (?, ?, ?)
-        ON CONFLICT(user_id, post_id)
-        DO UPDATE SET is_like = ?
-    `
-	_, err := r.DB.Exec(query, userID, postID, isLike, isLike)
+	var existing int
+	err := r.DB.QueryRow(
+		"SELECT is_like FROM POST_REACTIONS WHERE user_id = ? AND post_id = ?",
+		userID, postID,
+	).Scan(&existing)
+
+	if err == sql.ErrNoRows {
+		// No reaction → insert
+		_, err = r.DB.Exec(
+			"INSERT INTO POST_REACTIONS (user_id, post_id, is_like) VALUES (?, ?, ?)",
+			userID, postID, isLike,
+		)
+		return err
+	}
+	if err != nil {
+		return err
+	}
+
+	if existing == isLike {
+		// Same reaction → remove (delete)
+		_, err = r.DB.Exec(
+			"DELETE FROM POST_REACTIONS WHERE user_id = ? AND post_id = ?",
+			userID, postID,
+		)
+		return err
+	}
+
+	// Different reaction → update
+	_, err = r.DB.Exec(
+		"UPDATE POST_REACTIONS SET is_like = ? WHERE user_id = ? AND post_id = ?",
+		isLike, userID, postID,
+	)
 	return err
 }
 
-// SetCommentReaction creates, updates, or toggles a user's reaction on a comment
-// isLike values: 1 -> like, 0 -> clear/neutral, -1 -> dislike
+// SetCommentReaction toggles a user's reaction on a comment.
+// - If no reaction → inserts it
+// - If same reaction exists → deletes it (removes the reaction)
+// - If different reaction exists → updates it
 func (r *ReactionRepository) SetCommentReaction(userID, commentID, isLike int) error {
-	query := `
-        INSERT INTO COMMENT_REACTIONS 
-        (user_id, comment_id, is_like)
-        VALUES (?, ?, ?)
-        ON CONFLICT(user_id, comment_id)
-        DO UPDATE SET is_like = ?
-    `
-	_, err := r.DB.Exec(query, userID, commentID, isLike, isLike)
+	var existing int
+	err := r.DB.QueryRow(
+		"SELECT is_like FROM COMMENT_REACTIONS WHERE user_id = ? AND comment_id = ?",
+		userID, commentID,
+	).Scan(&existing)
+
+	if err == sql.ErrNoRows {
+		// No reaction → insert
+		_, err = r.DB.Exec(
+			"INSERT INTO COMMENT_REACTIONS (user_id, comment_id, is_like) VALUES (?, ?, ?)",
+			userID, commentID, isLike,
+		)
+		return err
+	}
+	if err != nil {
+		return err
+	}
+
+	if existing == isLike {
+		// Same reaction → remove (delete)
+		_, err = r.DB.Exec(
+			"DELETE FROM COMMENT_REACTIONS WHERE user_id = ? AND comment_id = ?",
+			userID, commentID,
+		)
+		return err
+	}
+
+	// Different reaction → update
+	_, err = r.DB.Exec(
+		"UPDATE COMMENT_REACTIONS SET is_like = ? WHERE user_id = ? AND comment_id = ?",
+		isLike, userID, commentID,
+	)
 	return err
 }

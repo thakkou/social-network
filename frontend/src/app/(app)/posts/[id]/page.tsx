@@ -54,7 +54,7 @@ export default function PostDetailPage() {
 
   const handleLikeToggle = async () => {
     if (!post) return;
-    const res = post.is_liked === 1 ? await dislikePost(post.id) : await likePost(post.id);
+    const res = await likePost(post.id);
     if (res.success) {
       setPost((prev) =>
         prev
@@ -71,7 +71,7 @@ export default function PostDetailPage() {
 
   const handleDislikeToggle = async () => {
     if (!post) return;
-    const res = post.is_liked === -1 ? await likePost(post.id) : await dislikePost(post.id);
+    const res = await dislikePost(post.id);
     if (res.success) {
       setPost((prev) =>
         prev
@@ -87,10 +87,7 @@ export default function PostDetailPage() {
   };
 
   const handleCommentLikeToggle = async (comment: PostComment) => {
-    const res =
-      comment.is_liked === 1
-        ? await dislikeComment(comment.id)
-        : await likeComment(comment.id);
+    const res = await likeComment(comment.id);
     if (res.success) {
       setPost((prev) => {
         if (!prev) return prev;
@@ -112,10 +109,7 @@ export default function PostDetailPage() {
   };
 
   const handleCommentDislikeToggle = async (comment: PostComment) => {
-    const res =
-      comment.is_liked === -1
-        ? await likeComment(comment.id)
-        : await dislikeComment(comment.id);
+    const res = await dislikeComment(comment.id);
     if (res.success) {
       setPost((prev) => {
         if (!prev) return prev;

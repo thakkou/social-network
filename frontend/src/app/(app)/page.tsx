@@ -78,10 +78,7 @@ export default function Home() {
 
   const handleLikeToggle = async (postId: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    const post = posts.find((p) => p.id === postId);
-    if (!post) return;
-    const res =
-      post.is_liked === 1 ? await dislikePost(postId) : await likePost(postId);
+    const res = await likePost(postId);
     if (res.success) {
       setPosts((prev) =>
         prev.map((p) =>
@@ -100,12 +97,7 @@ export default function Home() {
 
   const handleDislikeToggle = async (postId: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    const post = posts.find((p) => p.id === postId);
-    if (!post) return;
-    const res =
-      post.is_liked === -1
-        ? await likePost(postId)
-        : await dislikePost(postId);
+    const res = await dislikePost(postId);
     if (res.success) {
       setPosts((prev) =>
         prev.map((p) =>
