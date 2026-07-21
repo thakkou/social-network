@@ -8,7 +8,11 @@ import {
   getUserGroups,
   updateProfilePrivacy,
   updateProfileNickname,
+  updateGroup,
+  inviteUserToGroup,
+  getGroupMembers,
 } from "~/app/api/crud/groups";
+import { search } from "~/app/api/crud/search";
 
 interface GroupSummary {
   id: number;
@@ -16,6 +20,7 @@ interface GroupSummary {
   description: string;
   created_at: string;
   logo?: string;
+  background?: string;
   creator_id: number;
 }
 
@@ -97,6 +102,111 @@ export default function Settings() {
     ? (profile.firstname?.[0]?.toUpperCase() || "") +
       (profile.lastname?.[0]?.toUpperCase() || "")
     : "—";
+
+  // ── Group edit state ──
+  const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editLogoFile, setEditLogoFile] = useState<File | null>(null);
+  const [editBgFile, setEditBgFile] = useState<File | null>(null);
+  const [editLogoPreview, setEditLogoPreview] = useState<string | null>(null);
+  const [editBgPreview, setEditBgPreview] = useState<string | null>(null);
+  const [savingGroup, setSavingGroup] = useState(false);
+  const [savedGroupId, setSavedGroupId] = useState<number | null>(null);
+
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const bgInputRef = useRef<HTMLInputElement>(null);
+
+  const startEditing = (g: GroupSummary) => {
+    setEditingGroupId(g.id);
+    setEditTitle(g.title);
+    setEditDescription(g.description);
+    setEditLogoFile(null);
+    setEditBgFile(null);
+    setEditLogoPreview(null);
+    setEditBgPreview(null);
+  };
+
+  const handleSaveGroup = async (g: GroupSummary) => {
+    setSavingGroup(true);
+    const fd = new FormData();
+    fd.set("title", editTitle);
+    fd.set("description", editDescription);
+    if (editLogoFile) fd.set("logo", editLogoFile);
+    if (editBgFile) fd.set("background", editBgFile);
+
+    const res = await updateGroup(String(g.id), fd);
+    if (res.success) {
+      setEditingGroupId(null);
+      setSavedGroupId(g.id);
+      const r = await getUserGroups();
+      if (r.success) setGroups(r.data || []);
+      setTimeout(() => setSavedGroupId(null), 2000);
+    }
+    setSavingGroup(false);
+  };
+
+  // ── Invite state ──
+  const [inviteGroupId, setInviteGroupId] = useState<number | null>(null);
+  const [inviteQuery, setInviteQuery] = useState("");
+  const [inviteResults, setInviteResults] = useState<{ id: number; nickname: string; firstname: string; lastname: string; avatar: string }[]>([]);
+  const [inviteSending, setInviteSending] = useState<Record<number, boolean>>({});
+  const [inviteMsg, setInviteMsg] = useState<string | null>(null);
+  const [memberIDs, setMemberIDs] = useState<number[]>([]);
+
+  const openInviteModal = async (groupId: number) => {
+    setInviteGroupId(groupId);
+    setInviteQuery("");
+    setInviteResults([]);
+    setInviteMsg(null);
+    // Fetch existing member IDs
+    const res = await getGroupMembers(String(groupId));
+    if (res.success) {
+      setMemberIDs(res.data);
+    }
+  };
+
+  const handleInviteSearch = async (query: string) => {
+    setInviteQuery(query);
+    if (!query.trim()) {
+      setInviteResults([]);
+      return;
+    }
+    const res = await search(query);
+    if (res.success) {
+      setInviteResults(
+        res.data.profiles
+          .filter((u) => u.id !== Number(userId))
+          .map((u) => ({
+            id: u.id,
+            nickname: u.nickname || `${u.firstname} ${u.lastname}`.trim(),
+            firstname: u.firstname,
+            lastname: u.lastname,
+            avatar: u.avatar || "",
+          }))
+      );
+    }
+  };
+
+  const handleSendInvite = async (targetUserId: number) => {
+    if (!inviteGroupId) return;
+    setInviteSending((prev) => ({ ...prev, [targetUserId]: true }));
+    setInviteMsg(null);
+    try {
+      const res = await inviteUserToGroup(String(inviteGroupId), targetUserId);
+      if (res.success) {
+        setInviteMsg("invite sent!");
+        setInviteResults([]);
+        setInviteQuery("");
+      } else {
+        setInviteMsg(res.error ?? "failed");
+      }
+    } catch {
+      setInviteMsg("something went wrong");
+    } finally {
+      setInviteSending((prev) => ({ ...prev, [targetUserId]: false }));
+    }
+  };
 
   // Filter groups where user is the creator (admin)
   const adminGroups = groups.filter((g) => {
@@ -290,8 +400,8 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* My Groups */}
-      <div className="card">
+      {/* My Groups (only groups I created) */}
+      <div className="card" style={{ padding: 0 }}>
         <p
           style={{
             fontSize: "12px",
@@ -300,88 +410,425 @@ export default function Settings() {
             marginBottom: "12px",
             textTransform: "uppercase",
             letterSpacing: "0.5px",
+            padding: "0.875rem 1rem 0",
           }}
         >
           My Groups
         </p>
 
-        {groups.length === 0 ? (
-          <p style={{ fontSize: "12px", color: "#6b6760" }}>
-            You haven&apos;t joined any groups yet.
+        {adminGroups.length === 0 ? (
+          <p style={{ fontSize: "12px", color: "#6b6760", padding: "0 1rem 0.875rem" }}>
+            You haven&apos;t created any groups yet.
           </p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {groups.map((g) => (
+          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+            {adminGroups.map((g, idx) => (
               <div
                 key={g.id}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  padding: "8px",
-                  border: "0.5px solid #3a3733",
-                  background: "#2e2b27",
+                  borderTop: idx > 0 ? "0.5px solid #3a3733" : "none",
                 }}
               >
-                {g.logo ? (
-                  <img
-                    src={g.logo}
-                    alt={g.title}
-                    style={{
-                      width: "28px",
-                      height: "28px",
-                      borderRadius: "4px",
-                      objectFit: "cover",
-                    }}
-                  />
-                ) : (
+                {/* ── Group card hero ── */}
+                <div
+                  style={{
+                    padding: 0,
+                    overflow: "hidden",
+                  }}
+                >
+                  {/* Background banner */}
                   <div
                     style={{
-                      width: "28px",
-                      height: "28px",
-                      borderRadius: "4px",
-                      background: "#D4537E",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#fff",
-                      fontSize: "11px",
-                      fontWeight: 600,
+                      height: 64,
+                      background: g.background
+                        ? `url(${g.background}) center/cover`
+                        : "linear-gradient(135deg,#2e2b27 0%, #272420 80%, #2e1e24 100%)",
+                      borderBottom: "0.5px solid #3a3733",
+                    }}
+                  />
+
+                  <div style={{ padding: "0 12px 10px" }}>
+                    {/* Logo + title row */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-end",
+                        gap: 10,
+                        marginTop: -28,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: "50%",
+                          background: g.logo
+                            ? `url(${g.logo}) center/cover`
+                            : "#D4537E",
+                          fontSize: g.logo ? 0 : 18,
+                          color: "#fff",
+                          border: "3px solid #272420",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {!g.logo && (g.title?.charAt(0)?.toUpperCase() || "G")}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0, paddingTop: 10 }}>
+                        <Link
+                          href={`/groups/${g.id}`}
+                          style={{
+                            fontSize: 14,
+                            fontWeight: 600,
+                            color: "#e8e4dc",
+                            textDecoration: "none",
+                          }}
+                        >
+                          {g.title}
+                        </Link>
+                        {g.description && (
+                          <p
+                            style={{
+                              fontSize: 10,
+                              color: "#6b6760",
+                              marginTop: 1,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {g.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action buttons row */}
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 6,
+                        marginTop: 10,
+                      }}
+                    >
+                      <button
+                        className="btn btn-g"
+                        style={{ fontSize: 10 }}
+                        onClick={() => void openInviteModal(g.id)}
+                      >
+                        <i className="ti ti-user-plus" style={{ fontSize: 11 }} /> invite
+                      </button>
+                      {editingGroupId === g.id ? (
+                        <button
+                          className="btn btn-t"
+                          style={{ fontSize: 10 }}
+                          disabled={savingGroup}
+                          onClick={() => void handleSaveGroup(g)}
+                        >
+                          {savingGroup ? "saving..." : "save"}
+                        </button>
+                      ) : (
+                        <button
+                          className="btn btn-g"
+                          style={{ fontSize: 10 }}
+                          onClick={() => startEditing(g)}
+                        >
+                          <i className="ti ti-edit" style={{ fontSize: 11 }} /> edit
+                        </button>
+                      )}
+                      {savedGroupId === g.id && (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            color: "#1D9E75",
+                            whiteSpace: "nowrap",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 2,
+                          }}
+                        >
+                          <i className="ti ti-check" /> saved
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Edit form (expandable) */}
+                {editingGroupId === g.id && (
+                  <div
+                    style={{
+                      padding: "10px 12px",
+                      borderTop: "0.5px solid #3a3733",
+                      background: "#1e1c1a",
                     }}
                   >
-                    {g.title?.charAt(0)?.toUpperCase() || "G"}
+                    <div style={{ marginBottom: "6px" }}>
+                      <label
+                        style={{
+                          fontSize: "9px",
+                          color: "#a09c94",
+                          display: "block",
+                          marginBottom: "2px",
+                        }}
+                      >
+                        Title
+                      </label>
+                      <input
+                        className="inp"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        style={{ fontSize: "10px" }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: "6px" }}>
+                      <label
+                        style={{
+                          fontSize: "9px",
+                          color: "#a09c94",
+                          display: "block",
+                          marginBottom: "2px",
+                        }}
+                      >
+                        Description
+                      </label>
+                      <textarea
+                        className="inp"
+                        rows={2}
+                        value={editDescription}
+                        onChange={(e) => setEditDescription(e.target.value)}
+                        style={{ resize: "none", fontSize: "10px" }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: "6px", display: "flex", gap: 8 }}>
+                      <div style={{ flex: 1 }}>
+                        <label
+                          style={{
+                            fontSize: "9px",
+                            color: "#a09c94",
+                            display: "block",
+                            marginBottom: "2px",
+                          }}
+                        >
+                          Logo
+                        </label>
+                        {(editLogoPreview || g.logo) && (
+                          <div
+                            style={{
+                              width: "40px",
+                              height: "40px",
+                              borderRadius: "50%",
+                              overflow: "hidden",
+                              marginBottom: "4px",
+                              border: "0.5px solid #3a3733",
+                              background: editLogoPreview
+                                ? `url(${editLogoPreview}) center/cover`
+                                : `url(${g.logo}) center/cover`,
+                            }}
+                          />
+                        )}
+                        <input
+                          ref={logoInputRef}
+                          type="file"
+                          accept="image/*"
+                          style={{ display: "none" }}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setEditLogoFile(file);
+                              setEditLogoPreview(URL.createObjectURL(file));
+                            }
+                          }}
+                        />
+                        <button
+                          className="btn btn-g"
+                          style={{ fontSize: "9px", padding: "3px 8px" }}
+                          onClick={() => logoInputRef.current?.click()}
+                        >
+                          {editLogoPreview || g.logo ? "change" : "upload"}
+                        </button>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label
+                          style={{
+                            fontSize: "9px",
+                            color: "#a09c94",
+                            display: "block",
+                            marginBottom: "2px",
+                          }}
+                        >
+                          Background
+                        </label>
+                        {(editBgPreview || g.background) && (
+                          <div
+                            style={{
+                              width: "100%",
+                              height: "30px",
+                              marginBottom: "4px",
+                              border: "0.5px solid #3a3733",
+                              background: editBgPreview
+                                ? `url(${editBgPreview}) center/cover`
+                                : `url(${g.background}) center/cover`,
+                            }}
+                          />
+                        )}
+                        <input
+                          ref={bgInputRef}
+                          type="file"
+                          accept="image/*"
+                          style={{ display: "none" }}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setEditBgFile(file);
+                              setEditBgPreview(URL.createObjectURL(file));
+                            }
+                          }}
+                        />
+                        <button
+                          className="btn btn-g"
+                          style={{ fontSize: "9px", padding: "3px 8px" }}
+                          onClick={() => bgInputRef.current?.click()}
+                        >
+                          {g.background ? "change" : "upload"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      className="btn btn-red"
+                      style={{ fontSize: "10px" }}
+                      onClick={() => setEditingGroupId(null)}
+                    >
+                      cancel
+                    </button>
                   </div>
                 )}
-                <div style={{ flex: 1 }}>
-                  <Link
-                    href={`/groups/${g.id}`}
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: 500,
-                      color: "#e8e4dc",
-                      textDecoration: "none",
-                    }}
-                  >
-                    {g.title}
-                  </Link>
-                  {g.description && (
-                    <p style={{ fontSize: "10px", color: "#6b6760", marginTop: 2 }}>
-                      {g.description}
-                    </p>
-                  )}
-                </div>
-                <Link
-                  href={`/groups/${g.id}`}
-                  className="btn btn-g"
-                  style={{ fontSize: "10px" }}
-                >
-                  manage
-                </Link>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* ── INVITE MODAL ── */}
+      {inviteGroupId !== null && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+          }}
+          onClick={() => { setInviteGroupId(null); setInviteResults([]); setInviteQuery(""); setInviteMsg(null); }}
+        >
+          <div
+            className="card"
+            style={{
+              maxWidth: 380,
+              width: "90%",
+              maxHeight: "70vh",
+              display: "flex",
+              flexDirection: "column",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 10,
+              }}
+            >
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#e8e4dc" }}>
+                Invite to group
+              </p>
+              <button
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#6b6760",
+                  cursor: "pointer",
+                  fontSize: 16,
+                }}
+                onClick={() => { setInviteGroupId(null); setInviteResults([]); setInviteQuery(""); setInviteMsg(null); }}
+              >
+                <i className="ti ti-x" />
+              </button>
+            </div>
+
+            <input
+              className="inp"
+              value={inviteQuery}
+              onChange={(e) => void handleInviteSearch(e.target.value)}
+              placeholder="Search users by name..."
+              autoFocus
+              style={{ marginBottom: 8, fontSize: 11 }}
+            />
+
+            {inviteMsg && (
+              <p style={{ fontSize: 11, color: "#5cd4a0", marginBottom: 6 }}>{inviteMsg}</p>
+            )}
+
+            <div style={{ flex: 1, overflowY: "auto" }}>
+              {inviteResults.length === 0 && inviteQuery.trim() && (
+                <p style={{ fontSize: 11, color: "#6b6760", textAlign: "center", padding: 12 }}>
+                  No users found
+                </p>
+              )}
+              {inviteResults.map((u) => (
+                <div
+                  key={u.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "6px 0",
+                    borderBottom: "0.5px solid #3a3733",
+                  }}
+                >
+                  <div
+                    className="av"
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: "50%",
+                      background: u.avatar ? `url(${u.avatar}) center/cover` : "#2e1e24",
+                      color: "#D4537E",
+                      fontSize: 10,
+                    }}
+                  >
+                    {!u.avatar && (u.nickname?.[0]?.toUpperCase() || u.firstname?.[0]?.toUpperCase() || "?")}
+                  </div>
+                  <div style={{ flex: 1, fontSize: 11 }}>
+                    {u.nickname || `${u.firstname} ${u.lastname}`.trim()}
+                  </div>
+                  {memberIDs.includes(u.id) ? (
+                    <span className="tag tag-gray" style={{ fontSize: 9 }}>member</span>
+                  ) : (
+                    <button
+                      className="btn btn-t"
+                      style={{ fontSize: 9 }}
+                      disabled={inviteSending[u.id]}
+                      onClick={() => void handleSendInvite(u.id)}
+                    >
+                      {inviteSending[u.id] ? "..." : "invite"}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

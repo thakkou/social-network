@@ -55,6 +55,20 @@ export interface EventResponder {
   avatar: string;
 }
 
+export interface GroupFeedComment {
+  id: number;
+  user_id: number;
+  text: string;
+  created_at: string;
+  nickname: string;
+  firstname: string;
+  lastname: string;
+  avatar: string;
+  likes_count: number;
+  dislikes_count: number;
+  is_liked: number;
+}
+
 export interface GroupFeedItem {
   id: number;
   type: "post" | "event";
@@ -71,6 +85,7 @@ export interface GroupFeedItem {
   dislikes_count: number;
   is_liked: boolean;
   comments_count: number;
+  comments: GroupFeedComment[];
   event_responses: EventResponder[];
 }
 
@@ -321,6 +336,53 @@ export async function rejectGroupInvite(groupId: string) {
   return { success: true };
 }
 
+// ─── Group Post Comment Reaction ───
+
+export async function toggleGroupPostCommentReaction(
+  groupId: string,
+  postId: number,
+  commentId: number,
+  isLike: number
+) {
+  if (!groupId) return { error: "Group ID is required." };
+
+  const result = await fetchApi<GroupApiResponse<null>>(
+    `/api/groups/${groupId}/posts/${postId}/comments/${commentId}/reaction`,
+    { method: "POST", body: { is_like: isLike } }
+  );
+
+  if (!result.success) return { error: result.error };
+  return { success: true };
+}
+
+// ─── Get Group Members ───
+
+export async function getGroupMembers(groupId: string) {
+  if (!groupId) return { error: "Group ID is required." };
+
+  const result = await fetchApi<GroupApiResponse<number[]>>(
+    `/api/groups/members/${groupId}`,
+    { method: "GET" }
+  );
+
+  if (!result.success) return { error: result.error };
+  return { success: true, data: result.data.data };
+}
+
+// ─── Invite user to group ───
+
+export async function inviteUserToGroup(groupId: string, userId: number) {
+  if (!groupId) return { error: "Group ID is required." };
+
+  const result = await fetchApi<GroupApiResponse<null>>(
+    `/api/groups/${groupId}/invite`,
+    { method: "POST", body: { user_id: userId } }
+  );
+
+  if (!result.success) return { error: result.error };
+  return { success: true };
+}
+
 // ─── Profile Update (server action) ───
 
 export async function updateProfileNickname(formData: FormData) {
@@ -341,6 +403,20 @@ export async function leaveGroup(groupId: string) {
   const result = await fetchApi<GroupApiResponse<null>>(
     `/api/groups/${groupId}/leave`,
     { method: "POST" }
+  );
+
+  if (!result.success) return { error: result.error };
+  return { success: true };
+}
+
+// ─── Update Group ───
+
+export async function updateGroup(groupId: string, formData: FormData) {
+  if (!groupId) return { error: "Group ID is required." };
+
+  const result = await fetchApi<GroupApiResponse<null>>(
+    `/api/groups/${groupId}/update`,
+    { method: "PUT", body: formData }
   );
 
   if (!result.success) return { error: result.error };

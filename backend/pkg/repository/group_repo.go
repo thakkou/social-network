@@ -44,10 +44,11 @@ type GroupFeedItem struct {
 	Author FeedAuthor `json:"author"`
 
 	// Populated for Type == "post"
-	LikesCount    int  `json:"likes_count,omitempty"`
-	DislikesCount int  `json:"dislikes_count,omitempty"`
-	IsLiked       bool `json:"is_liked"`
-	CommentsCount int  `json:"comments_count,omitempty"`
+	LikesCount    int                           `json:"likes_count,omitempty"`
+	DislikesCount int                           `json:"dislikes_count,omitempty"`
+	IsLiked       bool                          `json:"is_liked"`
+	CommentsCount int                           `json:"comments_count,omitempty"`
+	Comments      []GroupPostCommentWithAuthor `json:"comments,omitempty"`
 
 	// Populated for Type == "event"
 	EventResponses []EventResponder `json:"event_responses,omitempty"`
@@ -205,7 +206,7 @@ func (r *GroupRepository) ListGroupPendingRequests(groupID int) ([]PendingReques
 
 func (r *GroupRepository) GetUserGroups(userID int) ([]Group, error) {
 	query := `
-		SELECT g.id, g.creator_id, g.title, COALESCE(g.description, ''), g.created_at
+		SELECT g.id, g.creator_id, g.title, COALESCE(g.description, ''), COALESCE(g.logo, ''), COALESCE(g.background, ''), g.created_at
 		FROM GROUPS g
 		JOIN GROUP_MEMBERS gm ON gm.group_id = g.id
 		WHERE gm.user_id = ?
@@ -221,7 +222,7 @@ func (r *GroupRepository) GetUserGroups(userID int) ([]Group, error) {
 	for rows.Next() {
 		var g Group
 		var createdAt string
-		if err := rows.Scan(&g.ID, &g.CreatorID, &g.Title, &g.Description, &createdAt); err != nil {
+		if err := rows.Scan(&g.ID, &g.CreatorID, &g.Title, &g.Description, &g.Logo, &g.Background, &createdAt); err != nil {
 			return nil, err
 		}
 		g.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
@@ -264,6 +265,28 @@ func (r *GroupRepository) IsGroupMember(groupID, userID int) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (r *GroupRepository) UpdateGroup(groupID, creatorID int, title, description, logo, background string) error {
+	// Verify the caller is the creator
+	var actualCreator int
+	err := r.DB.QueryRow(`SELECT creator_id FROM GROUPS WHERE id = ?`, groupID).Scan(&actualCreator)
+	if err != nil {
+		return fmt.Errorf("group not found")
+	}
+	if actualCreator != creatorID {
+		return fmt.Errorf("only the group creator can update the group")
+	}
+
+	query := `UPDATE GROUPS SET
+		title = COALESCE(NULLIF(?, ''), title),
+		description = COALESCE(NULLIF(?, ''), description),
+		logo = COALESCE(NULLIF(?, ''), logo),
+		background = COALESCE(NULLIF(?, ''), background)
+	WHERE id = ?`
+
+	_, err = r.DB.Exec(query, title, description, logo, background, groupID)
+	return err
 }
 
 func (r *GroupRepository) CreateGroupMessage(groupID, userID int, text string) (*GroupMessage, error) {
@@ -590,6 +613,13 @@ LIMIT ?
 	log.Printf("[GetGroupContent] enrichment completed posts=%d events=%d",
 		len(postEngagement), len(eventResponses))
 
+	// Batch-fetch comments for all posts.
+	postComments, err := r.GetGroupPostCommentsWithAuthors(postIDs, userID)
+	if err != nil {
+		log.Printf("[GetGroupContent] failed getting comments: %v", err)
+		return nil, err
+	}
+
 	// Batch-fetch author profiles for all feed items.
 	authorIDs := make([]int, 0, len(feed))
 	seen := make(map[int]bool, len(feed))
@@ -619,6 +649,9 @@ LIMIT ?
 				item.DislikesCount = e.DislikesCount
 				item.IsLiked = e.IsLiked
 				item.CommentsCount = e.CommentsCount
+			}
+			if comments, ok := postComments[item.ID]; ok {
+				item.Comments = comments
 			}
 		} else {
 			item.EventResponses = eventResponses[item.ID]

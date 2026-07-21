@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"database/sql"
+	"fmt"
 	"time"
 
 	"01social/pkg/utilities"
@@ -22,6 +24,21 @@ type GroupPostComment struct {
 	UserID      int       `json:"user_id"`
 	Text        string    `json:"text"`
 	CreatedAt   time.Time `json:"created_at"`
+}
+
+type GroupPostCommentWithAuthor struct {
+	ID          int    `json:"id"`
+	GroupPostID int    `json:"group_post_id"`
+	UserID      int    `json:"user_id"`
+	Text        string `json:"text"`
+	CreatedAt   string `json:"created_at"`
+	Nickname    string `json:"nickname"`
+	Firstname   string `json:"firstname"`
+	Lastname    string `json:"lastname"`
+	Avatar      string `json:"avatar"`
+	LikesCount  int    `json:"likes_count"`
+	DislikesCount int  `json:"dislikes_count"`
+	IsLiked     int    `json:"is_liked"` // 1 liked, -1 disliked, 0 none
 }
 
 func (r *GroupRepository) ListGroupPosts(groupID int) ([]GroupPost, error) {
@@ -64,6 +81,123 @@ func (r *GroupRepository) ListGroupPostComments(groupPostID int) ([]GroupPostCom
 	return comments, rows.Err()
 }
 
+// GetGroupPostCommentsWithAuthors batch-fetches comments with user profile info for a set of post IDs.
+// Returns a map keyed by post ID.
+func (r *GroupRepository) GetGroupPostCommentsWithAuthors(postIDs []int, userID int) (map[int][]GroupPostCommentWithAuthor, error) {
+	result := make(map[int][]GroupPostCommentWithAuthor, len(postIDs))
+	if len(postIDs) == 0 {
+		return result, nil
+	}
+
+	placeholders, args := utilities.PlaceholdersForInts(postIDs)
+
+	query := `
+SELECT
+    gpc.id,
+    gpc.group_post_id,
+    gpc.user_id,
+    gpc.text,
+    gpc.created_at,
+    COALESCE(u.nickname, '') AS nickname,
+    u.firstname,
+    u.lastname,
+    COALESCE(u.avatar, '') AS avatar
+FROM GROUP_POST_COMMENTS gpc
+JOIN USERS u ON u.id = gpc.user_id
+WHERE gpc.group_post_id IN (` + placeholders + `)
+ORDER BY gpc.created_at ASC
+`
+	rows, err := r.DB.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Collect comment IDs for batch reaction fetch.
+	commentIDs := make([]int, 0)
+	comments := make([]GroupPostCommentWithAuthor, 0)
+	for rows.Next() {
+		var c GroupPostCommentWithAuthor
+		var postID int
+		if err := rows.Scan(&c.ID, &postID, &c.UserID, &c.Text, &c.CreatedAt, &c.Nickname, &c.Firstname, &c.Lastname, &c.Avatar); err != nil {
+			return nil, err
+		}
+		// Store by postID and collect commentID
+		result[postID] = append(result[postID], c)
+		commentIDs = append(commentIDs, c.ID)
+		comments = append(comments, c)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Batch-fetch reactions for all comments (totals)
+	if len(commentIDs) > 0 {
+		reactionPlaceholders, reactionArgs := utilities.PlaceholdersForInts(commentIDs)
+
+		likesQuery := `
+SELECT group_post_comment_id, SUM(CASE WHEN is_like = 1 THEN 1 ELSE 0 END), SUM(CASE WHEN is_like = -1 THEN 1 ELSE 0 END)
+FROM GROUP_POST_COMMENT_REACTIONS
+WHERE group_post_comment_id IN (` + reactionPlaceholders + `)
+GROUP BY group_post_comment_id
+`
+		likesRows, err := r.DB.Query(likesQuery, reactionArgs...)
+		if err == nil {
+			defer likesRows.Close()
+			for likesRows.Next() {
+				var cID, likes, dislikes int
+				if err := likesRows.Scan(&cID, &likes, &dislikes); err != nil {
+					continue
+				}
+				for postID := range result {
+					for i := range result[postID] {
+						if result[postID][i].ID == cID {
+							result[postID][i].LikesCount = likes
+							result[postID][i].DislikesCount = dislikes
+						}
+					}
+				}
+			}
+		}
+
+		// Get user's own reactions
+		userReactionQuery := `
+SELECT group_post_comment_id, is_like
+FROM GROUP_POST_COMMENT_REACTIONS
+WHERE user_id = ? AND group_post_comment_id IN (` + reactionPlaceholders + `)
+`
+		userArgs := append([]interface{}{userID}, commentIDsToInterface(commentIDs)...)
+		userRows, err := r.DB.Query(userReactionQuery, userArgs...)
+		if err == nil {
+			defer userRows.Close()
+			for userRows.Next() {
+				var cID, isLike int
+				if err := userRows.Scan(&cID, &isLike); err != nil {
+					continue
+				}
+				for postID := range result {
+					for i := range result[postID] {
+						if result[postID][i].ID == cID {
+							result[postID][i].IsLiked = isLike
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return result, nil
+}
+
+func commentIDsToInterface(ids []int) []interface{} {
+	result := make([]interface{}, len(ids))
+	for i, id := range ids {
+		result[i] = id
+	}
+	return result
+}
+
 func (r *GroupRepository) CreateGroupPost(gp *GroupPost) error {
 	query := `INSERT INTO GROUP_POSTS (group_id, user_id, title, text, image) VALUES (?, ?, ?, ?, ?)`
 	res, err := r.DB.Exec(query, gp.GroupID, gp.UserID, gp.Title, gp.Text, gp.Image)
@@ -77,6 +211,48 @@ func (r *GroupRepository) CreateGroupPost(gp *GroupPost) error {
 
 func (r *GroupRepository) CreateGroupPostComment(groupPostID, userID int, text string) error {
 	_, err := r.DB.Exec(`INSERT INTO GROUP_POST_COMMENTS (group_post_id, user_id, text) VALUES (?, ?, ?)`, groupPostID, userID, text)
+	return err
+}
+
+// ReactToGroupPostComment creates, updates, or removes a reaction on a group post comment.
+// isLike: 1 = like, -1 = dislike
+func (r *GroupRepository) ReactToGroupPostComment(commentID, userID, isLike int) error {
+	if isLike != 1 && isLike != -1 {
+		return fmt.Errorf("invalid reaction")
+	}
+
+	var oldReaction int
+	err := r.DB.QueryRow(
+		"SELECT is_like FROM GROUP_POST_COMMENT_REACTIONS WHERE group_post_comment_id = ? AND user_id = ?",
+		commentID, userID,
+	).Scan(&oldReaction)
+
+	if err == nil {
+		// Same reaction -> remove (toggle off)
+		if oldReaction == isLike {
+			_, err = r.DB.Exec(
+				"DELETE FROM GROUP_POST_COMMENT_REACTIONS WHERE group_post_comment_id = ? AND user_id = ?",
+				commentID, userID,
+			)
+			return err
+		}
+		// Different reaction -> update
+		_, err = r.DB.Exec(
+			"UPDATE GROUP_POST_COMMENT_REACTIONS SET is_like = ? WHERE group_post_comment_id = ? AND user_id = ?",
+			isLike, commentID, userID,
+		)
+		return err
+	}
+
+	if err != sql.ErrNoRows {
+		return err
+	}
+
+	// No reaction -> insert
+	_, err = r.DB.Exec(
+		"INSERT INTO GROUP_POST_COMMENT_REACTIONS (group_post_comment_id, user_id, is_like) VALUES (?, ?, ?)",
+		commentID, userID, isLike,
+	)
 	return err
 }
 

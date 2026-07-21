@@ -159,7 +159,7 @@ func seedGroupPosts(db *sql.DB, groupIDs, u []int) ([]int, error) {
 	return ids, nil
 }
 
-func seedGroupPostComments(db *sql.DB, groupPostIDs, u []int) error {
+func seedGroupPostComments(db *sql.DB, groupPostIDs, u []int) ([]int, error) {
 	type c struct {
 		GroupPostID, UserID int
 		Text                string
@@ -175,12 +175,43 @@ func seedGroupPostComments(db *sql.DB, groupPostIDs, u []int) error {
 		{groupPostIDs[7], u[1], "Iceland looks incredible in winter."},
 	}
 	query := `INSERT INTO GROUP_POST_COMMENTS (group_post_id, user_id, text) VALUES (?, ?, ?)`
+	ids := make([]int, 0, len(comments))
 	for _, cm := range comments {
-		if _, err := db.Exec(query, cm.GroupPostID, cm.UserID, cm.Text); err != nil {
+		res, err := db.Exec(query, cm.GroupPostID, cm.UserID, cm.Text)
+		if err != nil {
+			return nil, err
+		}
+		id, err := res.LastInsertId()
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, int(id))
+	}
+	log.Printf("[SEED] group_post_comments: %d\n", len(comments))
+	return ids, nil
+}
+
+func seedGroupPostCommentReactions(db *sql.DB, groupPostCommentIDs, u []int) error {
+	type reaction struct {
+		GroupPostCommentID int
+		UserID             int
+		IsLike             int
+	}
+	reactions := []reaction{
+		{groupPostCommentIDs[0], u[1], 1},
+		{groupPostCommentIDs[0], u[5], -1},
+		{groupPostCommentIDs[1], u[3], 1},
+		{groupPostCommentIDs[4], u[0], 1},
+		{groupPostCommentIDs[5], u[4], 1},
+		{groupPostCommentIDs[6], u[0], 1},
+	}
+	query := `INSERT INTO GROUP_POST_COMMENT_REACTIONS (group_post_comment_id, user_id, is_like) VALUES (?, ?, ?)`
+	for _, r := range reactions {
+		if _, err := db.Exec(query, r.GroupPostCommentID, r.UserID, r.IsLike); err != nil {
 			return err
 		}
 	}
-	log.Printf("[SEED] group_post_comments: %d\n", len(comments))
+	log.Printf("[SEED] group_post_comment_reactions: %d\n", len(reactions))
 	return nil
 }
 

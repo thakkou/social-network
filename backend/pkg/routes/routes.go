@@ -169,6 +169,16 @@ func RegisterRoutes() {
 		),
 	)
 
+	// group members
+	// GET /api/groups/members/{id}
+	http.HandleFunc(
+		"/api/groups/members/{id}",
+		middlewares.RateLimit(
+			middlewares.CheckSessionCookie(handlers.GetGroupMembers, true),
+			500*time.Millisecond,
+		),
+	)
+
 	// user routes
 	http.HandleFunc(
 		"/api/users/search",

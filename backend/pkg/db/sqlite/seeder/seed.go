@@ -86,12 +86,18 @@ func Run(db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("seedGroupPosts: %w", err)
 	}
-	if err := seedGroupPostComments(db, groupPostIDs, userIDs); err != nil {
+
+	groupPostCommentIDs, err := seedGroupPostComments(db, groupPostIDs, userIDs)
+	if err != nil {
 		return fmt.Errorf("seedGroupPostComments: %w", err)
 	}
 
 	if err := seedGroupPostReactions(db, groupPostIDs, userIDs); err != nil {
 		return fmt.Errorf("seedGroupPostReactions: %w", err)
+	}
+
+	if err := seedGroupPostCommentReactions(db, groupPostCommentIDs, userIDs); err != nil {
+		return fmt.Errorf("seedGroupPostCommentReactions: %w", err)
 	}
 
 	convIDs, err := seedConversations(db, userIDs)
@@ -119,7 +125,8 @@ func reset(db *sql.DB) error {
 		"EVENT_RESPONSES", "GROUP_EVENTS", "GROUP_MESSAGES",
 		"GROUP_REQUESTS", "GROUP_INVITES", "GROUP_MEMBERS", "GROUPS",
 		"COMMENT_REACTIONS", "POST_REACTIONS", "COMMENTS",
-		"POST_CATEGORY", "POST_ALLOWED_USERS", "POSTS", "GROUP_POST_REACTIONS",
+		"POST_CATEGORY", "POST_ALLOWED_USERS", "POSTS",
+		"GROUP_POST_REACTIONS", "GROUP_POST_COMMENT_REACTIONS",
 		"FOLLOWS", "SESSIONS", "USERS",
 	}
 	if _, err := db.Exec("PRAGMA foreign_keys = OFF"); err != nil {

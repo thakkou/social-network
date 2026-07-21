@@ -156,3 +156,9 @@ func (r *NotificationRepository) DeleteAllByUserID(userID int) error {
 	_, err := r.DB.Exec(query, userID)
 	return err
 }
+
+func (r *NotificationRepository) DeleteNotificationsByTypeAndObject(userID int, notifType string, objectID int) error {
+	query := `DELETE FROM NOTIFICATIONS WHERE user_id = ? AND type = ? AND object_id = ?`
+	_, err := r.DB.Exec(query, userID, notifType, objectID)
+	return err
+}

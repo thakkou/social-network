@@ -9,18 +9,22 @@ import {
   getGroupContent,
   createGroupPost,
   toggleGroupPostReaction,
+  toggleGroupPostCommentReaction,
   createGroupPostComment,
   createGroupEvent,
   respondToEvent,
   requestToJoinGroup,
+  inviteUserToGroup,
   getPendingRequests,
   acceptJoinRequest,
   rejectJoinRequest,
   leaveGroup,
   type GroupPublic,
   type GroupFeedItem,
+  type GroupFeedComment,
   type PendingRequest,
 } from "~/app/api/crud/groups";
+import { search } from "~/app/api/crud/search";
 
 type FeedFilter = "all" | "posts" | "events";
 
@@ -49,12 +53,20 @@ export default function GroupDetailPage() {
   const [showEventForm, setShowEventForm] = useState(false);
   const [eventTitle, setEventTitle] = useState("");
   const [eventDesc, setEventDesc] = useState("");
+  const [eventDate, setEventDate] = useState("");
   const [eventTime, setEventTime] = useState("");
   const [creatingEvent, setCreatingEvent] = useState(false);
 
   // ── Comment state ──
   const [commentText, setCommentText] = useState<Record<number, string>>({});
   const [commentingPost, setCommentingPost] = useState<Record<number, boolean>>({});
+
+  // ── Invite state ──
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteQuery, setInviteQuery] = useState("");
+  const [inviteResults, setInviteResults] = useState<{ id: number; nickname: string; firstname: string; lastname: string; avatar: string }[]>([]);
+  const [inviteSending, setInviteSending] = useState<Record<number, boolean>>({});
+  const [inviteMsg, setInviteMsg] = useState<string | null>(null);
 
   // ── Join / Leave state ──
   const [joining, setJoining] = useState(false);
@@ -167,10 +179,10 @@ export default function GroupDetailPage() {
   };
 
   const handleCreateEvent = async () => {
-    if (!eventTitle.trim() || !eventTime) return;
+    if (!eventTitle.trim() || !eventDate || !eventTime) return;
     setCreatingEvent(true);
     try {
-      const formattedTime = eventTime.replace("T", " ") + ":00";
+      const formattedTime = eventDate + " " + eventTime + ":00";
       const res = await createGroupEvent(groupId, {
         title: eventTitle.trim(),
         description: eventDesc.trim() || undefined,
@@ -179,6 +191,7 @@ export default function GroupDetailPage() {
       if (res.success) {
         setEventTitle("");
         setEventDesc("");
+        setEventDate("");
         setEventTime("");
         setShowEventForm(false);
         await refreshFeed();
@@ -202,6 +215,57 @@ export default function GroupDetailPage() {
       setJoinMessage("something went wrong");
     } finally {
       setJoining(false);
+    }
+  };
+
+  const handleCommentReaction = async (item: GroupFeedItem, commentId: number, isLike: number) => {
+    const res = await toggleGroupPostCommentReaction(groupId, item.id, commentId, isLike);
+    if (res.success) {
+      await refreshFeed();
+    }
+  };
+
+  // ── Invite handlers ──
+
+  const handleInviteSearch = async (query: string) => {
+    setInviteQuery(query);
+    if (!query.trim()) {
+      setInviteResults([]);
+      return;
+    }
+    const res = await search(query);
+    if (res.success) {
+      // Exclude current user and already member users
+      setInviteResults(
+        res.data.profiles
+          .filter((u) => u.id !== currentUserId)
+          .map((u) => ({
+            id: u.id,
+            nickname: u.nickname || `${u.firstname} ${u.lastname}`.trim(),
+            firstname: u.firstname,
+            lastname: u.lastname,
+            avatar: u.avatar || "",
+          }))
+      );
+    }
+  };
+
+  const handleSendInvite = async (userId: number) => {
+    setInviteSending((prev) => ({ ...prev, [userId]: true }));
+    setInviteMsg(null);
+    try {
+      const res = await inviteUserToGroup(groupId, userId);
+      if (res.success) {
+        setInviteMsg("invite sent!");
+        setInviteResults([]);
+        setInviteQuery("");
+      } else {
+        setInviteMsg(res.error ?? "failed");
+      }
+    } catch {
+      setInviteMsg("something went wrong");
+    } finally {
+      setInviteSending((prev) => ({ ...prev, [userId]: false }));
     }
   };
 
@@ -379,7 +443,10 @@ export default function GroupDetailPage() {
                   <button className="btn btn-p">
                     <i className="ti ti-message" /> chat
                   </button>
-                  <button className="btn btn-g">
+                  <button
+                    className="btn btn-g"
+                    onClick={() => setShowInviteModal(true)}
+                  >
                     <i className="ti ti-user-plus" /> invite
                   </button>
                   <button
@@ -534,18 +601,31 @@ export default function GroupDetailPage() {
               style={{ resize: "none" }}
             />
           </div>
-          <div className="form-row">
-            <label className="form-label">Date & Time</label>
-            <input
-              className="inp"
-              type="datetime-local"
-              value={eventTime}
-              onChange={(e) => setEventTime(e.target.value)}
-            />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+            <div className="form-row" style={{ marginBottom: 0 }}>
+              <label className="form-label">Date</label>
+              <input
+                className="inp"
+                type="date"
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+                style={{ fontSize: "11px" }}
+              />
+            </div>
+            <div className="form-row" style={{ marginBottom: 0 }}>
+              <label className="form-label">Time</label>
+              <input
+                className="inp"
+                type="time"
+                value={eventTime}
+                onChange={(e) => setEventTime(e.target.value)}
+                style={{ fontSize: "11px" }}
+              />
+            </div>
           </div>
           <button
             className="btn btn-p"
-            disabled={creatingEvent || !eventTitle.trim() || !eventTime}
+            disabled={creatingEvent || !eventTitle.trim() || !eventDate || !eventTime}
             onClick={() => void handleCreateEvent()}
           >
             {creatingEvent ? "creating..." : <><i className="ti ti-send" /> create event</>}
@@ -844,6 +924,124 @@ export default function GroupDetailPage() {
               </button>
             </div>
 
+            {/* Comments list */}
+            {item.comments && item.comments.length > 0 && (
+              <div
+                style={{
+                  marginTop: 12,
+                  borderTop: "0.5px solid #3a3733",
+                  paddingTop: 10,
+                }}
+              >
+                {item.comments.map((c) => (
+                  <div
+                    key={c.id}
+                    style={{
+                      display: "flex",
+                      gap: 8,
+                      alignItems: "flex-start",
+                      marginBottom: 8,
+                    }}
+                  >
+                    <div
+                      className="av"
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: "50%",
+                        background: c.avatar
+                          ? `url(${c.avatar}) center/cover`
+                          : "#E1F5EE",
+                        color: "#0F6E56",
+                        fontSize: 10,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {!c.avatar &&
+                        (c.nickname?.[0]?.toUpperCase() ||
+                          c.firstname?.[0]?.toUpperCase() ||
+                          "?")}
+                    </div>
+                    <div
+                      style={{
+                        background: "#2e2b27",
+                        border: "0.5px solid #3a3733",
+                        padding: "6px 8px",
+                        fontSize: 12,
+                        color: "#e8e4dc",
+                        lineHeight: 1.5,
+                        flex: 1,
+                        minWidth: 0,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          marginBottom: 2,
+                        }}
+                      >
+                        <strong style={{ fontSize: 11, color: "#D4537E" }}>
+                          {c.nickname ||
+                            `${c.firstname || ""} ${c.lastname || ""}`.trim() ||
+                            "user"}
+                        </strong>
+                        <span style={{ fontSize: 10, color: "#6b6760" }}>
+                          {formatTimeAgo(c.created_at)}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: 12 }}>{c.text}</p>
+                      {/* Comment reaction buttons */}
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 4,
+                          marginTop: 4,
+                        }}
+                      >
+                        <button
+                          className={c.is_liked === 1 ? "btn btn-t" : "btn btn-g"}
+                          style={{
+                            fontSize: 10,
+                            padding: "1px 6px",
+                            border: "none",
+                            background: "none",
+                            color: c.is_liked === 1 ? "#5cd4a0" : "#6b6760",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 2,
+                          }}
+                          onClick={() => void handleCommentReaction(item, c.id, 1)}
+                        >
+                          <i className="ti ti-thumb-up" style={{ fontSize: 10 }} />{" "}
+                          {c.likes_count || 0}
+                        </button>
+                        <button
+                          className={c.is_liked === -1 ? "btn btn-red" : "btn btn-g"}
+                          style={{
+                            fontSize: 10,
+                            padding: "1px 6px",
+                            border: "none",
+                            background: "none",
+                            color: c.is_liked === -1 ? "#e07070" : "#6b6760",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 2,
+                          }}
+                          onClick={() => void handleCommentReaction(item, c.id, -1)}
+                        >
+                          <i className="ti ti-thumb-down" style={{ fontSize: 10 }} />{" "}
+                          {c.dislikes_count || 0}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Comment input */}
             <div className="divider" />
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -874,6 +1072,117 @@ export default function GroupDetailPage() {
           </div>
         )
       )}
+      {/* ── INVITE MODAL ── */}
+      {showInviteModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+          }}
+          onClick={() => { setShowInviteModal(false); setInviteResults([]); setInviteQuery(""); setInviteMsg(null); }}
+        >
+          <div
+            className="card"
+            style={{
+              maxWidth: 400,
+              width: "90%",
+              maxHeight: "70vh",
+              display: "flex",
+              flexDirection: "column",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
+              <p style={{ fontSize: 14, fontWeight: 600, color: "#e8e4dc" }}>
+                Invite to {group.title}
+              </p>
+              <button
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#6b6760",
+                  cursor: "pointer",
+                  fontSize: 16,
+                }}
+                onClick={() => { setShowInviteModal(false); setInviteResults([]); setInviteQuery(""); setInviteMsg(null); }}
+              >
+                <i className="ti ti-x" />
+              </button>
+            </div>
+
+            <input
+              className="inp"
+              value={inviteQuery}
+              onChange={(e) => void handleInviteSearch(e.target.value)}
+              placeholder="Search users by name..."
+              autoFocus
+              style={{ marginBottom: 10 }}
+            />
+
+            {inviteMsg && (
+              <p style={{ fontSize: 11, color: "#5cd4a0", marginBottom: 8 }}>{inviteMsg}</p>
+            )}
+
+            <div style={{ flex: 1, overflowY: "auto" }}>
+              {inviteResults.length === 0 && inviteQuery.trim() && (
+                <p style={{ fontSize: 11, color: "#6b6760", textAlign: "center", padding: 16 }}>
+                  No users found
+                </p>
+              )}
+              {inviteResults.map((u) => (
+                <div
+                  key={u.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "8px 0",
+                    borderBottom: "0.5px solid #3a3733",
+                  }}
+                >
+                  <div
+                    className="av"
+                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: "50%",
+                      background: u.avatar ? `url(${u.avatar}) center/cover` : "#2e1e24",
+                      color: "#D4537E",
+                      fontSize: 11,
+                    }}
+                  >
+                    {!u.avatar && (u.nickname?.[0]?.toUpperCase() || u.firstname?.[0]?.toUpperCase() || "?")}
+                  </div>
+                  <div style={{ flex: 1, fontSize: 12 }}>
+                    {u.nickname || `${u.firstname} ${u.lastname}`.trim()}
+                  </div>
+                  <button
+                    className="btn btn-t"
+                    style={{ fontSize: 10 }}
+                    disabled={inviteSending[u.id]}
+                    onClick={() => void handleSendInvite(u.id)}
+                  >
+                    {inviteSending[u.id] ? "..." : "invite"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── LEAVE CONFIRMATION MODAL ── */}
       {showLeaveConfirm && (
         <div

@@ -276,6 +276,32 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			utilities.WriteJSON(w, http.StatusBadRequest, "invalid post id", nil)
 			return
 		}
+
+		// Handle comment reactions: /api/groups/{id}/posts/{postId}/comments/{commentId}/reaction
+		if len(segments) >= 8 && segments[7] == "reaction" {
+			if r.Method != http.MethodPost {
+				utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+				return
+			}
+			commentID, err := strconv.Atoi(segments[6])
+			if err != nil {
+				utilities.WriteJSON(w, http.StatusBadRequest, "invalid comment id", nil)
+				return
+			}
+			var payload struct {
+				IsLike int `json:"is_like"`
+			}
+			if err := utilities.ReadJSONRequestIntoStruct(r, &payload); err != nil {
+				utilities.WriteJSON(w, http.StatusBadRequest, "invalid request body", nil)
+				return
+			}
+			if err := Repos.Group.ReactToGroupPostComment(commentID, userID, payload.IsLike); err != nil {
+				utilities.WriteJSON(w, http.StatusInternalServerError, "could not react to comment", nil)
+				return
+			}
+			utilities.WriteJSON(w, http.StatusOK, "reaction saved", nil)
+			return
+		}
 		if r.Method == http.MethodGet {
 			comments, err := Repos.Group.ListGroupPostComments(postID)
 			if err != nil {
@@ -379,12 +405,16 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 				utilities.WriteJSON(w, http.StatusInternalServerError, "could not accept request", nil)
 				return
 			}
+			// Remove the join request notification for the creator
+			_ = Repos.Notification.DeleteNotificationsByTypeAndObject(userID, "group_join_request", groupID)
 			utilities.WriteJSON(w, http.StatusOK, "join request accepted", nil)
 		case "reject":
 			if err := Repos.Group.RejectGroupRequest(groupID, targetUserID); err != nil {
 				utilities.WriteJSON(w, http.StatusInternalServerError, "could not reject request", nil)
 				return
 			}
+			// Remove the join request notification for the creator
+			_ = Repos.Notification.DeleteNotificationsByTypeAndObject(userID, "group_join_request", groupID)
 			utilities.WriteJSON(w, http.StatusOK, "join request rejected", nil)
 		default:
 			utilities.WriteJSON(w, http.StatusBadRequest, "invalid action", nil)
@@ -404,12 +434,16 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 				utilities.WriteJSON(w, http.StatusInternalServerError, "could not accept invite", nil)
 				return
 			}
+			// Remove the group invite notification
+			_ = Repos.Notification.DeleteNotificationsByTypeAndObject(userID, "group_invite", groupID)
 			utilities.WriteJSON(w, http.StatusOK, "group invite accepted", nil)
 		case "reject":
 			if err := Repos.Group.RejectGroupInvite(groupID, userID); err != nil {
 				utilities.WriteJSON(w, http.StatusInternalServerError, "could not reject invite", nil)
 				return
 			}
+			// Remove the group invite notification
+			_ = Repos.Notification.DeleteNotificationsByTypeAndObject(userID, "group_invite", groupID)
 			utilities.WriteJSON(w, http.StatusOK, "group invite rejected", nil)
 		default:
 			utilities.WriteJSON(w, http.StatusBadRequest, "invalid action", nil)
@@ -418,6 +452,72 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch endpoint {
+	case "update":
+		if r.Method != http.MethodPut {
+			utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+			return
+		}
+
+		creatorID, err := Repos.Group.GetGroupCreatorID(groupID)
+		if err != nil || creatorID != userID {
+			utilities.WriteJSON(w, http.StatusForbidden, "only the group creator can update", nil)
+			return
+		}
+
+		var title, description, logoPath, backgroundPath string
+
+		contentType := r.Header.Get("Content-Type")
+		if strings.Contains(contentType, "multipart/form-data") {
+			const maxUploadSize int64 = 10 << 20
+			r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+			if err := r.ParseMultipartForm(maxUploadSize); err != nil {
+				utilities.WriteJSON(w, http.StatusBadRequest, "file too large or invalid form", nil)
+				return
+			}
+			title = strings.TrimSpace(r.FormValue("title"))
+			description = strings.TrimSpace(r.FormValue("description"))
+
+			if logoFile, logoHeader, err := r.FormFile("logo"); err == nil {
+				defer logoFile.Close()
+				path, err := utilities.SaveImage(logoFile, logoHeader, "uploads/groups/logos")
+				if err != nil {
+					utilities.WriteJSON(w, http.StatusBadRequest, err.Error(), nil)
+					return
+				}
+				logoPath = path
+			}
+
+			if bgFile, bgHeader, err := r.FormFile("background"); err == nil {
+				defer bgFile.Close()
+				path, err := utilities.SaveImage(bgFile, bgHeader, "uploads/groups/backgrounds")
+				if err != nil {
+					utilities.WriteJSON(w, http.StatusBadRequest, err.Error(), nil)
+					return
+				}
+				backgroundPath = path
+			}
+		} else {
+			var payload struct {
+				Title       string `json:"title"`
+				Description string `json:"description"`
+				Logo        string `json:"logo"`
+				Background  string `json:"background"`
+			}
+			if err := utilities.ReadJSONRequestIntoStruct(r, &payload); err != nil {
+				utilities.WriteJSON(w, http.StatusBadRequest, "invalid request body", nil)
+				return
+			}
+			title = strings.TrimSpace(payload.Title)
+			description = strings.TrimSpace(payload.Description)
+		}
+
+		if err := Repos.Group.UpdateGroup(groupID, userID, title, description, logoPath, backgroundPath); err != nil {
+			utilities.WriteJSON(w, http.StatusInternalServerError, err.Error(), nil)
+			return
+		}
+
+		utilities.WriteJSON(w, http.StatusOK, "group updated", nil)
+
 	case "messages":
 		if r.Method == http.MethodGet {
 			limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
@@ -739,6 +839,27 @@ func GetMyGroups(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utilities.WriteJSON(w, http.StatusOK, "groups fetched", groups)
+}
+
+func GetGroupMembers(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
+
+	groupID, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil || groupID <= 0 {
+		utilities.WriteJSON(w, http.StatusBadRequest, "invalid group id", nil)
+		return
+	}
+
+	memberIDs, err := Repos.Group.GetGroupMemberIDs(groupID)
+	if err != nil {
+		utilities.WriteJSON(w, http.StatusInternalServerError, "could not fetch members", nil)
+		return
+	}
+
+	utilities.WriteJSON(w, http.StatusOK, "members fetched", memberIDs)
 }
 
 func GetGroupContent(w http.ResponseWriter, r *http.Request) {
