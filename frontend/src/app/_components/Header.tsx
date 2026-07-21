@@ -25,8 +25,14 @@ export default async function Header() {
           <i className="ti ti-bell" style={{ fontSize: '14px' }} aria-hidden="true"></i>
           <span className="notif-dot">4</span>
         </Link>
-        <Link className="av" href="/profile">
-          <img src={avatar} width={28} height={28} style={{ background: '#EEEDFE' }} alt="Avatar" />
+        <Link className="av" href="/profile" style={{ width: 28, height: 28, borderRadius: '50%', background: avatar ? 'transparent' : '#EEEDFE', overflow: 'hidden', textDecoration: 'none' }}>
+          {avatar ? (
+            <img src={avatar} width={28} height={28} alt="Avatar" style={{ objectFit: 'cover' }} />
+          ) : (
+            <span style={{ color: '#534AB7', fontSize: 11, fontWeight: 600 }}>
+              {session?.user?.nickname?.[0]?.toUpperCase() || session?.user?.firstname?.[0]?.toUpperCase() || '?'}
+            </span>
+          )}
         </Link>
         <LogoutBtn />
       </div>

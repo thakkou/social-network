@@ -22,13 +22,16 @@ function colorFor(id: number) {
   return GROUP_COLORS[Math.abs(id) % GROUP_COLORS.length];
 }
 
+type MyGroup = { id: number; title: string };
+type FollowingUser = { id: number; nickname: string; firstname: string; lastname: string; avatar: string };
+
 export default function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const userId = session?.user?.id;
 
-  const [myGroups, setMyGroups] = useState<{ id: number; title: string }[]>([]);
-  const [following, setFollowing] = useState<{ id: number; nickname: string; firstname: string; lastname: string; avatar: string }[]>([]);
+  const [myGroups, setMyGroups] = useState<MyGroup[]>([]);
+  const [following, setFollowing] = useState<FollowingUser[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(true);
   const [loadingDirect, setLoadingDirect] = useState(true);
 
@@ -37,7 +40,7 @@ export default function Sidebar() {
     const load = async () => {
       setLoadingGroups(true);
       const res = await getUserGroups();
-      if (res.success) setMyGroups(res.data);
+      if (res.success) setMyGroups(res.data ?? []);
       setLoadingGroups(false);
     };
     void load();
@@ -48,8 +51,8 @@ export default function Sidebar() {
     const load = async () => {
       setLoadingDirect(true);
       const res = await getProfileData(userId);
-      if (res.success && res.data.following) {
-        setFollowing(res.data.following);
+      if (res.success && res.data?.following) {
+        setFollowing(res.data.following ?? []);
       }
       setLoadingDirect(false);
     };
@@ -65,7 +68,7 @@ export default function Sidebar() {
           key={link.label}
           className={`navlink ${
             pathname === link.href ||
-            (link.href !== '/' && pathname.startsWith(link.href))
+            (link.href !== '/' && pathname?.startsWith(link.href))
             ? 'active'
             : ''
           }`}
@@ -81,18 +84,18 @@ export default function Sidebar() {
       <p className="sec-label">my groups</p>
       {loadingGroups ? (
         <div className="navlink" style={{ fontSize: '10px', color: '#6b6760' }}>loading...</div>
-      ) : myGroups.length === 0 ? (
+      ) : (myGroups?.length ?? 0) === 0 ? (
         <div className="navlink" style={{ fontSize: '10px', color: '#6b6760' }}>no groups yet</div>
       ) : (
-        myGroups.map(g => (
+        myGroups?.map(g => (
           <Link
-            key={g.id}
-            href={`/groups/${g.id}`}
+            key={g?.id ?? 0}
+            href={`/groups/${g?.id ?? 0}`}
             className="navlink"
             style={{ fontSize: '11px', textDecoration: 'none' }}
           >
-            <span style={{ width:'6px', height:'6px', background: colorFor(g.id), display: 'inline-block', flexShrink:0 }}></span>
-            {g.title}
+            <span style={{ width:'6px', height:'6px', background: colorFor(g?.id ?? 0), display: 'inline-block', flexShrink:0 }}></span>
+            {g?.title ?? ''}
           </Link>
         ))
       )}
@@ -108,23 +111,23 @@ export default function Sidebar() {
       <p className="sec-label">following</p>
       {loadingDirect ? (
         <div className="navlink" style={{ fontSize: '10px', color: '#6b6760' }}>loading...</div>
-      ) : following.length === 0 ? (
+      ) : (following?.length ?? 0) === 0 ? (
         <div className="navlink" style={{ fontSize: '10px', color: '#6b6760' }}>not following anyone yet</div>
       ) : (
-        following.map(u => (
+        following?.map(u => (
           <Link
-            key={u.id}
-            href={`/profile/${u.id}`}
+            key={u?.id ?? 0}
+            href={`/profile/${u?.id ?? 0}`}
             className="navlink"
             style={{ fontSize: '11px', textDecoration: 'none' }}
           >
-            <div className="av" style={{ width:'20px', height:'20px', background: colorFor(u.id), color: '#fff', fontSize:'9px', display:'flex', alignItems:'center', justifyContent:'center', flexShrink: 0 }}>
-              {u.nickname
-                ? u.nickname.charAt(0).toUpperCase()
-                : (u.firstname?.charAt(0) || '?').toUpperCase()
+            <div className="av" style={{ width:'20px', height:'20px', background: colorFor(u?.id ?? 0), color: '#fff', fontSize:'9px', display:'flex', alignItems:'center', justifyContent:'center', flexShrink: 0 }}>
+              {u?.nickname
+                ? (u.nickname[0]?.toUpperCase() ?? '?')
+                : (u?.firstname?.[0]?.toUpperCase() ?? '?')
               }
             </div>
-            {u.nickname || `${u.firstname || ''} ${u.lastname || ''}`.trim()}
+            {u?.nickname || `${u?.firstname ?? ''} ${u?.lastname ?? ''}`.trim()}
           </Link>
         ))
       )}

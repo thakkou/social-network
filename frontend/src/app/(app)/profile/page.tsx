@@ -47,7 +47,7 @@ export default function Profile() {
       setGroupsLoading(true);
       const res = await getUserGroups();
       if (res.success) {
-        setGroups(res.data);
+        setGroups(res.data ?? []);
       }
       setGroupsLoading(false);
     };
@@ -231,12 +231,12 @@ export default function Profile() {
             <div className="card" style={{ textAlign: "center", padding: "16px" }}>
               <p style={{ fontSize: 12, color: "#a09c94" }}>Loading groups...</p>
             </div>
-          ) : groups.length === 0 ? (
+          ) : (groups ?? []).length === 0 ? (
             <div className="card" style={{ textAlign: "center", padding: "16px" }}>
               <p style={{ fontSize: 12, color: "#6b6760" }}>Not a member of any group yet.</p>
             </div>
           ) : (
-            groups.map((g) => (
+            (groups ?? []).map((g) => (
               <div key={g.id} className="card">
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <span
