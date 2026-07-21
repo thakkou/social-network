@@ -859,7 +859,20 @@ func GetGroupMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utilities.WriteJSON(w, http.StatusOK, "members fetched", memberIDs)
+	members, err := Repos.Group.GetUsersByIDs(memberIDs)
+	if err != nil {
+		utilities.WriteJSON(w, http.StatusInternalServerError, "could not fetch member profiles", nil)
+		return
+	}
+
+	result := make([]repository.FeedAuthor, 0, len(memberIDs))
+	for _, id := range memberIDs {
+		if m, ok := members[id]; ok {
+			result = append(result, m)
+		}
+	}
+
+	utilities.WriteJSON(w, http.StatusOK, "members fetched", result)
 }
 
 func GetGroupContent(w http.ResponseWriter, r *http.Request) {

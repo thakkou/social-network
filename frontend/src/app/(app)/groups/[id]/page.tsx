@@ -19,10 +19,12 @@ import {
   acceptJoinRequest,
   rejectJoinRequest,
   leaveGroup,
+  getGroupMembers,
   type GroupPublic,
   type GroupFeedItem,
   type GroupFeedComment,
   type PendingRequest,
+  type FeedAuthor,
 } from "~/app/api/crud/groups";
 import { search } from "~/app/api/crud/search";
 
@@ -67,6 +69,11 @@ export default function GroupDetailPage() {
   const [inviteResults, setInviteResults] = useState<{ id: number; nickname: string; firstname: string; lastname: string; avatar: string }[]>([]);
   const [inviteSending, setInviteSending] = useState<Record<number, boolean>>({});
   const [inviteMsg, setInviteMsg] = useState<string | null>(null);
+
+  // ── Members modal state ──
+  const [showMembers, setShowMembers] = useState(false);
+  const [members, setMembers] = useState<FeedAuthor[]>([]);
+  const [membersLoading, setMembersLoading] = useState(false);
 
   // ── Join / Leave state ──
   const [joining, setJoining] = useState(false);
@@ -440,6 +447,18 @@ export default function GroupDetailPage() {
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {isMember ? (
                 <>
+                  <button
+                    className="btn btn-g"
+                    onClick={async () => {
+                      setShowMembers(true);
+                      setMembersLoading(true);
+                      const res = await getGroupMembers(groupId);
+                      if (res.success) setMembers(res.data);
+                      setMembersLoading(false);
+                    }}
+                  >
+                    <i className="ti ti-users" /> members
+                  </button>
                   <button className="btn btn-p">
                     <i className="ti ti-message" /> chat
                   </button>
@@ -479,26 +498,26 @@ export default function GroupDetailPage() {
         </div>
       </div>
 
-      {/* ── FILTER + CREATE TOOLBAR ── */}
-      <div
-        className="card"
-        style={{
-          display: "flex",
-          gap: 10,
-          padding: 8,
-          flexWrap: "wrap",
-        }}
-      >
-        {(["all", "posts", "events"] as FeedFilter[]).map((f) => (
-          <button
-            key={f}
-            className={filter === f ? "btn btn-p" : "btn btn-g"}
-            onClick={() => setFilter(f)}
-          >
-            {f === "all" ? "all" : f}
-          </button>
-        ))}
-        {isMember && (
+      {/* ── FILTER + CREATE TOOLBAR (members only) ── */}
+      {isMember && (
+        <div
+          className="card"
+          style={{
+            display: "flex",
+            gap: 10,
+            padding: 8,
+            flexWrap: "wrap",
+          }}
+        >
+          {(["all", "posts", "events"] as FeedFilter[]).map((f) => (
+            <button
+              key={f}
+              className={filter === f ? "btn btn-p" : "btn btn-g"}
+              onClick={() => setFilter(f)}
+            >
+              {f === "all" ? "all" : f}
+            </button>
+          ))}
           <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
             <button
               className="btn btn-t"
@@ -507,11 +526,11 @@ export default function GroupDetailPage() {
               <i className="ti ti-calendar-plus" /> {showEventForm ? "cancel" : "event"}
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ── PENDING REQUESTS (creator only) ── */}
-      {isCreator && pendingRequests.length > 0 && (
+      {isCreator && pendingRequests?.length > 0 && (
         <div className="card">
           <p style={{ fontSize: 12, color: "#a09c94", marginBottom: 12 }}>
             Pending join requests ({pendingRequests.length})
@@ -724,7 +743,25 @@ export default function GroupDetailPage() {
       )}
 
       {/* ── FEED ── */}
-      {filteredFeed.length === 0 && (
+      {!isMember ? (
+        <div className="card" style={{ textAlign: "center", padding: "32px" }}>
+          <div
+            style={{
+              fontSize: 28,
+              color: "#6b6760",
+              marginBottom: 12,
+            }}
+          >
+            <i className="ti ti-lock" />
+          </div>
+          <p style={{ fontSize: 13, fontWeight: 500, color: "#a09c94", marginBottom: 4 }}>
+            Join this group to see content
+          </p>
+          <p style={{ fontSize: 11, color: "#6b6760" }}>
+            Posts, events, and comments are only visible to members.
+          </p>
+        </div>
+      ) : filteredFeed.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: "24px" }}>
           <p style={{ fontSize: 12, color: "#6b6760" }}>
             {filter === "events"
@@ -734,7 +771,7 @@ export default function GroupDetailPage() {
                 : "No content yet."}
           </p>
         </div>
-      )}
+      ) : null}
 
       {filteredFeed.map((item) =>
         item.type === "event" ? (
@@ -903,14 +940,14 @@ export default function GroupDetailPage() {
             {/* Action buttons */}
             <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
               <button
-                className={item.is_liked ? "btn btn-p" : "btn btn-g"}
+                className={item.is_liked === 1 ? "btn btn-p" : "btn btn-g"}
                 style={{ display: "flex", alignItems: "center", gap: 4 }}
                 onClick={() => void handleReaction(item, 1)}
               >
                 <i className="ti ti-thumb-up" /> {item.likes_count}
               </button>
               <button
-                className="btn btn-g"
+                className={item.is_liked === -1 ? "btn btn-red" : "btn btn-g"}
                 style={{ display: "flex", alignItems: "center", gap: 4 }}
                 onClick={() => void handleReaction(item, -1)}
               >
@@ -1178,6 +1215,116 @@ export default function GroupDetailPage() {
                   </button>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MEMBERS MODAL ── */}
+      {showMembers && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+          }}
+          onClick={() => setShowMembers(false)}
+        >
+          <div
+            className="card"
+            style={{
+              maxWidth: 360,
+              width: "90%",
+              maxHeight: "70vh",
+              display: "flex",
+              flexDirection: "column",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 10,
+              }}
+            >
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#e8e4dc" }}>
+                Members ({members.length})
+              </p>
+              <button
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#6b6760",
+                  cursor: "pointer",
+                  fontSize: 16,
+                }}
+                onClick={() => setShowMembers(false)}
+              >
+                <i className="ti ti-x" />
+              </button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: "auto" }}>
+              {membersLoading ? (
+                <p style={{ fontSize: 11, color: "#6b6760", textAlign: "center", padding: 16 }}>
+                  Loading...
+                </p>
+              ) : members.length === 0 ? (
+                <p style={{ fontSize: 11, color: "#6b6760", textAlign: "center", padding: 16 }}>
+                  No members found
+                </p>
+              ) : (
+                members.map((m) => (
+                  <div
+                    key={m.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "6px 0",
+                      borderBottom: "0.5px solid #3a3733",
+                    }}
+                  >
+                    <div
+                      className="av"
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
+                        background: m.avatar
+                          ? `url(${m.avatar}) center/cover`
+                          : "#2e1e24",
+                        color: "#D4537E",
+                        fontSize: 10,
+                      }}
+                    >
+                      {!m.avatar &&
+                        (m.nickname?.[0]?.toUpperCase() ||
+                          m.firstname?.[0]?.toUpperCase() ||
+                          "?")}
+                    </div>
+                    <div style={{ fontSize: 11 }}>
+                      {m.nickname ||
+                        `${m.firstname} ${m.lastname}`.trim() ||
+                        "Unknown"}
+                    </div>
+                    {m.id === group?.creator_id && (
+                      <span
+                        className="tag tag-pink"
+                        style={{ fontSize: 9, marginLeft: "auto" }}
+                      >
+                        admin
+                      </span>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

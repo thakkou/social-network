@@ -46,7 +46,7 @@ type GroupFeedItem struct {
 	// Populated for Type == "post"
 	LikesCount    int                           `json:"likes_count,omitempty"`
 	DislikesCount int                           `json:"dislikes_count,omitempty"`
-	IsLiked       bool                          `json:"is_liked"`
+	IsLiked       int                           `json:"is_liked"`
 	CommentsCount int                           `json:"comments_count,omitempty"`
 	Comments      []GroupPostCommentWithAuthor `json:"comments,omitempty"`
 

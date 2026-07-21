@@ -258,10 +258,11 @@ func (r *GroupRepository) ReactToGroupPostComment(commentID, userID, isLike int)
 
 // PostEngagement holds the enrichment data attached to a post in the feed:
 // like/dislike counts, whether the requesting user liked it, and comment count.
+// IsLiked: 1 = liked, -1 = disliked, 0 = no reaction
 type PostEngagement struct {
 	LikesCount    int  `json:"likes_count"`
 	DislikesCount int  `json:"dislikes_count"`
-	IsLiked       bool `json:"is_liked"`
+	IsLiked       int  `json:"is_liked"`
 	CommentsCount int  `json:"comments_count"`
 }
 
@@ -311,29 +312,30 @@ GROUP BY group_post_id, is_like
 		return nil, err
 	}
 
-	// Whether the requesting user liked each post.
-	likedQuery := `
-SELECT group_post_id
+	// Whether the requesting user liked or disliked each post.
+	userReactionQuery := `
+SELECT group_post_id, is_like
 FROM GROUP_POST_REACTIONS
-WHERE user_id = ? AND is_like = 1 AND group_post_id IN (` + placeholders + `)
+WHERE user_id = ? AND group_post_id IN (` + placeholders + `)
 `
-	likedArgs := append([]interface{}{userID}, args...)
-	likedRows, err := r.DB.Query(likedQuery, likedArgs...)
+	userReactionArgs := append([]interface{}{userID}, args...)
+	userRows, err := r.DB.Query(userReactionQuery, userReactionArgs...)
 	if err != nil {
 		return nil, err
 	}
-	defer likedRows.Close()
+	defer userRows.Close()
 
-	for likedRows.Next() {
+	for userRows.Next() {
 		var postID int
-		if err := likedRows.Scan(&postID); err != nil {
+		var isLike int
+		if err := userRows.Scan(&postID, &isLike); err != nil {
 			return nil, err
 		}
 		e := engagement[postID]
-		e.IsLiked = true
+		e.IsLiked = isLike
 		engagement[postID] = e
 	}
-	if err := likedRows.Err(); err != nil {
+	if err := userRows.Err(); err != nil {
 		return nil, err
 	}
 

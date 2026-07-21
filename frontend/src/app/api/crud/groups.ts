@@ -83,7 +83,7 @@ export interface GroupFeedItem {
   author: FeedAuthor;
   likes_count: number;
   dislikes_count: number;
-  is_liked: boolean;
+  is_liked: number; // 1 = liked, -1 = disliked, 0 = no reaction
   comments_count: number;
   comments: GroupFeedComment[];
   event_responses: EventResponder[];
@@ -355,12 +355,12 @@ export async function toggleGroupPostCommentReaction(
   return { success: true };
 }
 
-// ─── Get Group Members ───
+// ─── Get Group Members (returns enriched profiles) ───
 
 export async function getGroupMembers(groupId: string) {
   if (!groupId) return { error: "Group ID is required." };
 
-  const result = await fetchApi<GroupApiResponse<number[]>>(
+  const result = await fetchApi<GroupApiResponse<FeedAuthor[]>>(
     `/api/groups/members/${groupId}`,
     { method: "GET" }
   );

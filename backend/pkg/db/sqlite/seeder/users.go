@@ -21,6 +21,8 @@ var seedUsersData = []seedUser{
 	{"Farid", "El Amrani", "farid@example.com", "", "Backend > frontend, fight me.", "1993-03-09", "/uploads/seeder/avatars/lofi.jpeg", 0},
 	{"Grace", "Lee", "grace@example.com", "", "", "2000-09-27", "", 0},
 	{"Hugo", "Costa", "hugo@example.com", "costa77", "Music producer.", "1995-12-14", "", 0},
+	{"Isabella", "Rossi", "isabella@example.com", "bella", "Art & design lover.", "1998-07-22", "", 0},
+	{"Jack", "Thompson", "jack@example.com", "", "Open source contributor.", "1992-10-05", "", 0},
 }
 
 func seedUsers(db *sql.DB, hashedPW string) ([]int, error) {

@@ -159,10 +159,10 @@ export default function Settings() {
     setInviteQuery("");
     setInviteResults([]);
     setInviteMsg(null);
-    // Fetch existing member IDs
+    // Fetch existing member profiles
     const res = await getGroupMembers(String(groupId));
     if (res.success) {
-      setMemberIDs(res.data);
+      setMemberIDs(res.data.map((m) => m.id));
     }
   };
 
