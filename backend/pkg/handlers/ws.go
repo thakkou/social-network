@@ -20,24 +20,15 @@ var upgrader = websocket.Upgrader{
 }
 
 func HandlerWs(w http.ResponseWriter, r *http.Request) {
-	var sessionToken string
-
-	// Try cookie first, then fall back to query parameter (for cross-origin frontends)
-	cookie, err := r.Cookie("session_id")
-	if err == nil && cookie.Value != "" {
-		sessionToken = cookie.Value
-	} else {
-		sessionToken = r.URL.Query().Get("session_id")
-	}
-
-	if sessionToken == "" {
-		http.Error(w, `{"error":"not authenticated"}`, http.StatusUnauthorized)
+	ticket := r.URL.Query().Get("ticket")
+	if ticket == "" {
+		http.Error(w, `{"error":"missing ticket"}`, http.StatusUnauthorized)
 		return
 	}
 
-	id, err := utilities.GetUserIDFromCookie(sessionToken)
+	id, err := utilities.RedeemTicket(ticket)
 	if err != nil {
-		http.Error(w, `{"error":"not authenticated"}`, http.StatusUnauthorized)
+		http.Error(w, `{"error":"invalid or expired ticket"}`, http.StatusUnauthorized)
 		return
 	}
 

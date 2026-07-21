@@ -104,3 +104,9 @@ body{font-family:'JetBrains Mono',monospace,'Courier New',monospace;background:#
 .notif-item{padding:8px 10px;border-left:2px solid;margin-bottom:6px;font-size:12px}
 .post-privacy-row{display:flex;align-items:center;gap:6px;margin-top:6px}
 select.inp{cursor:pointer}
+
+/* typing indicator dots animation */
+.typing-dots span{animation:blink 1.4s infinite both;font-size:14px;font-weight:700;color:#a09c94}
+.typing-dots span:nth-child(2){animation-delay:0.2s}
+.typing-dots span:nth-child(3){animation-delay:0.4s}
+@keyframes blink{0%,60%,100%{opacity:0.2}30%{opacity:1}}

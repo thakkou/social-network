@@ -250,13 +250,11 @@ func (r *PostRepository) GetPostsUserID(userID int) ([]Post, error) {
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("post befaure", p.LikeCount, p.DislikeCount, p.IsLiked)
 		// Enrich the post with metadata stats
 		if err := r.EnrichPostMetadata(userID, &p); err != nil {
 			fmt.Println("error enrishing post")
 			return nil, err
 		}
-		fmt.Println("post after", p.LikeCount, p.DislikeCount, p.IsLiked)
 
 		posts = append(posts, p)
 	}

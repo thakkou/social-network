@@ -21,6 +21,7 @@ services:
     environment:
       - NODE_ENV=production
       - GO_BACKEND_URL=http://backend:8080
+      - NEXT_PUBLIC_GO_BACKEND_URL=http://localhost:8080
       - AUTH_SECRET=change-this-to-a-random-secret-in-production
       - SKIP_ENV_VALIDATION=1
     depends_on:

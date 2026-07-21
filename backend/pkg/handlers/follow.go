@@ -97,10 +97,6 @@ func FollowResolver(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("Action:", resolver)
-	fmt.Println("Current user:", userID)
-	fmt.Println("Target user:", targetID)
-
 	switch resolver {
 
 	case "follow":

@@ -12,8 +12,7 @@ import {
 import { useSession } from "next-auth/react";
 import { useToast } from "~/app/_components/Toast";
 
-// ─── Types ───
-
+// ─── Types & Context Setup ───
 type WSEventHandler = (data: any) => void;
 
 interface WSContextType {
@@ -30,55 +29,13 @@ const WSContext = createContext<WSContextType>({
   socket: null,
   connected: false,
   onlineUsers: [],
-  on: (() => noop) as (event: string, handler: WSEventHandler) => () => void,
+  on: () => noop,
   send: noop,
 });
 
 export function useWS() {
   return useContext(WSContext);
 }
-
-// ─── Event label helpers ───
-
-function toastLabel(eventType: string): string {
-  switch (eventType) {
-    case "new_message":
-      return "💬 New message";
-    case "new_group_message":
-      return "💬 Group message";
-    case "like_posts":
-      return "❤️ Post liked";
-    case "new_comments":
-      return "💬 New comment";
-    case "new_posts":
-      return "📝 New post";
-    case "group_event":
-      return "📅 Group event";
-    case "group_invite":
-      return "👋 Group invite";
-    case "group_join_request":
-      return "🔔 Join request";
-    case "client_connect":
-      return "🟢 User online";
-    case "client_disconnect":
-      return "🔴 User offline";
-    default:
-      return "🔔 Notification";
-  }
-}
-
-function toastMessage(eventType: string, data: any): string | undefined {
-  if (typeof data === "string") {
-    // For client_connect / client_disconnect — data is the user ID string
-    return data ? `User #${data}` : undefined;
-  }
-  if (data?.text) return data.text.slice(0, 80);
-  if (data?.nickname) return `from ${data.nickname}`;
-  if (data?.title) return data.title;
-  return undefined;
-}
-
-// ─── Provider ───
 
 export function WSProvider({ children }: { children: ReactNode }) {
   const { data: session } = useSession();
@@ -89,134 +46,171 @@ export function WSProvider({ children }: { children: ReactNode }) {
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const handlersRef = useRef<Map<string, Set<WSEventHandler>>>(new Map());
 
-  // Reconnect info
   const reconnectAttempt = useRef(0);
   const maxReconnect = 10;
 
+  // ── Listener Registration Log ──
   const on = useCallback((event: string, handler: WSEventHandler): (() => void) => {
+    console.log(`[WS] 🎧 Registering listener for event: "${event}"`);
     const handlers = handlersRef.current;
     if (!handlers.has(event)) {
       handlers.set(event, new Set());
     }
-    const eventHandlers = handlers.get(event);
-    if (eventHandlers) {
-      eventHandlers.add(handler);
-    }
+    handlers.get(event)?.add(handler);
+
     return () => {
+      console.log(`[WS] 🔕 Unsubscribing listener for event: "${event}"`);
       handlers.get(event)?.delete(handler);
     };
   }, []);
 
+  // ── Outbound Message Logs ──
   const send = useCallback((eventType: string, data: any) => {
     const ws = socketRef.current;
     if (ws?.readyState === WebSocket.OPEN) {
+      console.log(`[WS] 📤 Sending message: "${eventType}"`, data);
       ws.send(JSON.stringify({ event_type: eventType, data }));
+    } else {
+      console.warn(
+        `[WS] ⚠️ Cannot send "${eventType}": WebSocket is not connected (State: ${ws?.readyState ?? "NO_SOCKET"})`
+      );
     }
   }, []);
 
-  // ── Connect / disconnect based on session ──
+  // ── Connect / Disconnect Lifecycle ──
   useEffect(() => {
-    if (!session?.user?.session_id) return;
+    const sessionId = session?.user?.session_id;
 
-    const backendUrl = process.env.NEXT_PUBLIC_GO_BACKEND_URL || process.env.GO_BACKEND_URL;
-    if (!backendUrl) return;
+    if (!sessionId) {
+      console.log("[WS] ⏳ Waiting for user session_id (User not logged in or session loading)...");
+      return;
+    }
+
+    const backendUrl = process.env.NEXT_PUBLIC_GO_BACKEND_URL;
+
+    if (!backendUrl) {
+      console.error("[WS] ❌ Missing NEXT_PUBLIC_GO_BACKEND_URL environment variable.");
+      return;
+    }
 
     const wsBase = backendUrl.replace(/^http/, "ws");
-    const wsUrl = `${wsBase}/ws?session_id=${session.user.session_id}`;
 
     let ws: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
-    function connect() {
+    async function fetchTicket(): Promise<string | null> {
+      try {
+        const res = await fetch("/api/ws-ticket", { method: "POST" });
+        if (!res.ok) {
+          console.error("[WS] ❌ Ticket fetch failed:", res.status);
+          return null;
+        }
+        const body = await res.json();
+        return body.ticket ?? null;
+      } catch (err) {
+        console.error("[WS] ❌ Ticket fetch error:", err);
+        return null;
+      }
+    }
+
+    async function connect() {
+      const ticket = await fetchTicket();
+      if (!ticket) {
+        console.error("[WS] 🛑 Could not obtain WS ticket, skipping connect.");
+        return;
+      }
+
+      const wsUrl = `${wsBase}/ws?ticket=${encodeURIComponent(ticket)}`;
+
+      console.log(
+        `[WS] 🔌 Connecting to Go WebSocket (Attempt ${reconnectAttempt.current + 1}/${maxReconnect})...`
+      );
+      console.log(`[WS] 🔗 URL: ${wsUrl}`);
+      
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
+        console.log("[WS] ✅ Connected successfully!");
         reconnectAttempt.current = 0;
         setConnected(true);
         socketRef.current = ws;
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
+        console.log(
+          `[WS] ❌ Connection closed. Code: ${event.code}, Reason: "${event.reason || "None"}", Clean: ${event.wasClean}`
+        );
         setConnected(false);
         socketRef.current = null;
 
-        // Auto-reconnect
         if (reconnectAttempt.current < maxReconnect) {
           reconnectAttempt.current++;
           const delay = Math.min(1000 * 2 ** reconnectAttempt.current, 30000);
-          reconnectTimer = setTimeout(connect, delay);
+          console.log(`[WS] ⏳ Reconnecting in ${delay / 1000}s...`);
+          reconnectTimer = setTimeout(() => { connect(); }, delay);
+        } else {
+          console.error("[WS] 🛑 Reached maximum reconnection attempts. Giving up.");
         }
+      };
+
+      ws.onerror = (err) => {
+        console.error("[WS] ⚠️ Connection error encountered:", err);
       };
 
       ws.onmessage = (event: MessageEvent) => {
         try {
-          const msg: Record<string, any> = JSON.parse(event.data as string);
+          const msg = JSON.parse(event.data as string);
           const eventType: string = msg.event_type ?? "";
           const data: any = msg.data;
 
-          // ── Handle built-in events ──
+          console.log(`[WS] 📩 Received event: "${eventType}"`, data);
 
-          // "init" — contains the online user list
+          // Handle online status events
           if (eventType === "init" && Array.isArray(data)) {
+            console.log("[WS] 👥 Initialized online users list:", data);
             setOnlineUsers(data);
             return;
           }
 
-          // client_connect / client_disconnect — update online user list
           if (eventType === "client_connect" && typeof data === "string") {
-            const uid: string = data;
-            setOnlineUsers((prev) =>
-              prev.includes(uid) ? prev : [...prev, uid]
-            );
+            console.log(`[WS] 🟢 User came online: ${data}`);
+            setOnlineUsers((prev) => (prev.includes(data) ? prev : [...prev, data]));
           }
+
           if (eventType === "client_disconnect" && typeof data === "string") {
-            const uid: string = data;
-            setOnlineUsers((prev) => prev.filter((id) => id !== uid));
+            console.log(`[WS] 🔴 User went offline: ${data}`);
+            setOnlineUsers((prev) => prev.filter((id) => id !== data));
           }
 
-          // ── Show a toast for relevant events ──
-          const skipToasts = ["typing:start", "typing:stop", "test_event", "client_connect", "client_disconnect"];
-          if (!skipToasts.includes(eventType)) {
-            addToast({
-              type: "info",
-              title: toastLabel(eventType),
-              message: toastMessage(eventType, data),
-              duration: 4000,
-            });
-          }
-
-          // ── Dispatch to custom handlers ──
+          // Trigger custom registered event listeners
           const handlers = handlersRef.current.get(eventType);
-          if (handlers) {
+          if (handlers && handlers.size > 0) {
+            console.log(`[WS] 🚀 Dispatching "${eventType}" to ${handlers.size} listener(s)`);
             for (const handler of handlers) {
-              try {
-                handler(data);
-              } catch (e) {
-                console.error(`[WS] handler error for ${eventType}:`, e);
-              }
+              handler(data);
             }
+          } else {
+            console.log(`[WS] ℹ️ No custom listener registered for event "${eventType}"`);
           }
         } catch (e) {
-          console.error("[WS] error parsing message:", e);
+          console.error("[WS] ❌ Error parsing incoming message:", e, "Raw payload:", event.data);
         }
-      };
-
-      ws.onerror = () => {
-        // onclose will fire after this
       };
     }
 
     connect();
 
     return () => {
+      console.log("[WS] 🛑 Cleaning up WebSocket connection (Route change or logout)...");
       if (reconnectTimer) clearTimeout(reconnectTimer);
-      reconnectAttempt.current = maxReconnect; // prevent reconnect on unmount
+      reconnectAttempt.current = maxReconnect; // Prevent reconnect on cleanup
       if (ws) {
-        ws.onclose = null; // prevent reconnect logic during cleanup
+        ws.onclose = null;
         ws.close();
+        console.log("[WS] 🔒 Socket closed cleanly.");
       }
     };
-  }, [session?.user?.session_id, addToast]);
+  }, [session?.user?.session_id]);
 
   return (
     <WSContext.Provider value={{ socket: socketRef.current, connected, onlineUsers, on, send }}>

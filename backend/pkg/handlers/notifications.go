@@ -85,12 +85,10 @@ func GetNotifications(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("get notification for user", notifType, userID)
 	notifs, err := Repos.Notification.GetByUserID(userID, notifType)
 
 	// start enrish the notifications
 	notifRes := EnrishNotif(notifs)
-	fmt.Println("", notifRes)
 	if err != nil {
 		fmt.Println("errors", err)
 		utilities.WriteJSON(w, http.StatusInternalServerError, "could not fetch notifications", nil)

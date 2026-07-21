@@ -142,6 +142,14 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 			"nickname":   user.Nickname,
 			"text":       comment.Text[:min(len(comment.Text), 80)],
 		})
+
+		Repos.Notification.Create(&repository.Notification{
+			UserID:     postAuthor,
+			ActorID:    userID,
+			Type:       "comment",
+			ObjectType: "post",
+			ObjectID:   postID,
+		})
 	}
 
 	utilities.WriteJSON(w, http.StatusCreated, "comment created successfully", res)

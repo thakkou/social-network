@@ -225,6 +225,15 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if broadcaster, err := Repos.User.GetByID(userID); err == nil {
+		ws.BroadcastExcept(strconv.Itoa(userID), "new_posts", map[string]any{
+			"post_id":  post.ID,
+			"user_id":  userID,
+			"title":    title,
+			"nickname": broadcaster.Nickname,
+		})
+	}
+
 	utilities.WriteJSON(w, http.StatusCreated, "post created successfully", map[string]any{
 		"post_id": post.ID,
 	})
@@ -291,6 +300,14 @@ func PostResolver(w http.ResponseWriter, r *http.Request) {
 				"post_id":  postID,
 				"user_id":  userID,
 				"reaction": endpoint,
+			})
+
+			Repos.Notification.Create(&repository.Notification{
+				UserID:     postAuthor,
+				ActorID:    userID,
+				Type:       "post_reaction",
+				ObjectType: "post",
+				ObjectID:   postID,
 			})
 		}
 

@@ -230,8 +230,13 @@ func RegisterRoutes() {
 	)
 
 	http.HandleFunc(
+		"/api/ws-ticket",
+		middlewares.CheckSessionCookie(handlers.CreateWsTicket, true),
+	)
+
+	http.HandleFunc(
 		"/ws",
-		middlewares.CheckSessionCookie(handlers.HandlerWs, true),
+		handlers.HandlerWs,
 	)
 
 	http.HandleFunc(

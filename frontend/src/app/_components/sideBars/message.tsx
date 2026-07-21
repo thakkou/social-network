@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getConversations } from "~/app/api/crud/conversations";
 import type { ConversationFeedItem } from "~/app/api/crud/conversations";
-import { useChat } from "~/app/_providers/chatProvider"; // Adjust import path to match your ChatContext location
+import { useChat } from "~/app/_providers/chatProvider";
+import { useWS } from "~/app/_providers/ws-provider";
 
 const AVATAR_COLORS = ["#FBEAF0", "#EAF3FB", "#EAFBEF", "#FFF3E8", "#F3EAFB"];
 const GROUP_COLORS = ["#D4537E", "#1D9E75", "#3B82F6", "#F59E0B", "#8B5CF6"];
@@ -22,8 +23,35 @@ function colorFor(id: number, palette: string[]) {
   return palette[Math.abs(id) % palette.length];
 }
 
+function moveConversationToFront(
+  list: ConversationFeedItem[],
+  convId: number,
+  text: string
+): ConversationFeedItem[] {
+  const idx = list.findIndex((c) => c.id === convId);
+  const now = new Date().toISOString();
+  if (idx === -1) return list;
+
+  const updated = [...list];
+  const old = updated[idx]!;
+  const item: ConversationFeedItem = {
+    type: old.type,
+    id: old.id,
+    display_name: old.display_name,
+    avatar: old.avatar,
+    unread_count: old.unread_count,
+    rank: old.rank,
+    other_user_id: old.other_user_id,
+    member_count: old.member_count,
+    last_message: text,
+    last_message_at: now,
+  };
+  updated.splice(idx, 1);
+  updated.unshift(item);
+  return updated;
+}
+
 interface MessagesSidebarProps {
-  // Option to pass external handler if needed, but Context handles primary state
   onSelect?: (item: ConversationFeedItem) => void;
 }
 
@@ -32,6 +60,7 @@ export const MessagesSidebar: React.ComponentType<MessagesSidebarProps> = ({
 }) => {
   const router = useRouter();
   const { selectedChat, selectChat } = useChat();
+  const { on, onlineUsers } = useWS();
 
   const [users, setUsers] = useState<ConversationFeedItem[]>([]);
   const [groups, setGroups] = useState<ConversationFeedItem[]>([]);
@@ -63,16 +92,66 @@ export const MessagesSidebar: React.ComponentType<MessagesSidebarProps> = ({
     };
   }, []);
 
-const handleSelect = (item: ConversationFeedItem, type: "user" | "group") => {
-  selectChat({
-    id: String(item.id),
-    type: type,
-    data: item, // Pass the entire conversation feed item here
-  });
+  const isSelected = useCallback(
+    (convId: number, type: "user" | "group") => {
+      return selectedChat?.type === type && selectedChat?.id === String(convId);
+    },
+    [selectedChat]
+  );
 
-  onSelect?.(item);
-  router.push('/messages');
-};
+  // Listen for live messages and update conversation list
+  useEffect(() => {
+    const unsubs = [
+      on("new_message", (data: any) => {
+        const convId = Number(data.conversation_id);
+        const selected = isSelected(convId, "user");
+        setUsers((prev) => {
+          const updated = moveConversationToFront(prev, convId, data.text);
+          return updated.map((c) =>
+            c.id === convId && !selected
+              ? { ...c, unread_count: (c.unread_count || 0) + 1 }
+              : c
+          );
+        });
+      }),
+      on("new_group_message", (data: any) => {
+        const groupId = Number(data.group_id);
+        const selected = isSelected(groupId, "group");
+        setGroups((prev) => {
+          const updated = moveConversationToFront(prev, groupId, data.text);
+          return updated.map((c) =>
+            c.id === groupId && !selected
+              ? { ...c, unread_count: (c.unread_count || 0) + 1 }
+              : c
+          );
+        });
+      }),
+    ];
+
+    return () => unsubs.forEach((fn) => fn());
+  }, [on, isSelected]);
+
+  const handleSelect = (item: ConversationFeedItem, type: "user" | "group") => {
+    // Clear unread count when selecting a conversation
+    if (type === "user") {
+      setUsers((prev) =>
+        prev.map((c) => (c.id === item.id ? { ...c, unread_count: 0 } : c))
+      );
+    } else {
+      setGroups((prev) =>
+        prev.map((c) => (c.id === item.id ? { ...c, unread_count: 0 } : c))
+      );
+    }
+
+    selectChat({
+      id: String(item.id),
+      type: type,
+      data: item,
+    });
+
+    onSelect?.(item);
+    router.push('/messages');
+  };
 
   if (loading) {
     return (
@@ -141,6 +220,10 @@ const handleSelect = (item: ConversationFeedItem, type: "user" | "group") => {
               <span style={{ color: "var(--color-text-primary)" }}>
                 {user.display_name}
               </span>
+              <span
+                className={onlineUsers.includes(String(user.id)) ? "online-dot" : "offline-dot"}
+                style={{ marginLeft: "auto", flexShrink: 0 }}
+              />
               {user.unread_count > 0 && (
                 <span
                   style={{

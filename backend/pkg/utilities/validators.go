@@ -17,7 +17,6 @@ func IsValidName(name string) bool {
 
 // IsValidEmail
 func IsValidEmail(email string) bool {
-	fmt.Println("", email)
 	_, err := mail.ParseAddress(email)
 	return len(email) >= 5 && len(email) <= 100 && (err == nil)
 }

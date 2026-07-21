@@ -3,7 +3,6 @@ package repository
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"time"
 )
 
@@ -70,7 +69,6 @@ func (r *NotificationRepository) GetByUserID(userID int, typeNotif string) ([]No
 	if typeNotif != "unread" && typeNotif != "all" {
 		return nil, errors.New("invalid notification type")
 	}
-	fmt.Println("get notifs", typeNotif)
 
 	query := `
 	SELECT

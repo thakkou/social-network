@@ -1,9 +1,10 @@
 
 "use client"
 import { getNotifications, markNotificationAsRead, markAllNotificationsRead, deleteAllNotifications } from "~/app/api/crud/notification";
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { acceptFollowRequest,rejectFollowRequest } from "~/app/api/crud/follow";
 import { acceptGroupInvite, rejectGroupInvite, acceptJoinRequest, rejectJoinRequest } from "~/app/api/crud/groups";
+import { useWS } from "~/app/_providers/ws-provider";
 
 // 1. Exact Interface mapping to your JSON response
 interface NotificationActor {
@@ -263,6 +264,8 @@ export default function Notifications() {
   const [loading, setLoading] = useState(true);
   const [notification, setNotifications] = useState<NotificationItem[]>([]);
   const [actionError, setActionError] = useState<string | null>(null);
+  const { on } = useWS();
+  const notifIdRef = useRef(0);
 
   const loadNotifications = async (type: "all" | "unread") => {
     setLoading(true);
@@ -277,6 +280,45 @@ export default function Notifications() {
     setNotifications(res.data);
     setLoading(false);
   };
+
+  // Listen for live WS notification events and prepend them
+  const handleLiveNotif = useCallback(
+    (notifType: NotificationItem["type"], data: any) => {
+      const liveNotif: NotificationItem = {
+        id: `ws-${notifIdRef.current++}`,
+        type: notifType,
+        object_type: notifType,
+        is_read: false,
+        created_at: new Date().toISOString(),
+        actor: data.user_id
+          ? {
+              user_id: data.user_id,
+              nickname: data.nickname || "someone",
+              avatar: "",
+              firstname: "",
+              lastname: "",
+            }
+          : null,
+        payload: data,
+      };
+      setNotifications((prev) => [liveNotif, ...prev]);
+    },
+    []
+  );
+
+  useEffect(() => {
+    const unsubs = [
+      on("like_posts", (data: any) => handleLiveNotif("post_reaction", data)),
+      on("new_comments", (data: any) => handleLiveNotif("comment", data)),
+      on("group_event", (data: any) => handleLiveNotif("group_event", data)),
+      on("group_invite", (data: any) => handleLiveNotif("group_invite", data)),
+      on("group_join_request", (data: any) => handleLiveNotif("group_join_request", data)),
+      on("follow_request", (data: any) => handleLiveNotif("follow_request", data)),
+      on("follow_accepted", (data: any) => handleLiveNotif("follow_accepted", data)),
+    ];
+
+    return () => unsubs.forEach((fn) => fn());
+  }, [on, handleLiveNotif]);
 
   const handleMarkRead = async (id: string | number) => {
     const res = await markNotificationAsRead(id);

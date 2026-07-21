@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -26,7 +25,6 @@ type SendMessageRequest struct {
 
 // SendMessage handles sending both direct and group messages and dispatching WS notifications.
 func SendMessage(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("=========start sending the messages")
 	if r.Method != http.MethodPost {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
 		return
@@ -311,7 +309,6 @@ func GetConversation(w http.ResponseWriter, r *http.Request) {
 
 // GetConversationByID handles message retrieval for direct chats or group chats.
 func GetConversationByID(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("get the conversation")
 	if r.Method != http.MethodGet {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
 		return
@@ -329,7 +326,6 @@ func GetConversationByID(w http.ResponseWriter, r *http.Request) {
 		utilities.WriteJSON(w, http.StatusBadRequest, "invalid id", nil)
 		return
 	}
-	fmt.Println("convType", convType, id)
 
 	offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
 	if err != nil || offset < 0 {

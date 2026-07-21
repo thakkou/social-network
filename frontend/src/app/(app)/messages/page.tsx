@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useChat } from "~/app/_providers/chatProvider";
+import { useWS } from "~/app/_providers/ws-provider";
 import {
   getConversationById,
   sendMessage,
@@ -51,7 +52,7 @@ interface DisplayMessage {
   nickname: string;
   createdAt: string;
   timeAgo: string;
-  isSending?: boolean; // Track optimistic state
+  isSending?: boolean;
 }
 
 export default function Chat() {
@@ -59,33 +60,43 @@ export default function Chat() {
   const currentUserId = Number(session?.user?.id ?? 0);
 
   const { selectedChat } = useChat();
+  const { send: wsSend, on: wsOn, onlineUsers } = useWS();
   const [message, setMessage] = useState("");
 
-  // Real messages fetched from API
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Extract raw payload from context
+  const [otherTyping, setOtherTyping] = useState(false);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isTypingRef = useRef(false);
+
   const chatData = selectedChat?.data || {};
   const isGroup = selectedChat?.type === "group" || chatData.type === "group";
 
-  // Map conversation type to API string
   const convType: ConversationType = isGroup ? "group" : "direct";
-  // Extract conversation ID directly from selectedChat.id
   const convId = selectedChat?.id;
-  // Read metadata dynamically from payload
   const displayName = chatData.display_name || "Select a conversation";
   const avatarUrl = chatData.avatar || null;
   const memberCount = chatData.member_count ?? null;
   const initials = getInitials(displayName);
 
-  // Background color calculation if no image avatar is present
   const fallbackBg = isGroup
     ? colorFor(convId ?? 0, GROUP_COLORS)
     : colorFor(convId ?? 0, AVATAR_COLORS);
 
-  // Fetch messages from backend when selectedChat changes
+  // Auto-scroll
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, otherTyping, scrollToBottom]);
+
+  // Fetch messages when selectedChat changes
   useEffect(() => {
     if (!convId) {
       setMessages([]);
@@ -102,14 +113,11 @@ export default function Chat() {
         setError(response.error);
         setMessages([]);
       } else if (response.success && response.messages) {
-        // Reverse array to display chronologically (oldest top, newest bottom)
         const formatted = [...response.messages]
           .reverse()
           .map((msg: ConversationMessage) => ({
             id: msg.id,
-            type: (msg.sender_id === currentUserId ? "me" : "them") as
-              | "me"
-              | "them",
+            type: (msg.sender_id === currentUserId ? "me" : "them") as "me" | "them",
             text: msg.text,
             senderId: msg.sender_id,
             nickname: msg.nickname || "unknown",
@@ -124,13 +132,131 @@ export default function Chat() {
     loadMessages();
   }, [convType, convId, currentUserId]);
 
+  // Listen for incoming live messages via WS
+  useEffect(() => {
+    const unsubs = [
+      wsOn("new_message", (data: any) => {
+        const incomingConvId = String(data.conversation_id);
+        if (incomingConvId !== String(convId)) return;
+
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === data.message_id)) return prev;
+          return [
+            ...prev,
+            {
+              id: data.message_id,
+              type: (data.sender_id === currentUserId ? "me" : "them") as "me" | "them",
+              text: data.text,
+              senderId: data.sender_id,
+              nickname: data.nickname || "unknown",
+              createdAt: new Date().toISOString(),
+              timeAgo: "just now",
+            },
+          ];
+        });
+      }),
+      wsOn("new_group_message", (data: any) => {
+        const incomingGroupId = String(data.group_id);
+        if (incomingGroupId !== String(convId)) return;
+
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === data.message_id)) return prev;
+          return [
+            ...prev,
+            {
+              id: data.message_id,
+              type: (data.sender_id === currentUserId ? "me" : "them") as "me" | "them",
+              text: data.text,
+              senderId: data.sender_id,
+              nickname: data.nickname || "unknown",
+              createdAt: new Date().toISOString(),
+              timeAgo: "just now",
+            },
+          ];
+        });
+      }),
+    ];
+
+    return () => unsubs.forEach((fn) => fn());
+  }, [wsOn, convId, currentUserId]);
+
+  // Listen for typing indicators from the other user
+  useEffect(() => {
+    const unsubs = [
+      wsOn("typing:start", (data: any) => {
+        if (isGroup) return;
+        const fromId = String(data.userId);
+        if (fromId === String(currentUserId)) return;
+        setOtherTyping(true);
+      }),
+      wsOn("typing:stop", (data: any) => {
+        if (isGroup) return;
+        const fromId = String(data.userId);
+        if (fromId === String(currentUserId)) return;
+        setOtherTyping(false);
+      }),
+    ];
+
+    return () => unsubs.forEach((fn) => fn());
+  }, [wsOn, currentUserId, isGroup]);
+
+  // Reset typing state when switching chats
+  useEffect(() => {
+    setOtherTyping(false);
+  }, [convId]);
+
+  // Send typing:start/stop via WS (debounced)
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setMessage(e.target.value);
+
+      if (!selectedChat || isGroup) return;
+
+      const receiverId = chatData.other_user_id;
+      if (!receiverId) return;
+
+      if (!isTypingRef.current) {
+        isTypingRef.current = true;
+        wsSend("typing:start", {
+          conversationId: Number(convId),
+          receiverId: Number(receiverId),
+          userId: String(currentUserId),
+        });
+      }
+
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = setTimeout(() => {
+        isTypingRef.current = false;
+        wsSend("typing:stop", {
+          conversationId: Number(convId),
+          receiverId: Number(receiverId),
+          userId: String(currentUserId),
+        });
+      }, 2000);
+    },
+    [selectedChat, isGroup, chatData, convId, currentUserId, wsSend]
+  );
+
+  // Send typing:stop immediately when sending a message
   async function sendMsg() {
     const val = message.trim();
     if (!val || !selectedChat) return;
 
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    if (isTypingRef.current) {
+      isTypingRef.current = false;
+      const receiverId = chatData.other_user_id;
+      if (receiverId) {
+        wsSend("typing:stop", {
+          conversationId: Number(convId),
+          receiverId: Number(receiverId),
+          userId: String(currentUserId),
+        });
+      }
+    }
+
     const tempId = Date.now();
 
-    // 1. Optimistic UI update
     const tempMsg: DisplayMessage = {
       id: tempId,
       type: "me",
@@ -145,7 +271,6 @@ export default function Chat() {
     setMessages((prev) => [...prev, tempMsg]);
     setMessage("");
 
-    // 2. Build payload based on direct vs group chat
     const payload =
       convType === "group"
         ? {
@@ -160,15 +285,12 @@ export default function Chat() {
             conversation_id: Number(convId as string | number),
           };
 
-    // 3. Send message request to backend
     const res = await sendMessage(payload);
 
     if (res.error) {
-      // Rollback optimistic message on failure
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       setError(res.error);
     } else if (res.success && res.data) {
-      // 4. Update message ID with real DB message_id upon success
       setMessages((prev) =>
         prev.map((m) =>
           m.id === tempId
@@ -190,7 +312,6 @@ export default function Chat() {
         minHeight: "480px",
       }}
     >
-      {/* Main Chat View Container */}
       <div
         style={{
           flex: 1,
@@ -210,7 +331,6 @@ export default function Chat() {
             gap: "8px",
           }}
         >
-          {/* Avatar Rendering */}
           {avatarUrl ? (
             <img
               src={avatarUrl}
@@ -245,10 +365,17 @@ export default function Chat() {
           <div>
             <p style={{ fontSize: "12px", fontWeight: 500 }}>{displayName}</p>
             <p style={{ fontSize: "10px", color: "var(--color-text-tertiary)" }}>
-              <span className="online-dot" />
-              {isGroup
-                ? `channel active · ${memberCount ? `${memberCount} members` : "group"}`
-                : "online now · websocket"}
+              {isGroup ? (
+                <>
+                  <span className="online-dot" /> channel active · {memberCount ? `${memberCount} members` : "group"}
+                </>
+              ) : (
+                <>
+                  <span className={onlineUsers.includes(String(chatData.other_user_id || convId)) ? "online-dot" : "offline-dot"} />
+                  {" "}
+                  {onlineUsers.includes(String(chatData.other_user_id || convId)) ? "online now" : "offline"}
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -311,7 +438,6 @@ export default function Chat() {
                       alignSelf: msg.type === "me" ? "flex-end" : "flex-start",
                     }}
                   >
-                    {/* Nickname + timestamp for "them" messages */}
                     {msg.type === "them" && (
                       <div
                         style={{
@@ -341,7 +467,6 @@ export default function Chat() {
                         </span>
                       </div>
                     )}
-                    {/* Timestamp for "me" messages */}
                     {msg.type === "me" && (
                       <div
                         style={{
@@ -381,6 +506,34 @@ export default function Chat() {
                   </div>
                 ))
               )}
+
+              {/* Typing indicator */}
+              {otherTyping && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    paddingLeft: "4px",
+                    alignSelf: "flex-start",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "10px",
+                      color: "#6b6760",
+                      fontStyle: "italic",
+                    }}
+                  >
+                    typing
+                    <span className="typing-dots">
+                      <span>.</span><span>.</span><span>.</span>
+                    </span>
+                  </span>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
             </>
           ) : (
             <div
@@ -410,7 +563,7 @@ export default function Chat() {
             className="inp"
             disabled={!selectedChat || isLoading}
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={handleInputChange}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 void sendMsg();

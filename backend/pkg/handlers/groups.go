@@ -909,7 +909,7 @@ func GetGroupPublic(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utilities.WriteJSON(w, http.StatusOK, "group fetched", map[string]any{
-		"group":    group,
+		"group":     group,
 		"is_member": isMember,
 	})
 }
@@ -985,7 +985,6 @@ func GetGroupContent(w http.ResponseWriter, r *http.Request) {
 		utilities.WriteJSON(w, http.StatusNotFound, "not found", nil)
 		return
 	}
-	fmt.Println("get content groups", groupID)
 
 	limit := 20
 	if v, err := strconv.Atoi(r.URL.Query().Get("limit")); err == nil && v > 0 {
