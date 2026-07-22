@@ -188,7 +188,7 @@ export function WSProvider({ children }: { children: ReactNode }) {
       try {
         const res = await fetch("/api/ws-ticket", { method: "POST" });
         if (!res.ok) {
-          console.error("[WS] ❌ Ticket fetch failed:", res.status);
+          console?.error("[WS] ❌ Ticket fetch failed:", res.status);
           return null;
         }
         const body = await res.json();

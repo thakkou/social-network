@@ -2,7 +2,9 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { likePost, dislikePost } from "~/app/api/crud/post";
+import { useSession } from "next-auth/react";
+import { likePost, dislikePost, deletePost } from "~/app/api/crud/post";
+import ConfirmModal from "~/app/_components/ConfirmModal";
 
 interface Post {
   id: number;
@@ -28,6 +30,8 @@ interface ProfilePostsProps {
 
 export default function ProfilePosts({ posts }: ProfilePostsProps) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const currentUserId = Number(session?.user?.id ?? 0);
 
   // Local state for optimistic like/dislike updates
   const [localPosts, setLocalPosts] = useState<Post[]>(posts);
@@ -105,6 +109,16 @@ export default function ProfilePosts({ posts }: ProfilePostsProps) {
             : p
         )
       );
+    }
+  };
+
+  const [deleteTarget, setDeleteTarget] = useState<Post | null>(null);
+
+  const handleDeletePost = async (postId: number) => {
+    setDeleteTarget(null);
+    const res = await deletePost(postId);
+    if (res.success) {
+      setLocalPosts((prev) => prev.filter((p) => p.id !== postId));
     }
   };
 
@@ -275,9 +289,38 @@ export default function ProfilePosts({ posts }: ProfilePostsProps) {
               />{" "}
               {commentCount(post)}
             </button>
+            {/* Delete button — only for own posts */}
+            {currentUserId === post.user_id && (
+              <button
+                className="btn btn-red"
+                style={{
+                  marginLeft: "auto",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "3px",
+                  fontSize: "11px",
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeleteTarget(post);
+                }}
+              >
+                <i className="ti ti-trash" style={{ fontSize: "12px" }} />
+              </button>
+            )}
           </div>
         </div>
       ))}
+
+      <ConfirmModal
+        open={deleteTarget !== null}
+        title="Delete post?"
+        message={`Are you sure you want to delete this post${deleteTarget?.title ? `: "${deleteTarget.title}"` : ""}? This cannot be undone.`}
+        confirmLabel="delete"
+        confirmClass="btn-red"
+        onConfirm={() => deleteTarget && void handleDeletePost(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

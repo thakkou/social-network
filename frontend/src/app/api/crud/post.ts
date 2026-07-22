@@ -183,6 +183,17 @@ export async function deleteComment(commentId: number) {
   return { success: true };
 }
 
+// Delete a post
+export async function deletePost(postId: number) {
+  const result = await fetchApi<GoApiResponse<{ post_id: number }>>(
+    `/api/posts/${postId}/delete`,
+    { method: "DELETE" }
+  );
+
+  if (!result.success) return { error: result.error };
+  return { success: true, data: result.data.data };
+}
+
 // ─── Create Post (for feed) ───
 
 interface CreatePostResponse {

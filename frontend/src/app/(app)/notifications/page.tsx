@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { acceptFollowRequest,rejectFollowRequest } from "~/app/api/crud/follow";
 import { acceptGroupInvite, rejectGroupInvite, acceptJoinRequest, rejectJoinRequest } from "~/app/api/crud/groups";
 import { useWS } from "~/app/_providers/ws-provider";
+import ConfirmModal from "~/app/_components/ConfirmModal";
 
 // 1. Exact Interface mapping to your JSON response
 interface NotificationActor {
@@ -386,9 +387,10 @@ const handleRejectFollow = async (
     );
   }
 };
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
   const handleDeleteAll = async () => {
-    if (!window.confirm("Are you sure you want to clear all your notifications? This cannot be undone.")) return;
-    
+    setConfirmDeleteOpen(false);
     const res = await deleteAllNotifications();
     if (res.success) {
       setNotifications([]);
@@ -475,7 +477,7 @@ const handleRejectFollow = async (
         <button 
           className="btn btn-red" 
           style={{ fontSize: "10px", marginLeft: "auto" }}
-          onClick={handleDeleteAll}
+          onClick={() => setConfirmDeleteOpen(true)}
         >
           delete all
         </button>

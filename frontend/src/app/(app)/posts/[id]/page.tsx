@@ -154,10 +154,31 @@ export default function PostDetailPage() {
       commentImage ?? undefined
     );
     if (res.success) {
+      // Add the new comment locally instead of refetching the entire post (which scrolls to top)
+      const newComment: PostComment = {
+        id: res.data!.id,
+        user_id: Number(currentUserId ?? 0),
+        nickname: res.data!.nickname || "",
+        created_at: res.data!.createdAt,
+        time_ago: "just now",
+        text: commentText.trim(),
+        image: "",
+        like_count: 0,
+        dislike_count: 0,
+        is_liked: 0,
+      };
+      setPost((prev) =>
+        prev
+          ? {
+              ...prev,
+              comments: [...prev.comments, newComment],
+              comment_count: prev.comment_count + 1,
+            }
+          : prev
+      );
       setCommentText("");
       setCommentImage(null);
       setCommentImagePreview(null);
-      void fetchPost(); // Refresh to get enriched comment data
     }
     setSubmitting(false);
   };

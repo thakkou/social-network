@@ -1,4 +1,5 @@
-import { auth } from "~/server/auth";
+import { auth, signOut } from "~/server/auth";
+import { redirect } from "next/navigation";
 
 type ApiResult<T> =
   | { success: true; data: T; error?: never }
@@ -74,11 +75,11 @@ export async function fetchApi<T>(
     if (!res.ok) {
       const errorData = await res.json().catch(() => null);
 
-      // If the backend returns 401, the session has expired or was revoked on the server.
-      // Sign out (which invalidates the NextAuth session) and redirect to login.
+      // If the backend returns 401, the Go session was invalidated/expired.
+      // Destroy the NextAuth session and redirect to login.
       if (res.status === 401) {
-        const { signOut } = await import("~/server/auth");
-        await signOut({ redirect: true, redirectTo: "/login" });
+        await signOut({ redirect: false });
+        redirect("/login");
       }
 
       return {
@@ -92,6 +93,13 @@ export async function fetchApi<T>(
     return { success: true, data };
 
   } catch (err) {
+    // Re-throw Next.js redirect errors so they propagate to the server action runtime
+    if (err instanceof Error && "digest" in err) {
+      const digest = (err as any).digest;
+      if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) {
+        throw err;
+      }
+    }
     return {
       success: false,
       error: err instanceof Error ? err.message : "An unexpected error occurred",
