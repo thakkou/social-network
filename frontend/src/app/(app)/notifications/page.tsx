@@ -300,9 +300,9 @@ export default function Notifications() {
           ? {
               user_id: data.user_id,
               nickname: data.nickname || "someone",
-              avatar: "",
-              firstname: "",
-              lastname: "",
+              avatar: data.avatar || "",
+              firstname: data.firstname || "",
+              lastname: data.lastname || "",
             }
           : null,
         payload: data,

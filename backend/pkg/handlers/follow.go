@@ -144,6 +144,11 @@ func FollowResolver(w http.ResponseWriter, r *http.Request) {
 			notifType = "follow_request"
 		}
 
+		// Remove any existing notification of this type to prevent duplicates
+		if err := Repos.Notification.DeleteNotificationsByTypeAndObject(targetID, notifType, userID); err != nil {
+			fmt.Printf("failed to clean up old follow notification: %v\n", err)
+		}
+
 		// Create DB notification for the target user
 		if err := Repos.Notification.Create(&repository.Notification{
 			UserID:     targetID,
@@ -158,8 +163,11 @@ func FollowResolver(w http.ResponseWriter, r *http.Request) {
 		// Notify target user via WS
 		if requester, err := Repos.User.GetByID(userID); err == nil {
 			ws.NotifyUser(strconv.Itoa(targetID), notifType, map[string]any{
-				"user_id":  userID,
-				"nickname": requester.Nickname,
+				"user_id":   userID,
+				"nickname":  requester.Nickname,
+				"avatar":    requester.Avatar,
+				"firstname": requester.Firstname,
+				"lastname":  requester.Lastname,
 			})
 		}
 		utilities.WriteJSON(
@@ -214,6 +222,11 @@ func FollowResolver(w http.ResponseWriter, r *http.Request) {
 				nil,
 			)
 			return
+		}
+
+		// Remove the follow_request notification for the owner (userID) since it's been handled
+		if err := Repos.Notification.DeleteNotificationsByTypeAndObject(userID, "follow_request", targetID); err != nil {
+			fmt.Printf("failed to clean up follow_request notification: %v\n", err)
 		}
 
 		// Notify the requester that their follow was accepted
