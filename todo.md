@@ -2,3 +2,8 @@
 
 
 
+
+in message psage there is asidebar2 (make hidden on big devices) and in the small devices i wanna use a filter button when i click on it i see the users 
+
+
+-manage the notification dynamique delete

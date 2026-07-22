@@ -147,8 +147,16 @@ select.inp{cursor:pointer}
   .screen.active{padding-bottom:56px}
 }
 
+/* ── Messages page layout ── */
+.msg-main{height:calc(100vh - 44px);position:relative;display:flex;flex-direction:column}
+.msg-content-wrapper{display:flex;flex:1;flex-direction:row;min-height:0;overflow:hidden}
+.msg-chat-col{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+.msg-desktop-sidebar{width:200px;border-left:0.5px solid #3a3733;background:#211f1c;padding:0.75rem;overflow-y:auto;flex-shrink:0;display:block}
+
 /* ── Messages page responsive ── */
 @media(max-width:768px){
+  .msg-main{height:calc(100vh - 100px)}
+  .msg-desktop-sidebar{display:none!important}
   .mobile-chat-header{display:flex!important}
   .msgs-filter-btn{display:flex!important}
   .msgs-sidebar-overlay{display:none}

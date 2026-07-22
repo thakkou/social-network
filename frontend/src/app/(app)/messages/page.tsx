@@ -74,6 +74,16 @@ export default function Chat() {
   // showUsers: toggles the users sidebar overlay on mobile
   const [showUsers, setShowUsers] = useState(true);
 
+  // Track screen size to render only one MessagesSidebar instance
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 769px)");
+    setIsDesktop(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef(false);
@@ -375,32 +385,18 @@ export default function Chat() {
   }
 
   return (
-    <main
-      className="main"
-      style={{
-        padding: 0,
-        gap: 0,
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        position: "relative",
-      }}
-    >
-      {/* Mobile users sidebar overlay — toggled via filter button */}
-      <div className={`msgs-sidebar-overlay ${showUsers ? "active" : ""}`}>
-        <MessagesSidebar onSelect={() => setShowUsers(false)} />
-      </div>
+    <main className="main msg-main" style={{ padding: 0, gap: 0 }}>
+      {/* Mobile users sidebar overlay — only on mobile */}
+      {!isDesktop && (
+        <div className={`msgs-sidebar-overlay ${showUsers ? "active" : ""}`}>
+          <MessagesSidebar onSelect={() => setShowUsers(false)} />
+        </div>
+      )}
 
-      {/* Chat panel — always visible on desktop, visible on mobile when users overlay is closed */}
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          position: "relative",
-          minHeight: 0,
-        }}
-      >
+      {/* Content wrapper: chat + desktop sidebar side-by-side */}
+      <div className="msg-content-wrapper">
+        {/* Chat panel */}
+        <div className="msg-chat-col">
         {/* Mobile header with back + filter button */}
         {selectedChat && (
           <div
@@ -751,6 +747,14 @@ export default function Chat() {
             <i className="ti ti-send" />
           </button>
         </div>
+      </div>
+
+        {/* Desktop sidebar — only on desktop */}
+        {isDesktop && (
+          <aside className="msg-desktop-sidebar">
+            <MessagesSidebar onSelect={() => setShowUsers(false)} />
+          </aside>
+        )}
       </div>
     </main>
   );
