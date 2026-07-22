@@ -4,8 +4,9 @@ import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { getProfileData } from "~/app/api/crud/getProfile";
-import { getUserGroups, updateProfilePrivacy } from "~/app/api/crud/groups";
+import { getUserGroups } from "~/app/api/crud/groups";
 import ProfilePosts from "~/app/_components/ProfilePosts";
+import Followers from "~/app/_components/Followers";
 
 interface GroupSummary {
   id: number;
@@ -19,11 +20,10 @@ export default function Profile() {
   const userId = session?.user?.id;
 
   const [profile, setProfile] = useState<any>(null);
-  const [isPrivate, setIsPrivate] = useState(false);
   const [loading, setLoading] = useState(true);
   const [groups, setGroups] = useState<GroupSummary[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"posts" | "groups">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "groups" | "followers" | "following">("posts");
 
   useEffect(() => {
     if (!userId) return;
@@ -33,7 +33,6 @@ export default function Profile() {
       const res = await getProfileData(userId);
       if (res.success) {
         setProfile(res.data);
-        setIsPrivate(res.data.is_private === 1);
       }
       setLoading(false);
     };
@@ -54,15 +53,7 @@ export default function Profile() {
     void loadGroups();
   }, [userId]);
 
-  const handleTogglePrivacy = async () => {
-    const newVal = !isPrivate;
-    // Optimistic update
-    setIsPrivate(newVal);
-    const res = await updateProfilePrivacy(newVal);
-    if (!res.success) {
-      setIsPrivate(!newVal); // revert on failure
-    }
-  };
+
 
   const initials =
     profile?.firstname?.[0]?.toUpperCase() +
@@ -116,31 +107,6 @@ export default function Profile() {
               {profile?.nickname && (
                 <span className="tag tag-teal">@{profile.nickname}</span>
               )}
-              <span
-                className={`tag ${isPrivate ? "tag-gray" : "tag-purple"}`}
-                id="profile-visibility-tag"
-              >
-                {isPrivate ? "private" : "public"}
-              </span>
-              <button
-                className="btn btn-g"
-                style={{
-                  fontSize: "10px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "3px",
-                  marginLeft: "auto",
-                }}
-                id="visibility-btn"
-                onClick={() => void handleTogglePrivacy()}
-              >
-                <i
-                  className={`ti ${isPrivate ? "ti-lock-open" : "ti-lock"}`}
-                  style={{ fontSize: "12px" }}
-                  aria-hidden="true"
-                />{" "}
-                make {isPrivate ? "public" : "private"}
-              </button>
             </div>
 
             {profile?.birthdate && (
@@ -203,7 +169,7 @@ export default function Profile() {
           background: "#272420",
         }}
       >
-        {(["posts", "groups"] as const).map((tab) => (
+        {(["posts", "followers", "following", "groups"] as const).map((tab) => (
           <div
             key={tab}
             style={{
@@ -223,6 +189,12 @@ export default function Profile() {
 
       {/* Posts Tab */}
       {activeTab === "posts" && <ProfilePosts posts={profile?.posts ?? []} />}
+
+      {/* Followers Tab */}
+      {activeTab === "followers" && <Followers users={profile?.followers ?? []} />}
+
+      {/* Following Tab */}
+      {activeTab === "following" && <Followers users={profile?.following ?? []} />}
 
       {/* Groups Tab */}
       {activeTab === "groups" && (

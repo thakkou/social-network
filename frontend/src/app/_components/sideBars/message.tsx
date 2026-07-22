@@ -144,6 +144,19 @@ export const MessagesSidebar: React.ComponentType<MessagesSidebarProps> = ({
           );
         });
       }),
+      // Also handle 'group_message' event from groups.go endpoint
+      on("group_message", (data: any) => {
+        const groupId = Number(data.group_id);
+        const selected = isSelected(groupId, "group");
+        setGroups((prev) => {
+          const updated = moveConversationToFront(prev, groupId, data.text);
+          return updated.map((c) =>
+            c.id === groupId && !selected
+              ? { ...c, unread_count: (c.unread_count || 0) + 1 }
+              : c
+          );
+        });
+      }),
     ];
 
     return () => unsubs.forEach((fn) => fn());

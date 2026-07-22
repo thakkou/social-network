@@ -204,6 +204,33 @@ export default function Chat() {
           ];
         });
       }),
+      // Also handle 'group_message' event from groups.go messages endpoint
+      wsOn("group_message", (data: any) => {
+        const incomingGroupId = String(data.group_id);
+        if (incomingGroupId !== String(convId)) return;
+
+        setMessages((prev) => {
+          const isPendingOptimistic = prev.some(
+            (m) => m.senderId === currentUserId && m.isSending
+          );
+          if (isPendingOptimistic) return prev;
+          if (prev.some((m) => m.id === data.message_id)) return prev;
+
+          const type = data.sender_id === currentUserId ? ("me" as const) : ("them" as const);
+          return [
+            ...prev,
+            {
+              id: data.message_id,
+              type,
+              text: data.text,
+              senderId: data.sender_id,
+              nickname: data.nickname || "unknown",
+              createdAt: new Date().toISOString(),
+              timeAgo: "just now",
+            },
+          ];
+        });
+      }),
     ];
 
     return () => unsubs.forEach((fn) => fn());
@@ -366,12 +393,10 @@ export default function Chat() {
         position: "relative",
       }}
     >
-      {/* Mobile: show conversation list instead of chat */}
-      {showSidebar && (
-        <div className="mobile-sidebar-overlay">
-          <MessagesSidebar />
-        </div>
-      )}
+      {/* Mobile sidebar overlay — always rendered, hidden via CSS when not active */}
+      <div className={`mobile-sidebar-overlay ${showSidebar ? "active" : ""}`}>
+        <MessagesSidebar onSelect={() => setShowSidebar(false)} />
+      </div>
 
       <div
         className={showSidebar ? "messages-chat-panel" : "messages-chat-panel show"}

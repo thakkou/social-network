@@ -9,7 +9,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useToast } from "~/app/_components/Toast";
 
 // ─── Types & Context Setup ───
@@ -254,10 +254,7 @@ export function WSProvider({ children }: { children: ReactNode }) {
           // Handle force_logout — session was revoked on the backend (e.g. new login)
           if (eventType === "force_logout") {
             console.log("[WS] 🚪 Force logout received — session was revoked on the backend");
-            // Dynamically import signOut to avoid circular deps
-            import("next-auth/react").then((mod) => {
-              mod.signOut({ callbackUrl: "/login" });
-            });
+            signOut({ callbackUrl: "/login" });
             return;
           }
 

@@ -67,6 +67,15 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Compute a display name: use nickname, fallback to firstname+lastname
+	senderDisplayName := senderProfile.Nickname
+	if senderDisplayName == "" {
+		senderDisplayName = senderProfile.Firstname
+		if senderProfile.Lastname != "" {
+			senderDisplayName += " " + senderProfile.Lastname
+		}
+	}
+
 	switch req.Type {
 	case "direct":
 		if req.ReceiverID == 0 {
@@ -126,7 +135,7 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 		wsPayload := map[string]interface{}{
 			"type":              "direct",
 			"isNewConversation": isNew,
-			"nickname":          senderProfile.Nickname,
+			"nickname":          senderDisplayName,
 			"conversation_id":   conversationID,
 			"message_id":        messageID,
 			"sender_id":         senderID,
@@ -179,7 +188,7 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 					"group_id":   req.GroupID,
 					"message_id": messageID,
 					"sender_id":  senderID,
-					"nickname":   senderProfile.Nickname,
+					"nickname":   senderDisplayName,
 					"text":       req.Text,
 					"isMine":     memberID == senderID,
 				}
@@ -257,6 +266,14 @@ func SendGroupMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	senderDisplayName := senderProfile.Nickname
+	if senderDisplayName == "" {
+		senderDisplayName = senderProfile.Firstname
+		if senderProfile.Lastname != "" {
+			senderDisplayName += " " + senderProfile.Lastname
+		}
+	}
+
 	if err := tx.Commit(); err != nil {
 		utilities.WriteJSON(w, http.StatusInternalServerError, "commit failed", nil)
 		return
@@ -270,7 +287,7 @@ func SendGroupMessage(w http.ResponseWriter, r *http.Request) {
 				"group_id":   req.GroupID,
 				"message_id": messageID,
 				"sender_id":  senderID,
-				"nickname":   senderProfile.Nickname,
+				"nickname":   senderDisplayName,
 				"text":       req.Text,
 				"isMine":     memberID == senderID,
 				"type":       "group",

@@ -689,6 +689,12 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 		senderNickname := ""
 		if senderProfile != nil {
 			senderNickname = senderProfile.Nickname
+			if senderNickname == "" {
+				senderNickname = senderProfile.Firstname
+				if senderProfile.Lastname != "" {
+					senderNickname += " " + senderProfile.Lastname
+				}
+			}
 		}
 
 		notifyGroupUsers(

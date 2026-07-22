@@ -54,6 +54,7 @@ export default function Login() {
         flexDirection: "column",
         justifyContent: "center",
       }}
+      className="auth-form"
     >
       {/* Brand */}
       <div style={{ marginBottom: "1.5rem" }}>

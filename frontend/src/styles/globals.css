@@ -95,8 +95,8 @@ body{font-family:'JetBrains Mono',monospace,'Courier New',monospace;background:#
 .sec-label{font-size:10px;color:#6b6760;letter-spacing:0.07em;text-transform:uppercase;padding:0 12px;margin-bottom:5px}
 .online-dot{width:6px;height:6px;background:#2db87a;display:inline-block}
 .offline-dot{width:6px;height:6px;background:#4a4743;display:inline-block}
-.msg-bubble-me{background:#2e1e24;border:0.5px solid #7a3050;padding:6px 10px;font-size:12px;margin-left:auto;max-width:70%;color:#e0789a;align-self:flex-end}
-.msg-bubble-them{background:#2e2b27;border:0.5px solid #3a3733;padding:6px 10px;font-size:12px;max-width:70%;color:#e8e4dc;align-self:flex-start}
+.msg-bubble-me{background:#2e1e24;border:0.5px solid #7a3050;padding:6px 10px;font-size:12px;margin-left:auto;max-width:min(70%,35ch);color:#e0789a;align-self:flex-end;word-break:break-word;overflow-wrap:break-word;hyphens:auto}
+.msg-bubble-them{background:#2e2b27;border:0.5px solid #3a3733;padding:6px 10px;font-size:12px;max-width:min(70%,35ch);color:#e8e4dc;align-self:flex-start;word-break:break-word;overflow-wrap:break-word;hyphens:auto}
 .event-card{border:0.5px solid #3a3733;background:#2e2b27;padding:0.75rem}
 .code-card{border:0.5px solid #3a3733;background:#2e2b27;padding:0.5rem}
 .form-row{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
@@ -105,12 +105,19 @@ body{font-family:'JetBrains Mono',monospace,'Courier New',monospace;background:#
 .post-privacy-row{display:flex;align-items:center;gap:6px;margin-top:6px}
 select.inp{cursor:pointer}
 
-/* ── Responsive / mobile layout ── */
-@media(max-width:768px){
-  .layout{grid-template-columns:1fr!important}
+/* ── Auth pages (login / register) ── */
+.auth-layout{display:grid;grid-template-columns:1fr 1fr;min-height:100vh}
+@media(max-width:768px){.auth-layout{grid-template-columns:1fr}.auth-decorative{display:none!important}}
+.auth-decorative{background:linear-gradient(135deg,#2e1e24 0%,#1a1917 50%,#162820 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;position:relative;overflow:hidden}
+.auth-circle{position:absolute;border-radius:50%}
+.auth-circle-1{top:-60px;right:-60px;width:200px;height:200px;background:radial-gradient(circle,rgba(212,83,126,0.08) 0%,transparent 70%)}
+.auth-circle-2{bottom:-40px;left:-40px;width:160px;height:160px;background:radial-gradient(circle,rgba(29,158,117,0.06) 0%,transparent 70%)}
+.auth-circle-3{top:40%;left:20%;width:80px;height:80px;background:radial-gradient(circle,rgba(212,83,126,0.04) 0%,transparent 60%)}
+
+/* ── Responsive / mobile layout ── */@media(max-width:768px){.layout{grid-template-columns:1fr!important}
   .sidebar{display:none!important}
   .sidebar2{display:none!important}
-  .main{padding:0.75rem!important}
+  .main{padding:0.75rem}
   #nav-top{gap:6px!important}
   .logo span{display:none!important}
   .navlink{font-size:11px!important;padding:5px 8px!important}
@@ -118,6 +125,7 @@ select.inp{cursor:pointer}
   .btn{font-size:10px!important;padding:4px 8px!important}
   .card{padding:0.625rem 0.75rem!important}
   .msg-bubble-me,.msg-bubble-them{max-width:85%!important;font-size:11px!important}
+  .auth-form{border-right:none!important}
 }
 
 /* Mobile bottom navigation bar */
@@ -145,7 +153,8 @@ select.inp{cursor:pointer}
   .messages-chat-panel{display:none}
   .messages-chat-panel.show{display:flex;flex-direction:column;height:calc(100vh - 100px)}
   .mobile-chat-header{display:flex!important}
-  .mobile-sidebar-overlay{display:block;position:fixed;top:44px;left:0;right:0;bottom:56px;z-index:50;overflow-y:auto;background:#1a1917;padding:8px}
+  .mobile-sidebar-overlay{display:none}
+  .mobile-sidebar-overlay.active{display:block;position:fixed;top:44px;left:0;right:0;bottom:56px;z-index:50;overflow-y:auto;background:#1a1917;padding:8px}
 }
 .mobile-sidebar-overlay{display:none}
 .mobile-chat-header{display:none}
