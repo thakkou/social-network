@@ -23,6 +23,7 @@ interface ProfilePost {
   privacy: "public" | "private" | "almost_private";
   like_count: number;
   dislike_count: number;
+  comment_count: number;
   is_liked: number; // 1 for true, 0 for false
   categories: string[] | null;
   comments: unknown[] | null;

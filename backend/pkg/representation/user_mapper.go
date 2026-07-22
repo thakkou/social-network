@@ -3,6 +3,7 @@ package representation
 import (
 	repModal "01social/pkg/models/representation"
 	"01social/pkg/repository"
+	"01social/pkg/utilities"
 )
 
 func UserToProfileResponse(
@@ -55,12 +56,14 @@ func mapPosts(posts []repository.Post, Nickname string) []repModal.PostResponse 
 			UserID:       post.UserID,
 			Nickname:     Nickname,
 			CreatedAt:    post.CreatedAt,
+			TimeAgo:      utilities.TimeAgo(post.CreatedAt),
 			Title:        post.Title,
 			Text:         post.Text,
 			Image:        post.Image,
 			Privacy:      post.Privacy,
 			LikeCount:    post.LikeCount,
 			DislikeCount: post.DislikeCount,
+			CommentCount: post.CommentCount,
 			IsLiked:      post.IsLiked,
 			// Comments: mapComments(post.Comments),
 		})

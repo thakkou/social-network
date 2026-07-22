@@ -17,6 +17,7 @@ type PostResponse struct {
 	// Aggregated counts for the post
 	LikeCount    int `json:"like_count"`
 	DislikeCount int `json:"dislike_count"`
+	CommentCount int `json:"comment_count"`
 	IsLiked      int `json:"is_liked"` // 1: liked, 0: none, -1: disliked
 
 	// Associated Categories

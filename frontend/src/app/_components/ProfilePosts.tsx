@@ -16,6 +16,7 @@ interface Post {
   privacy: "public" | "private" | "almost_private";
   like_count: number;
   dislike_count: number;
+  comment_count?: number;
   is_liked: number;
   categories: string[] | null;
   comments: unknown[] | null;
@@ -108,6 +109,10 @@ export default function ProfilePosts({ posts }: ProfilePostsProps) {
   };
 
   const commentCount = (post: Post): number => {
+    // Use comment_count if available (from profile API), fall back to comments array length
+    if (typeof post.comment_count === "number") {
+      return post.comment_count;
+    }
     if (post.comments && Array.isArray(post.comments)) {
       return post.comments.length;
     }

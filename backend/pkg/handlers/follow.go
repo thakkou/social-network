@@ -194,7 +194,7 @@ func FollowResolver(w http.ResponseWriter, r *http.Request) {
 			w,
 			http.StatusOK,
 			"user unfollowed",
-			map[string]any{"status": "non"},
+			map[string]any{"status": "none"},
 		)
 		return
 
