@@ -63,7 +63,7 @@ body{font-family:'JetBrains Mono',monospace,'Courier New',monospace;background:#
 .nav{background:#211f1c;border-bottom:0.5px solid #3a3733;padding:0 1rem;display:flex;align-items:center;justify-content:space-between;height:44px;flex-shrink:0}
 .logo{font-size:14px;font-weight:500;color:#D4537E;letter-spacing:-0.02em}
 .logo span{color:#e8e4dc}
-.layout{display:grid;grid-template-columns:160px minmax(0,1fr) 200px;min-height:calc(100vh - 44px)}
+.layout{display:grid;grid-template-columns:160px minmax(0,1fr);min-height:calc(100vh - 44px)}
 .sidebar{border-right:0.5px solid #3a3733;background:#211f1c;padding:0.75rem 0}
 .sidebar2{border-left:0.5px solid #3a3733;background:#211f1c;padding:0.75rem}
 .main{padding:1rem;background:#1a1917;display:flex;flex-direction:column;gap:0.75rem}
@@ -116,7 +116,6 @@ select.inp{cursor:pointer}
 
 /* ── Responsive / mobile layout ── */@media(max-width:768px){.layout{grid-template-columns:1fr!important}
   .sidebar{display:none!important}
-  .sidebar2{display:none!important}
   .main{padding:0.75rem}
   #nav-top{gap:6px!important}
   .logo span{display:none!important}
@@ -150,13 +149,13 @@ select.inp{cursor:pointer}
 
 /* ── Messages page responsive ── */
 @media(max-width:768px){
-  .messages-chat-panel{display:none}
-  .messages-chat-panel.show{display:flex;flex-direction:column;height:calc(100vh - 100px)}
   .mobile-chat-header{display:flex!important}
-  .mobile-sidebar-overlay{display:none}
-  .mobile-sidebar-overlay.active{display:block;position:fixed;top:44px;left:0;right:0;bottom:56px;z-index:50;overflow-y:auto;background:#1a1917;padding:8px}
+  .msgs-filter-btn{display:flex!important}
+  .msgs-sidebar-overlay{display:none}
+  .msgs-sidebar-overlay.active{display:block;position:fixed;top:44px;left:0;right:0;bottom:56px;z-index:50;overflow-y:auto;background:#1a1917;padding:8px}
 }
-.mobile-sidebar-overlay{display:none}
+.msgs-filter-btn{display:none}
+.msgs-sidebar-overlay{display:none}
 .mobile-chat-header{display:none}
 
 /* typing indicator dots animation */

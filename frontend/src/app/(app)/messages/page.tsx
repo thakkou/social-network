@@ -71,6 +71,9 @@ export default function Chat() {
 
   const [otherTyping, setOtherTyping] = useState(false);
 
+  // showUsers: toggles the users sidebar overlay on mobile
+  const [showUsers, setShowUsers] = useState(true);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef(false);
@@ -142,6 +145,13 @@ export default function Chat() {
     loadMessages();
   }, [convType, convId, currentUserId, chatData.other_user_id]);
 
+  // On mobile: when a chat is selected, close the users overlay
+  useEffect(() => {
+    if (selectedChat) {
+      setShowUsers(false);
+    }
+  }, [selectedChat]);
+
   // Listen for incoming live messages via WS
   useEffect(() => {
     const unsubs = [
@@ -150,14 +160,10 @@ export default function Chat() {
         if (incomingConvId !== String(convId)) return;
 
         setMessages((prev) => {
-          // Check if this message was sent by us and is still being sent optimistically
-          // (the API response will replace the temp ID with the real ID later)
           const isPendingOptimistic = prev.some(
             (m) => m.senderId === currentUserId && m.isSending
           );
           if (isPendingOptimistic) return prev;
-
-          // Check if this message already exists (from API response or previous WS)
           if (prev.some((m) => m.id === data.message_id)) return prev;
 
           const type = data.sender_id === currentUserId ? ("me" as const) : ("them" as const);
@@ -180,13 +186,10 @@ export default function Chat() {
         if (incomingGroupId !== String(convId)) return;
 
         setMessages((prev) => {
-          // Check if there's a pending optimistic update from us
           const isPendingOptimistic = prev.some(
             (m) => m.senderId === currentUserId && m.isSending
           );
           if (isPendingOptimistic) return prev;
-
-          // Check if this message already exists
           if (prev.some((m) => m.id === data.message_id)) return prev;
 
           const type = data.sender_id === currentUserId ? ("me" as const) : ("them" as const);
@@ -365,21 +368,11 @@ export default function Chat() {
           type: "user",
           data: {
             ...chatData,
-            // Keep other_user_id so future messages still know who to send to
           },
         });
       }
     }
   }
-
-  const [showSidebar, setShowSidebar] = useState(true);
-
-  // On mobile, when a chat is selected, show the chat panel
-  useEffect(() => {
-    if (selectedChat) {
-      setShowSidebar(false);
-    }
-  }, [selectedChat]);
 
   return (
     <main
@@ -388,62 +381,110 @@ export default function Chat() {
         padding: 0,
         gap: 0,
         display: "flex",
+        flexDirection: "column",
         height: "100%",
-        minHeight: "480px",
         position: "relative",
       }}
     >
-      {/* Mobile sidebar overlay — always rendered, hidden via CSS when not active */}
-      <div className={`mobile-sidebar-overlay ${showSidebar ? "active" : ""}`}>
-        <MessagesSidebar onSelect={() => setShowSidebar(false)} />
+      {/* Mobile users sidebar overlay — toggled via filter button */}
+      <div className={`msgs-sidebar-overlay ${showUsers ? "active" : ""}`}>
+        <MessagesSidebar onSelect={() => setShowUsers(false)} />
       </div>
 
+      {/* Chat panel — always visible on desktop, visible on mobile when users overlay is closed */}
       <div
-        className={showSidebar ? "messages-chat-panel" : "messages-chat-panel show"}
         style={{
           flex: 1,
           display: "flex",
           flexDirection: "column",
           position: "relative",
+          minHeight: 0,
         }}
       >
-        {/* Mobile header with back button */}
+        {/* Mobile header with back + filter button */}
         {selectedChat && (
           <div
-            style={{
-              display: "none",  /* visible via CSS below */
-              padding: "6px 8px",
-              background: "var(--color-background-primary)",
-              borderBottom: "0.5px solid var(--color-border-tertiary)",
-            }}
             className="mobile-chat-header"
+            style={{
+              display: "none",
+              padding: "6px 8px",
+              background: "#211f1c",
+              borderBottom: "0.5px solid #3a3733",
+            }}
           >
-            <button
-              className="btn btn-g"
-              onClick={() => setShowSidebar(true)}
+            <div
               style={{
                 display: "flex",
+                justifyContent: "space-between",
                 alignItems: "center",
-                gap: "4px",
-                fontSize: "11px",
-                padding: "3px 8px",
               }}
             >
-              <i className="ti ti-arrow-left" /> back
-            </button>
+              <button
+                className="btn btn-g"
+                onClick={() => {
+                  selectChat(null);
+                  setShowUsers(true);
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "11px",
+                  padding: "3px 8px",
+                }}
+              >
+                <i className="ti ti-arrow-left" /> back
+              </button>
+              <button
+                className="msgs-filter-btn btn btn-g"
+                onClick={() => setShowUsers(true)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "11px",
+                  padding: "3px 8px",
+                }}
+              >
+                <i className="ti ti-users" /> users
+              </button>
+            </div>
           </div>
         )}
-        {/* Header */}
+
+        {/* Chat header with filter/users toggle button */}
         <div
           style={{
-            background: "var(--color-background-primary)",
-            borderBottom: "0.5px solid var(--color-border-tertiary)",
+            background: "#211f1c",
+            borderBottom: "0.5px solid #3a3733",
             padding: "10px 14px",
             display: "flex",
             alignItems: "center",
             gap: "8px",
           }}
         >
+          {/* Users toggle — visible on mobile only */}
+          <button
+            className="msgs-filter-btn"
+            onClick={() => setShowUsers(true)}
+            style={{
+              display: "none",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "28px",
+              height: "28px",
+              background: "transparent",
+              border: "0.5px solid #3a3733",
+              borderRadius: "6px",
+              cursor: "pointer",
+              color: "#a09c94",
+              flexShrink: 0,
+            }}
+            title="Show users"
+          >
+            <i className="ti ti-menu-2" style={{ fontSize: "15px" }} />
+          </button>
+
           {avatarUrl ? (
             <img
               src={avatarUrl}
@@ -477,7 +518,7 @@ export default function Chat() {
 
           <div>
             <p style={{ fontSize: "12px", fontWeight: 500 }}>{displayName}</p>
-            <p style={{ fontSize: "10px", color: "var(--color-text-tertiary)" }}>
+            <p style={{ fontSize: "10px", color: "#6b6760" }}>
               {isGroup ? (
                 <>
                   <span className="online-dot" /> channel active · {memberCount ? `${memberCount} members` : "group"}
@@ -501,7 +542,7 @@ export default function Chat() {
             display: "flex",
             flexDirection: "column",
             gap: "8px",
-            background: "var(--color-background-tertiary)",
+            background: "#1a1917",
             minHeight: "340px",
             overflowY: "auto",
           }}
@@ -513,7 +554,7 @@ export default function Chat() {
                   style={{
                     margin: "auto",
                     fontSize: "11px",
-                    color: "var(--color-text-tertiary)",
+                    color: "#6b6760",
                   }}
                 >
                   Loading messages...
@@ -523,7 +564,7 @@ export default function Chat() {
                   style={{
                     margin: "auto",
                     fontSize: "11px",
-                    color: "var(--color-error, #e53e3e)",
+                    color: "#e53e3e",
                   }}
                 >
                   {error}
@@ -533,7 +574,7 @@ export default function Chat() {
                   style={{
                     margin: "auto",
                     fontSize: "11px",
-                    color: "var(--color-text-tertiary)",
+                    color: "#6b6760",
                   }}
                 >
                   No messages here yet. Say hello!
@@ -602,7 +643,7 @@ export default function Chat() {
                           style={{
                             fontSize: "10px",
                             fontWeight: 600,
-                            color: "var(--color-text-primary)",
+                            color: "#e8e4dc",
                           }}
                         >
                           you
@@ -653,10 +694,16 @@ export default function Chat() {
               style={{
                 margin: "auto",
                 fontSize: "12px",
-                color: "var(--color-text-tertiary)",
+                color: "#6b6760",
+                textAlign: "center",
+                padding: "2rem",
               }}
             >
-              Select a user or group from the sidebar to view conversation
+              <i className="ti ti-messages" style={{ fontSize: "32px", display: "block", marginBottom: "12px", opacity: 0.4 }} />
+              Select a conversation to start chatting<br />
+              <span style={{ fontSize: "10px", color: "#a09c94" }}>
+                or click the <i className="ti ti-menu-2" /> button to see your contacts
+              </span>
             </div>
           )}
         </div>
@@ -664,8 +711,8 @@ export default function Chat() {
         {/* Input Bar */}
         <div
           style={{
-            background: "var(--color-background-primary)",
-            borderTop: "0.5px solid var(--color-border-tertiary)",
+            background: "#211f1c",
+            borderTop: "0.5px solid #3a3733",
             padding: "8px 12px",
             display: "flex",
             gap: "6px",
