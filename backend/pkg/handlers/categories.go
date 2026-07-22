@@ -38,6 +38,13 @@ func GetCategoriesByPost(postId int) ([]string, error) {
 	return categories, nil
 }
 
+// GetAllCategories returns all available post categories.
+// @Summary Get all categories
+// @Description Returns a list of all available post categories.
+// @Tags Categories
+// @Produce json
+// @Success 200 {array} string "Categories fetched"
+// @Router /api/categories [get]
 func GetAllCategories(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)

@@ -64,6 +64,15 @@ type GroupJoinRequestPayload struct {
 	InvitationID int `json:"invitation_id"`
 }
 
+// GetNotifications fetches the current user's notifications.
+// @Summary Get notifications
+// @Description Returns notifications for the logged-in user. Can filter by type (all or unread).
+// @Tags Notifications
+// @Produce json
+// @Param type query string false "Notification type filter: all or unread" Enums(all, unread)
+// @Success 200 {array} NotifResponse "Notifications fetched"
+// @Failure 401 {object} map[string]string "Not logged in"
+// @Router /api/notifications [get]
 func GetNotifications(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		utilities.WriteJSON(w, http.StatusBadRequest, "method not allowed", nil)
@@ -98,6 +107,16 @@ func GetNotifications(w http.ResponseWriter, r *http.Request) {
 	utilities.WriteJSON(w, http.StatusOK, "notifications fetched", notifRes)
 }
 
+// DeletNotif deletes a single notification by ID.
+// @Summary Delete a notification
+// @Description Deletes a single notification belonging to the current user.
+// @Tags Notifications
+// @Produce json
+// @Param id query int true "Notification ID to delete"
+// @Success 200 {object} map[string]string "Notification deleted"
+// @Failure 400 {object} map[string]string "Invalid notification ID"
+// @Failure 401 {object} map[string]string "Not logged in"
+// @Router /api/notifications/delete [delete]
 func DeletNotif(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
@@ -125,6 +144,14 @@ func DeletNotif(w http.ResponseWriter, r *http.Request) {
 	utilities.WriteJSON(w, http.StatusOK, "notification deleted", nil)
 }
 
+// DeletAllNotif deletes all notifications for the current user.
+// @Summary Delete all notifications
+// @Description Deletes every notification belonging to the current user.
+// @Tags Notifications
+// @Produce json
+// @Success 200 {object} map[string]string "All notifications deleted"
+// @Failure 401 {object} map[string]string "Not logged in"
+// @Router /api/notifications/deletAll [delete]
 func DeletAllNotif(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
@@ -145,6 +172,16 @@ func DeletAllNotif(w http.ResponseWriter, r *http.Request) {
 	utilities.WriteJSON(w, http.StatusOK, "all notifications deleted", nil)
 }
 
+// MarkNotificationRead marks a single notification as read.
+// @Summary Mark notification as read
+// @Description Marks a single notification as read by its ID.
+// @Tags Notifications
+// @Produce json
+// @Param id query int true "Notification ID to mark as read"
+// @Success 200 {object} map[string]string "Notification marked as read"
+// @Failure 400 {object} map[string]string "Invalid notification ID"
+// @Failure 401 {object} map[string]string "Not logged in"
+// @Router /api/notifications/read [post]
 func MarkNotificationRead(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
@@ -166,6 +203,14 @@ func MarkNotificationRead(w http.ResponseWriter, r *http.Request) {
 	utilities.WriteJSON(w, http.StatusOK, "notification marked as read", nil)
 }
 
+// MarkAllNotificationsRead marks all notifications as read for the current user.
+// @Summary Mark all notifications as read
+// @Description Marks every notification belonging to the current user as read.
+// @Tags Notifications
+// @Produce json
+// @Success 200 {object} map[string]string "All notifications marked as read"
+// @Failure 401 {object} map[string]string "Not logged in"
+// @Router /api/notifications/readAll [post]
 func MarkAllNotificationsRead(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)

@@ -11,6 +11,17 @@ import (
 	"01social/pkg/utilities"
 )
 
+// UpdateProfilePrivacy toggles the profile privacy setting.
+// @Summary Update profile privacy
+// @Description Sets the profile to private (1) or public (0). Private profiles require follow requests.
+// @Tags Profile
+// @Accept json
+// @Produce json
+// @Param payload body object true "Privacy setting" SchemaExample({"is_private":1})
+// @Success 200 {object} map[string]any "Profile privacy updated"
+// @Failure 400 {object} map[string]string "Invalid request"
+// @Failure 401 {object} map[string]string "Not logged in"
+// @Router /api/profile/privacy [put]
 func UpdateProfilePrivacy(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
@@ -44,6 +55,16 @@ func UpdateProfilePrivacy(w http.ResponseWriter, r *http.Request) {
 	utilities.WriteJSON(w, http.StatusOK, "profile privacy updated", map[string]any{"is_private": payload.IsPrivate})
 }
 
+// GetProfile fetches a user's profile by ID.
+// @Summary Get user profile
+// @Description Returns profile data for a user. For private profiles, only public info is shown unless the current user is a follower.
+// @Tags Profile
+// @Produce json
+// @Param id path int true "Profile/User ID"
+// @Success 200 {object} repModal.ProfileResponse "Profile data fetched"
+// @Failure 401 {object} map[string]string "Not logged in"
+// @Failure 404 {object} map[string]string "Profile not found"
+// @Router /api/profile/{id} [get]
 func GetProfile(w http.ResponseWriter, r *http.Request) {
 	// Only allow GET requests for fetching profiles
 	if r.Method != http.MethodGet {
@@ -171,6 +192,19 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 	utilities.WriteJSON(w, http.StatusOK, "profile data", profileRes)
 }
 
+// UpdateProfile updates the current user's profile (nickname, about me, avatar).
+// @Summary Update own profile
+// @Description Updates the logged-in user's nickname, about me section, and optional avatar image.
+// @Tags Profile
+// @Accept mpfd
+// @Produce json
+// @Param nickname formData string false "New nickname"
+// @Param aboutme formData string false "New about me text"
+// @Param avatar formData file false "New avatar image"
+// @Success 200 {object} map[string]string "Profile updated"
+// @Failure 400 {object} map[string]string "Invalid request"
+// @Failure 401 {object} map[string]string "Not logged in"
+// @Router /api/profile/update [put]
 func UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)

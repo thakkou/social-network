@@ -52,6 +52,38 @@ func seedPosts(db *sql.DB, u []int) ([]int, error) {
 		{u[6], "Hiking adventure", "Summited Mount Toubkal! Toughest hike of my life but the view was worth it.", "/uploads/seeder/posts/travel2.jpeg", "public"},
 		{u[0], "AI pair programming", "Been using AI tools for code reviews. They catch things I miss!", "/uploads/seeder/posts/dev2.jpeg", "public"},
 		{u[3], "Minimalist setup", "My new WFH setup: minimal, clean, productive. Less is more.", "/uploads/seeder/posts/dev.jpeg", "public"},
+
+		// === 30 additional posts ===
+		{u[2], "Pointers in C", "Finally understanding pointers in C after years of avoiding them. It's just references!", "/uploads/seeder/posts/learning2.jpeg", "public"},
+		{u[6], "Morning yoga", "30 days of morning yoga done. Flexibility improved, stress gone. Game changer.", "/uploads/seeder/posts/lofi.jpeg", "public"},
+		{u[8], "New painting", "Finally finished my oil painting after 3 weeks. Titled 'Digital Dreams'.", "", "public"},
+		{u[9], "Rust CLI tool", "Built a CLI file organizer in Rust this weekend. 10x faster than my Python version.", "/uploads/seeder/posts/dev2.jpeg", "public"},
+		{u[4], "Street photography", "Black and white street photography is my new obsession. Capturing raw moments.", "/uploads/seeder/posts/travel.jpeg", "public"},
+		{u[0], "Promotion news", "Getting promoted to Senior Engineer next month! All those late nights paid off.", "", "public"},
+		{u[7], "New EP done", "My debut EP 'Electric Dreams' is finally mastered and ready. Dropping next Friday!", "/uploads/seeder/posts/dev.jpeg", "public"},
+		{u[3], "Homemade sushi", "Made sushi from scratch for the first time. Rice to fish ratio is an art.", "/uploads/seeder/posts/cooking1.jpeg", "public"},
+		{u[1], "Sahara expedition", "3 days trekking the Sahara desert. Sand dunes, starry nights, and pure silence.", "/uploads/seeder/posts/travel2.jpeg", "public"},
+		{u[5], "Kubernetes thoughts", "Kubernetes is both the best and most frustrating thing I've ever worked with.", "/uploads/seeder/posts/dev3.jpeg", "public"},
+		{u[9], "PR merged!", "My first open source PR got merged into a major project! Contributing feels amazing.", "/uploads/seeder/posts/dev2.jpeg", "public"},
+		{u[6], "First marathon", "Ran my first marathon! 4h 23m. Never thought I could do it but here we are.", "/uploads/seeder/posts/travel2.jpeg", "public"},
+		{u[2], "Clean Code review", "Just finished 'Clean Code' by Uncle Bob. Every developer should read this.", "/uploads/seeder/posts/learning.jpeg", "public"},
+		{u[8], "UI design tips", "5 UI/UX tips for beginners: whitespace is your friend, consistency matters, accessibility first.", "/uploads/seeder/posts/dev.jpeg", "public"},
+		{u[0], "Legacy code", "Refactoring a 10-year-old codebase. It's like archeology but with more existential dread.", "/uploads/seeder/posts/dev3.jpeg", "public"},
+		{u[7], "Studio tour", "My home recording studio setup: Focusrite Scarlett, SM7B, and lots of patience.", "/uploads/seeder/posts/cooking2.jpeg", "public"},
+		{u[4], "Tokyo guide", "Just got back from Tokyo! Here's my guide: Shibuya at night, Tsukiji for breakfast, Akihabara for tech.", "/uploads/seeder/posts/travel.jpeg", "public"},
+		{u[3], "Weather app", "Building a weather app with Go and HTMX. No JavaScript, minimal CSS, maximum fun.", "/uploads/seeder/posts/learning2.jpeg", "public"},
+		{u[1], "Alps hiking", "Best hiking trails in the Swiss Alps: Eiger Trail, Haute Route, and Jungfrau region.", "/uploads/seeder/posts/travel2.jpeg", "public"},
+		{u[5], "gRPC vs REST", "After building APIs with both: gRPC for internal services, REST for public APIs. Different tools.", "/uploads/seeder/posts/dev2.jpeg", "public"},
+		{u[6], "Vegan banana bread", "Vegan banana bread recipe that even non-vegans love. Secret ingredient: coconut oil.", "/uploads/seeder/posts/cooking1.jpeg", "public"},
+		{u[9], "Custom keyboard", "Built my first mechanical keyboard! GMK keycaps, Gateron Black switches, aluminum case.", "/uploads/seeder/posts/lofi.jpeg", "public"},
+		{u[2], "Linear algebra", "Linear algebra is like the physics of programming. Everything makes sense with matrices.", "/uploads/seeder/posts/learning2.jpeg", "public"},
+		{u[8], "Forest photography", "Spent the weekend in the forest with my camera. Nothing beats natural light through leaves.", "/uploads/seeder/posts/travel.jpeg", "public"},
+		{u[0], "SQLite vs PostgreSQL", "For side projects: SQLite for simplicity, PostgreSQL when you need features. Both are amazing.", "/uploads/seeder/posts/dev3.jpeg", "public"},
+		{u[7], "Concert night", "Went to see a jazz fusion band last night. Live music hits different. 🎷", "", "public"},
+		{u[4], "Film photography", "First roll of Fujifilm Superia 400 developed. There's magic in the imperfections.", "/uploads/seeder/posts/learning.jpeg", "public"},
+		{u[3], "Home server", "My home server setup: Raspberry Pi 5, 4TB SSD, Pi-hole, Jellyfin, and Grafana.", "/uploads/seeder/posts/dev.jpeg", "public"},
+		{u[1], "Budget travel", "How to travel Europe on €50/day: hostels over hotels, street food, free walking tours.", "/uploads/seeder/posts/travel2.jpeg", "public"},
+		{u[5], ".vimrc secrets", "My .vimrc settings after 5 years of Vim: relative numbers, easy motion, and snippets.", "/uploads/seeder/posts/dev2.jpeg", "public"},
 	}
 
 	query := `INSERT INTO POSTS (user_id, created_at, title, text, image, privacy) VALUES (?, ?, ?, ?, ?, ?)`
@@ -114,7 +146,36 @@ func seedPostCategories(db *sql.DB, postIDs []int) error {
 	if err != nil {
 		return err
 	}
+	lifestyle, err := catID("Lifestyle")
+	if err != nil {
+		return err
+	}
+	health, err := catID("Health & Fitness")
+	if err != nil {
+		return err
+	}
+	personal, err := catID("Personal Dev")
+	if err != nil {
+		return err
+	}
+	business, err := catID("Business")
+	if err != nil {
+		return err
+	}
+	food, err := catID("Food & Cooking")
+	if err != nil {
+		return err
+	}
+	culture, err := catID("Culture")
+	if err != nil {
+		return err
+	}
+	finance, err := catID("Finance")
+	if err != nil {
+		return err
+	}
 	links := map[int][]int{
+		// Original post categories (kept)
 		postIDs[0]:  {general},
 		postIDs[1]:  {travel},
 		postIDs[3]:  {edu},
@@ -130,6 +191,57 @@ func seedPostCategories(db *sql.DB, postIDs []int) error {
 		postIDs[26]: {travel},
 		postIDs[27]: {travel, sports},
 		postIDs[28]: {ent},
+
+		// Categories for previously uncategorized posts
+		postIDs[2]:  {edu},
+		postIDs[5]:  {lifestyle},
+		postIDs[7]:  {sports, health},
+		postIDs[8]:  {edu},
+		postIDs[9]:  {ent},
+		postIDs[10]: {ent},
+		postIDs[13]: {edu},
+		postIDs[14]: {personal},
+		postIDs[15]: {ent},
+		postIDs[16]: {edu, culture},
+		postIDs[17]: {travel},
+		postIDs[19]: {general, edu},
+		postIDs[22]: {ent},
+		postIDs[29]: {edu},
+		postIDs[30]: {travel, sports},
+		postIDs[31]: {edu},
+		postIDs[32]: {lifestyle},
+
+		// Categories for 30 new posts (indices 33-62)
+		postIDs[33]: {edu},
+		postIDs[34]: {health},
+		postIDs[35]: {culture},
+		postIDs[36]: {edu},
+		postIDs[37]: {ent},
+		postIDs[38]: {business},
+		postIDs[39]: {ent},
+		postIDs[40]: {food},
+		postIDs[41]: {travel},
+		postIDs[42]: {edu},
+		postIDs[43]: {general},
+		postIDs[44]: {sports, health},
+		postIDs[45]: {personal},
+		postIDs[46]: {edu},
+		postIDs[47]: {edu},
+		postIDs[48]: {ent},
+		postIDs[49]: {travel},
+		postIDs[50]: {edu},
+		postIDs[51]: {sports, travel},
+		postIDs[52]: {edu},
+		postIDs[53]: {food},
+		postIDs[54]: {lifestyle},
+		postIDs[55]: {edu},
+		postIDs[56]: {travel, culture},
+		postIDs[57]: {edu},
+		postIDs[58]: {ent, culture},
+		postIDs[59]: {culture},
+		postIDs[60]: {edu},
+		postIDs[61]: {travel, finance},
+		postIDs[62]: {edu},
 	}
 	query := `INSERT INTO POST_CATEGORY (post_id, category_id) VALUES (?, ?)`
 	count := 0

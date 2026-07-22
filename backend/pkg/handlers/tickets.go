@@ -8,6 +8,14 @@ import (
 	"01social/pkg/utilities"
 )
 
+// CreateWsTicket creates a one-time use ticket for WebSocket authentication.
+// @Summary Create WebSocket ticket
+// @Description Creates a one-time use ticket that can be exchanged for a WebSocket connection. Tickets expire after a short time.
+// @Tags WebSocket
+// @Produce json
+// @Success 200 {object} map[string]string "Ticket created"
+// @Failure 401 {object} map[string]string "Not authenticated"
+// @Router /api/ws-ticket [post]
 func CreateWsTicket(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("creat a ws ticke")
 	if r.Method != http.MethodPost {

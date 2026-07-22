@@ -121,6 +121,22 @@ func enrichPostWithComments(p *dblayer.Post, userId int) error {
 // CREATE POST
 // =========================
 
+// CreatePost creates a new post with optional image upload.
+// @Summary Create a new post
+// @Description Creates a new post with title, text, categories, privacy setting, optional image, and allowed user IDs for private posts.
+// @Tags Posts
+// @Accept mpfd
+// @Produce json
+// @Param title formData string true "Post title"
+// @Param text formData string true "Post content"
+// @Param privacy formData string true "Privacy level: public, almost_private, or private" Enums(public, almost_private, private)
+// @Param categories formData []string false "Category names"
+// @Param image formData file false "Optional post image"
+// @Param allowed_user_ids formData string false "Comma-separated user IDs for private posts"
+// @Success 201 {object} map[string]any "Post created successfully"
+// @Failure 400 {object} map[string]string "Validation error"
+// @Failure 401 {object} map[string]string "Not logged in"
+// @Router /api/posts/create [post]
 func CreatePost(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/api/posts/create" {
 		utilities.WriteJSON(w, http.StatusNotFound, "page not found", nil)
@@ -243,6 +259,23 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 // POST RESOLVER
 // =========================
 
+// PostResolver routes to the appropriate post action based on the URL path.
+// GET  /api/posts/{id}          - Get single post with comments
+// POST /api/posts/{id}/like     - Like a post
+// POST /api/posts/{id}/dislike  - Dislike a post
+// DELETE /api/posts/{id}/delete - Delete own post
+// @Summary Post operations router
+// @Description Handles single post fetch, like/dislike, and delete operations.
+// @Tags Posts
+// @Accept json
+// @Produce json
+// @Param id path int true "Post ID"
+// @Success 200 {object} dblayer.Post "Post data or reaction result"
+// @Failure 404 {object} map[string]string "Not found"
+// @Router /api/posts/{id} [get]
+// @Router /api/posts/{id}/like [post]
+// @Router /api/posts/{id}/dislike [post]
+// @Router /api/posts/{id}/delete [delete]
 func PostResolver(w http.ResponseWriter, r *http.Request) {
 	segments := getPathSegments(r)
 	if len(segments) < 3 || segments[0] != "api" || segments[1] != "posts" {
@@ -343,6 +376,19 @@ func PostResolver(w http.ResponseWriter, r *http.Request) {
 // =========================
 // GET POSTS
 // =========================
+// GetPosts retrieves a filtered feed of posts.
+// @Summary Get post feed
+// @Description Returns a paginated, filterable feed of posts. Can filter by categories, liked by me, posted by me.
+// @Tags Posts
+// @Produce json
+// @Param categories query []string false "Filter by category names" collectionFormat(multi)
+// @Param liked_by_me query boolean false "Only posts liked by me"
+// @Param posted_by_me query boolean false "Only my posts"
+// @Param limit query integer false "Number of posts (default 30)" minimum(1)
+// @Param last_id query integer false "Last post ID for pagination" minimum(0)
+// @Success 200 {array} dblayer.Post "Posts fetched successfully"
+// @Failure 401 {object} map[string]string "Not logged in"
+// @Router /api/posts [get]
 func GetPosts(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)

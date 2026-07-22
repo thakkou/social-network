@@ -96,6 +96,20 @@ func parseGroupPath(path string) (groupID int, endpoint string, targetID int, ac
 	return groupID, endpoint, 0, "", true
 }
 
+// CreateGroup creates a new group.
+// @Summary Create a new group
+// @Description Creates a new group with title, description, and optional logo/background images.
+// @Tags Groups
+// @Accept mpfd
+// @Produce json
+// @Param title formData string true "Group title"
+// @Param description formData string false "Group description"
+// @Param logo formData file false "Group logo image"
+// @Param background formData file false "Group background image"
+// @Success 201 {object} map[string]any "Group created successfully"
+// @Failure 400 {object} map[string]string "Validation error"
+// @Failure 401 {object} map[string]string "Not logged in"
+// @Router /api/groups/create [post]
 func CreateGroup(w http.ResponseWriter, r *http.Request) {
 	log.Println("[CREATE_GROUP] Start group creation process")
 
@@ -200,6 +214,14 @@ func CreateGroup(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// ListGroups fetches all groups.
+// @Summary List all groups
+// @Description Returns a list of all groups.
+// @Tags Groups
+// @Produce json
+// @Success 200 {array} repository.Group "Groups fetched"
+// @Failure 401 {object} map[string]string "Not logged in"
+// @Router /api/groups [get]
 func ListGroups(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
@@ -215,6 +237,33 @@ func ListGroups(w http.ResponseWriter, r *http.Request) {
 	utilities.WriteJSON(w, http.StatusOK, "groups fetched", groups)
 }
 
+// GroupResolver handles group operations including posts, events, messages, invites, and membership management.
+// @Summary Group operations resolver
+// @Description Handles various group operations: posts CRUD, events CRUD, messages, invites, join/leave, member management.
+// @Tags Groups
+// @Accept json
+// @Produce json
+// @Param groupId path int true "Group ID"
+// @Success 200 {object} map[string]any "Operation successful"
+// @Failure 400 {object} map[string]string "Invalid request"
+// @Failure 401 {object} map[string]string "Not logged in"
+// @Failure 403 {object} map[string]string "Forbidden"
+// @Router /api/groups/{groupId}/posts [get]
+// @Router /api/groups/{groupId}/posts [post]
+// @Router /api/groups/{groupId}/events [get]
+// @Router /api/groups/{groupId}/events [post]
+// @Router /api/groups/{groupId}/messages [get]
+// @Router /api/groups/{groupId}/messages [post]
+// @Router /api/groups/{groupId}/join [post]
+// @Router /api/groups/{groupId}/leave [post]
+// @Router /api/groups/{groupId}/invite [post]
+// @Router /api/groups/{groupId}/update [put]
+// @Router /api/groups/{groupId}/requests [get]
+// @Router /api/groups/{groupId}/requests/{userId}/accept [post]
+// @Router /api/groups/{groupId}/requests/{userId}/reject [post]
+// @Router /api/groups/{groupId}/invites/accept [post]
+// @Router /api/groups/{groupId}/invites/reject [post]
+// @Router /api/groups/{groupId}/members/{userId}/kick [post]
 func GroupResolver(w http.ResponseWriter, r *http.Request) {
 	groupID, endpoint, _, _, ok := parseGroupPath(r.URL.Path)
 	if !ok {
@@ -926,6 +975,16 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetGroupPublic fetches public group details.
+// @Summary Get public group details
+// @Description Returns public information about a group including membership status.
+// @Tags Groups
+// @Produce json
+// @Param id path int true "Group ID"
+// @Success 200 {object} map[string]any "Group public details"
+// @Failure 400 {object} map[string]string "Invalid group ID"
+// @Failure 404 {object} map[string]string "Group not found"
+// @Router /api/groups/public/{id} [get]
 func GetGroupPublic(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
@@ -959,6 +1018,14 @@ func GetGroupPublic(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// GetMyGroups fetches groups the current user is a member of.
+// @Summary Get my groups
+// @Description Returns all groups where the current user is a member.
+// @Tags Groups
+// @Produce json
+// @Success 200 {object} map[string]any "My groups fetched"
+// @Failure 401 {object} map[string]string "Not logged in"
+// @Router /api/users/groups [get]
 func GetMyGroups(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
@@ -981,6 +1048,16 @@ func GetMyGroups(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetInviteCandidates returns users the current user follows who are not yet members of the group.
+// GetInviteCandidates fetches users who can be invited to a group.
+// @Summary Get invite candidates
+// @Description Returns users the current user follows who aren't already members of the group.
+// @Tags Groups
+// @Produce json
+// @Param id path int true "Group ID"
+// @Success 200 {object} map[string]any "Invite candidates fetched"
+// @Failure 400 {object} map[string]string "Invalid group ID"
+// @Failure 401 {object} map[string]string "Not logged in"
+// @Router /api/groups/invite-candidates/{id} [get]
 func GetInviteCandidates(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
@@ -1070,6 +1147,16 @@ func GetInviteCandidates(w http.ResponseWriter, r *http.Request) {
 	utilities.WriteJSON(w, http.StatusOK, "candidates fetched", candidates)
 }
 
+// GetGroupMembers fetches group members.
+// @Summary Get group members
+// @Description Returns the list of members in a group.
+// @Tags Groups
+// @Produce json
+// @Param id path int true "Group ID"
+// @Success 200 {object} map[string]any "Group members fetched"
+// @Failure 400 {object} map[string]string "Invalid group ID"
+// @Failure 401 {object} map[string]string "Not logged in"
+// @Router /api/groups/members/{id} [get]
 func GetGroupMembers(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
@@ -1104,6 +1191,18 @@ func GetGroupMembers(w http.ResponseWriter, r *http.Request) {
 	utilities.WriteJSON(w, http.StatusOK, "members fetched", result)
 }
 
+// GetGroupContent fetches the group content feed (posts and events).
+// @Summary Get group content feed
+// @Description Returns the content feed for a group (posts and events combined).
+// @Tags Groups
+// @Produce json
+// @Param id path int true "Group ID"
+// @Param limit query int false "Number of items per page" minimum(1) maximum(50)
+// @Param last_id query int false "Last item ID for pagination"
+// @Success 200 {object} map[string]any "Group content fetched"
+// @Failure 400 {object} map[string]string "Invalid group ID"
+// @Failure 401 {object} map[string]string "Not logged in"
+// @Router /api/groups/content/{id} [get]
 func GetGroupContent(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)

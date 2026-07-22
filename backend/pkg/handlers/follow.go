@@ -13,11 +13,17 @@ import (
 )
 
 // this func handle the follow logic
-/*
-- if user is public it follow directly
-- if user is private it make it pending
-- user can cancel the follow by removing it
-*/
+// FollowResolver handles follow/unfollow/accept/reject actions.
+// @Summary Follow operations
+// @Description Follow, unfollow, accept follow request, or reject follow request.
+// @Tags Follow
+// @Produce json
+// @Param resolver path string true "Action: follow, unfollow, accept, or reject" Enums(follow, unfollow, accept, reject)
+// @Param id path int true "Target user ID"
+// @Success 200 {object} map[string]any "Action successful"
+// @Failure 400 {object} map[string]string "Invalid request"
+// @Failure 401 {object} map[string]string "Not logged in"
+// @Router /api/follow/{resolver}/{id} [put]
 func FollowResolver(w http.ResponseWriter, r *http.Request) {
 	// Only allow PUT requests
 	if r.Method != http.MethodPut {

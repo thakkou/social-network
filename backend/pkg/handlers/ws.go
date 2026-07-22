@@ -20,6 +20,14 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
+// HandlerWs handles WebSocket upgrade requests.
+// @Summary WebSocket connection handler
+// @Description Upgrades an HTTP connection to a WebSocket connection after ticket verification. The ticket is obtained from /api/ws-ticket.
+// @Tags WebSocket
+// @Param ticket query string true "One-time WebSocket ticket"
+// @Success 101 {string} string "Switching Protocols"
+// @Failure 401 {object} map[string]string "Invalid or missing ticket"
+// @Router /ws [get]
 func HandlerWs(w http.ResponseWriter, r *http.Request) {
 	ticket := r.URL.Query().Get("ticket")
 	fmt.Println("get the ticket ws", ticket)
@@ -49,6 +57,14 @@ func HandlerWs(w http.ResponseWriter, r *http.Request) {
 	go ws.HandleClient(client)
 }
 
+// GetOnlineUsers returns a list of currently connected user IDs.
+// @Summary Get online users
+// @Description Returns the list of user IDs currently connected via WebSocket.
+// @Tags WebSocket
+// @Produce json
+// @Success 200 {array} string "List of online user IDs"
+// @Failure 401 {object} map[string]string "Not logged in"
+// @Router /api/online-users [get]
 func GetOnlineUsers(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)

@@ -1,0 +1,2276 @@
+basePath: /
+definitions:
+  dbModal.Comment:
+    properties:
+      created_at:
+        type: string
+      dislike_count:
+        type: integer
+      id:
+        type: integer
+      image:
+        type: string
+      is_liked:
+        description: 1:liked, 0:none, -1:disliked
+        type: integer
+      like_count:
+        type: integer
+      nickname:
+        type: string
+      text:
+        type: string
+      time_ago:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  dbModal.Post:
+    properties:
+      avatar:
+        type: string
+      categories:
+        items:
+          type: string
+        type: array
+      comment_count:
+        type: integer
+      comments:
+        items:
+          $ref: '#/definitions/dbModal.Comment'
+        type: array
+      created_at:
+        type: string
+      dislike_count:
+        type: integer
+      firstname:
+        type: string
+      id:
+        type: integer
+      image:
+        type: string
+      is_liked:
+        description: 1:liked, 0:none, -1:disliked
+        type: integer
+      lastname:
+        type: string
+      like_count:
+        type: integer
+      nickname:
+        type: string
+      privacy:
+        type: string
+      text:
+        type: string
+      time_ago:
+        type: string
+      title:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  handlers.ActorInfo:
+    properties:
+      avatar:
+        type: string
+      firstname:
+        type: string
+      lastname:
+        type: string
+      nickname:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  handlers.NotifResponse:
+    properties:
+      actor:
+        $ref: '#/definitions/handlers.ActorInfo'
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_read:
+        type: boolean
+      object_type:
+        description: post, comment, follow, group_invite, group_request
+        type: string
+      payload: {}
+      type:
+        description: post_reaction, comment, follow_request, follow_accepted, group_invite,
+          group_join_request
+        type: string
+    type: object
+  handlers.SearchResponse:
+    properties:
+      groups:
+        items:
+          $ref: '#/definitions/repository.Group'
+        type: array
+      profiles:
+        items:
+          $ref: '#/definitions/repository.User'
+        type: array
+    type: object
+  handlers.SendGroupMessageRequest:
+    properties:
+      group_id:
+        type: integer
+      text:
+        type: string
+    type: object
+  handlers.SendMessageRequest:
+    properties:
+      conversation_id:
+        description: Optional for direct messages
+        type: integer
+      group_id:
+        description: Required for group messages
+        type: integer
+      receiver_id:
+        description: Required for direct messages
+        type: integer
+      text:
+        description: Message body
+        type: string
+      type:
+        description: '"direct" | "group"'
+        type: string
+    type: object
+  handlers.userProfileResponse:
+    properties:
+      avatar:
+        type: string
+      firstname:
+        type: string
+      id:
+        type: integer
+      is_private:
+        type: integer
+      lastname:
+        type: string
+      nickname:
+        type: string
+    type: object
+  handlers.userSearchResult:
+    properties:
+      avatar:
+        type: string
+      firstname:
+        type: string
+      id:
+        type: integer
+      is_private:
+        type: integer
+      lastname:
+        type: string
+      nickname:
+        type: string
+    type: object
+  repModal.Comment:
+    properties:
+      createdAt:
+        type: string
+      dislikeCount:
+        type: integer
+      id:
+        type: integer
+      isLiked:
+        type: integer
+      likeCount:
+        type: integer
+      title:
+        type: string
+      userID:
+        type: integer
+    type: object
+  repModal.PostResponse:
+    properties:
+      categories:
+        description: Associated Categories
+        items:
+          type: string
+        type: array
+      comment_count:
+        type: integer
+      comments:
+        description: Nested Comments list
+        items:
+          $ref: '#/definitions/repModal.Comment'
+        type: array
+      created_at:
+        type: string
+      dislike_count:
+        type: integer
+      id:
+        description: We embed the main Post fields directly
+        type: integer
+      image:
+        type: string
+      is_liked:
+        description: '1: liked, 0: none, -1: disliked'
+        type: integer
+      like_count:
+        description: Aggregated counts for the post
+        type: integer
+      nickname:
+        type: string
+      privacy:
+        type: string
+      text:
+        type: string
+      time_ago:
+        type: string
+      title:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  repModal.ProfileResponse:
+    properties:
+      aboutme:
+        type: string
+      avatar:
+        type: string
+      created_at:
+        type: string
+      firstname:
+        type: string
+      followers:
+        items:
+          $ref: '#/definitions/repModal.UserFollow'
+        type: array
+      following:
+        items:
+          $ref: '#/definitions/repModal.UserFollow'
+        type: array
+      following_status:
+        type: string
+      id:
+        type: integer
+      is_private:
+        type: integer
+      lastname:
+        type: string
+      nickname:
+        type: string
+      posts:
+        items:
+          $ref: '#/definitions/repModal.PostResponse'
+        type: array
+    type: object
+  repModal.UserFollow:
+    properties:
+      avatar:
+        type: string
+      firstname:
+        type: string
+      id:
+        type: integer
+      lastname:
+        type: string
+      nickname:
+        type: string
+    type: object
+  repository.Group:
+    properties:
+      background:
+        type: string
+      created_at:
+        type: string
+      creator_id:
+        type: integer
+      description:
+        type: string
+      id:
+        type: integer
+      logo:
+        type: string
+      title:
+        type: string
+    type: object
+  repository.User:
+    properties:
+      aboutme:
+        type: string
+      avatar:
+        type: string
+      birthdate:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      firstname:
+        type: string
+      id:
+        type: integer
+      is_private:
+        type: integer
+      last_seen:
+        type: string
+      lastname:
+        type: string
+      nickname:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+    url: https://example.com/support
+  description: A social network API built with Go. Supports user authentication, posts,
+    comments, reactions, groups, messaging, notifications, and real-time WebSocket
+    events.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: https://example.com/terms
+  title: Social Network API
+  version: "1.0"
+paths:
+  /api/categories:
+    get:
+      description: Returns a list of all available post categories.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Categories fetched
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Get all categories
+      tags:
+      - Categories
+  /api/comments/{id}/delete:
+    delete:
+      description: Handles like/dislike on comments and comment deletion.
+      parameters:
+      - description: Comment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      summary: Comment operations
+      tags:
+      - Comments
+  /api/comments/{id}/dislike:
+    post:
+      description: Handles like/dislike on comments and comment deletion.
+      parameters:
+      - description: Comment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      summary: Comment operations
+      tags:
+      - Comments
+  /api/comments/{id}/like:
+    post:
+      description: Handles like/dislike on comments and comment deletion.
+      parameters:
+      - description: Comment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      summary: Comment operations
+      tags:
+      - Comments
+  /api/comments/create:
+    post:
+      consumes:
+      - application/json
+      description: Adds a comment to a post. Accepts JSON or multipart/form-data with
+        optional image.
+      parameters:
+      - description: Post ID (for JSON requests)
+        in: body
+        name: postId
+        schema:
+          type: integer
+      - description: Comment text
+        in: body
+        name: text
+        schema:
+          type: string
+      - description: Post ID (for multipart requests)
+        in: formData
+        name: postId
+        type: integer
+      - description: Comment body
+        in: formData
+        name: text
+        type: string
+      - description: Optional comment image
+        in: formData
+        name: image
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Comment created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Validation error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a comment
+      tags:
+      - Comments
+  /api/conversation/{type}/{id}:
+    get:
+      description: Returns paginated messages for a direct or group conversation.
+      parameters:
+      - description: 'Conversation type: direct or group'
+        enum:
+        - direct
+        - group
+        in: path
+        name: type
+        required: true
+        type: string
+      - description: Conversation ID or Group ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Pagination offset
+        in: query
+        minimum: 0
+        name: offset
+        type: integer
+      - description: Number of messages (max 50)
+        in: query
+        maximum: 50
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Messages fetched
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get conversation messages
+      tags:
+      - Conversations
+  /api/conversations:
+    get:
+      description: Returns the list of conversations (direct and group) for the logged-in
+        user.
+      parameters:
+      - description: Pagination offset
+        in: query
+        minimum: 0
+        name: offset
+        type: integer
+      - description: Number of items (max 30)
+        in: query
+        maximum: 30
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Conversation feed with direct and group items
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get conversation feed
+      tags:
+      - Conversations
+  /api/follow/{resolver}/{id}:
+    put:
+      description: Follow, unfollow, accept follow request, or reject follow request.
+      parameters:
+      - description: 'Action: follow, unfollow, accept, or reject'
+        enum:
+        - follow
+        - unfollow
+        - accept
+        - reject
+        in: path
+        name: resolver
+        required: true
+        type: string
+      - description: Target user ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Action successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Follow operations
+      tags:
+      - Follow
+  /api/groups:
+    get:
+      description: Returns a list of all groups.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Groups fetched
+          schema:
+            items:
+              $ref: '#/definitions/repository.Group'
+            type: array
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List all groups
+      tags:
+      - Groups
+  /api/groups/{groupId}/events:
+    get:
+      consumes:
+      - application/json
+      description: 'Handles various group operations: posts CRUD, events CRUD, messages,
+        invites, join/leave, member management.'
+      parameters:
+      - description: Group ID
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Operation successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Group operations resolver
+      tags:
+      - Groups
+    post:
+      consumes:
+      - application/json
+      description: 'Handles various group operations: posts CRUD, events CRUD, messages,
+        invites, join/leave, member management.'
+      parameters:
+      - description: Group ID
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Operation successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Group operations resolver
+      tags:
+      - Groups
+  /api/groups/{groupId}/invite:
+    post:
+      consumes:
+      - application/json
+      description: 'Handles various group operations: posts CRUD, events CRUD, messages,
+        invites, join/leave, member management.'
+      parameters:
+      - description: Group ID
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Operation successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Group operations resolver
+      tags:
+      - Groups
+  /api/groups/{groupId}/invites/accept:
+    post:
+      consumes:
+      - application/json
+      description: 'Handles various group operations: posts CRUD, events CRUD, messages,
+        invites, join/leave, member management.'
+      parameters:
+      - description: Group ID
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Operation successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Group operations resolver
+      tags:
+      - Groups
+  /api/groups/{groupId}/invites/reject:
+    post:
+      consumes:
+      - application/json
+      description: 'Handles various group operations: posts CRUD, events CRUD, messages,
+        invites, join/leave, member management.'
+      parameters:
+      - description: Group ID
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Operation successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Group operations resolver
+      tags:
+      - Groups
+  /api/groups/{groupId}/join:
+    post:
+      consumes:
+      - application/json
+      description: 'Handles various group operations: posts CRUD, events CRUD, messages,
+        invites, join/leave, member management.'
+      parameters:
+      - description: Group ID
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Operation successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Group operations resolver
+      tags:
+      - Groups
+  /api/groups/{groupId}/leave:
+    post:
+      consumes:
+      - application/json
+      description: 'Handles various group operations: posts CRUD, events CRUD, messages,
+        invites, join/leave, member management.'
+      parameters:
+      - description: Group ID
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Operation successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Group operations resolver
+      tags:
+      - Groups
+  /api/groups/{groupId}/members/{userId}/kick:
+    post:
+      consumes:
+      - application/json
+      description: 'Handles various group operations: posts CRUD, events CRUD, messages,
+        invites, join/leave, member management.'
+      parameters:
+      - description: Group ID
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Operation successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Group operations resolver
+      tags:
+      - Groups
+  /api/groups/{groupId}/messages:
+    get:
+      consumes:
+      - application/json
+      description: 'Handles various group operations: posts CRUD, events CRUD, messages,
+        invites, join/leave, member management.'
+      parameters:
+      - description: Group ID
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Operation successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Group operations resolver
+      tags:
+      - Groups
+    post:
+      consumes:
+      - application/json
+      description: 'Handles various group operations: posts CRUD, events CRUD, messages,
+        invites, join/leave, member management.'
+      parameters:
+      - description: Group ID
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Operation successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Group operations resolver
+      tags:
+      - Groups
+  /api/groups/{groupId}/posts:
+    get:
+      consumes:
+      - application/json
+      description: 'Handles various group operations: posts CRUD, events CRUD, messages,
+        invites, join/leave, member management.'
+      parameters:
+      - description: Group ID
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Operation successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Group operations resolver
+      tags:
+      - Groups
+    post:
+      consumes:
+      - application/json
+      description: 'Handles various group operations: posts CRUD, events CRUD, messages,
+        invites, join/leave, member management.'
+      parameters:
+      - description: Group ID
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Operation successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Group operations resolver
+      tags:
+      - Groups
+  /api/groups/{groupId}/requests:
+    get:
+      consumes:
+      - application/json
+      description: 'Handles various group operations: posts CRUD, events CRUD, messages,
+        invites, join/leave, member management.'
+      parameters:
+      - description: Group ID
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Operation successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Group operations resolver
+      tags:
+      - Groups
+  /api/groups/{groupId}/requests/{userId}/accept:
+    post:
+      consumes:
+      - application/json
+      description: 'Handles various group operations: posts CRUD, events CRUD, messages,
+        invites, join/leave, member management.'
+      parameters:
+      - description: Group ID
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Operation successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Group operations resolver
+      tags:
+      - Groups
+  /api/groups/{groupId}/requests/{userId}/reject:
+    post:
+      consumes:
+      - application/json
+      description: 'Handles various group operations: posts CRUD, events CRUD, messages,
+        invites, join/leave, member management.'
+      parameters:
+      - description: Group ID
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Operation successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Group operations resolver
+      tags:
+      - Groups
+  /api/groups/{groupId}/update:
+    put:
+      consumes:
+      - application/json
+      description: 'Handles various group operations: posts CRUD, events CRUD, messages,
+        invites, join/leave, member management.'
+      parameters:
+      - description: Group ID
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Operation successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Group operations resolver
+      tags:
+      - Groups
+  /api/groups/content/{id}:
+    get:
+      description: Returns the content feed for a group (posts and events combined).
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Number of items per page
+        in: query
+        maximum: 50
+        minimum: 1
+        name: limit
+        type: integer
+      - description: Last item ID for pagination
+        in: query
+        name: last_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Group content fetched
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid group ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get group content feed
+      tags:
+      - Groups
+  /api/groups/create:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Creates a new group with title, description, and optional logo/background
+        images.
+      parameters:
+      - description: Group title
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: Group description
+        in: formData
+        name: description
+        type: string
+      - description: Group logo image
+        in: formData
+        name: logo
+        type: file
+      - description: Group background image
+        in: formData
+        name: background
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Group created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Validation error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new group
+      tags:
+      - Groups
+  /api/groups/invite-candidates/{id}:
+    get:
+      description: Returns users the current user follows who aren't already members
+        of the group.
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Invite candidates fetched
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid group ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get invite candidates
+      tags:
+      - Groups
+  /api/groups/members/{id}:
+    get:
+      description: Returns the list of members in a group.
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Group members fetched
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid group ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get group members
+      tags:
+      - Groups
+  /api/groups/public/{id}:
+    get:
+      description: Returns public information about a group including membership status.
+      parameters:
+      - description: Group ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Group public details
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid group ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Group not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get public group details
+      tags:
+      - Groups
+  /api/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate with email/username and password. Returns user data
+        and sets a session cookie.
+      parameters:
+      - description: Login credentials
+        in: body
+        name: credentials
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login success with user data and token
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Invalid credentials
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Login user
+      tags:
+      - Authentication
+  /api/logout:
+    post:
+      description: Clears the session cookie and deletes the session from the database.
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Logout success
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Logout user
+      tags:
+      - Authentication
+  /api/me:
+    get:
+      description: Returns profile data for the currently authenticated user based
+        on session cookie.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Authenticated user data
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get current user info
+      tags:
+      - Authentication
+  /api/messages:
+    post:
+      consumes:
+      - application/json
+      description: Sends a direct message to another user or a message to a group.
+        Dispatches real-time WebSocket notification.
+      parameters:
+      - description: Message payload
+        in: body
+        name: message
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.SendMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Message sent successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Cannot message this user
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Send a message
+      tags:
+      - Conversations
+  /api/notifications:
+    get:
+      description: Returns notifications for the logged-in user. Can filter by type
+        (all or unread).
+      parameters:
+      - description: 'Notification type filter: all or unread'
+        enum:
+        - all
+        - unread
+        in: query
+        name: type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Notifications fetched
+          schema:
+            items:
+              $ref: '#/definitions/handlers.NotifResponse'
+            type: array
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get notifications
+      tags:
+      - Notifications
+  /api/notifications/deletAll:
+    delete:
+      description: Deletes every notification belonging to the current user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: All notifications deleted
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete all notifications
+      tags:
+      - Notifications
+  /api/notifications/delete:
+    delete:
+      description: Deletes a single notification belonging to the current user.
+      parameters:
+      - description: Notification ID to delete
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Notification deleted
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid notification ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a notification
+      tags:
+      - Notifications
+  /api/notifications/read:
+    post:
+      description: Marks a single notification as read by its ID.
+      parameters:
+      - description: Notification ID to mark as read
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Notification marked as read
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid notification ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Mark notification as read
+      tags:
+      - Notifications
+  /api/notifications/readAll:
+    post:
+      description: Marks every notification belonging to the current user as read.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: All notifications marked as read
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Mark all notifications as read
+      tags:
+      - Notifications
+  /api/online-users:
+    get:
+      description: Returns the list of user IDs currently connected via WebSocket.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of online user IDs
+          schema:
+            items:
+              type: string
+            type: array
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get online users
+      tags:
+      - WebSocket
+  /api/posts:
+    get:
+      description: Returns a paginated, filterable feed of posts. Can filter by categories,
+        liked by me, posted by me.
+      parameters:
+      - collectionFormat: multi
+        description: Filter by category names
+        in: query
+        items:
+          type: string
+        name: categories
+        type: array
+      - description: Only posts liked by me
+        in: query
+        name: liked_by_me
+        type: boolean
+      - description: Only my posts
+        in: query
+        name: posted_by_me
+        type: boolean
+      - description: Number of posts (default 30)
+        in: query
+        minimum: 1
+        name: limit
+        type: integer
+      - description: Last post ID for pagination
+        in: query
+        minimum: 0
+        name: last_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Posts fetched successfully
+          schema:
+            items:
+              $ref: '#/definitions/dbModal.Post'
+            type: array
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get post feed
+      tags:
+      - Posts
+  /api/posts/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Handles single post fetch, like/dislike, and delete operations.
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Post data or reaction result
+          schema:
+            $ref: '#/definitions/dbModal.Post'
+        "404":
+          description: Not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Post operations router
+      tags:
+      - Posts
+  /api/posts/{id}/delete:
+    delete:
+      consumes:
+      - application/json
+      description: Handles single post fetch, like/dislike, and delete operations.
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Post data or reaction result
+          schema:
+            $ref: '#/definitions/dbModal.Post'
+        "404":
+          description: Not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Post operations router
+      tags:
+      - Posts
+  /api/posts/{id}/dislike:
+    post:
+      consumes:
+      - application/json
+      description: Handles single post fetch, like/dislike, and delete operations.
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Post data or reaction result
+          schema:
+            $ref: '#/definitions/dbModal.Post'
+        "404":
+          description: Not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Post operations router
+      tags:
+      - Posts
+  /api/posts/{id}/like:
+    post:
+      consumes:
+      - application/json
+      description: Handles single post fetch, like/dislike, and delete operations.
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Post data or reaction result
+          schema:
+            $ref: '#/definitions/dbModal.Post'
+        "404":
+          description: Not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Post operations router
+      tags:
+      - Posts
+  /api/posts/create:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Creates a new post with title, text, categories, privacy setting,
+        optional image, and allowed user IDs for private posts.
+      parameters:
+      - description: Post title
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: Post content
+        in: formData
+        name: text
+        required: true
+        type: string
+      - description: 'Privacy level: public, almost_private, or private'
+        enum:
+        - public
+        - almost_private
+        - private
+        in: formData
+        name: privacy
+        required: true
+        type: string
+      - collectionFormat: csv
+        description: Category names
+        in: formData
+        items:
+          type: string
+        name: categories
+        type: array
+      - description: Optional post image
+        in: formData
+        name: image
+        type: file
+      - description: Comma-separated user IDs for private posts
+        in: formData
+        name: allowed_user_ids
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Post created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Validation error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new post
+      tags:
+      - Posts
+  /api/profile/{id}:
+    get:
+      description: Returns profile data for a user. For private profiles, only public
+        info is shown unless the current user is a follower.
+      parameters:
+      - description: Profile/User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profile data fetched
+          schema:
+            $ref: '#/definitions/repModal.ProfileResponse'
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Profile not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get user profile
+      tags:
+      - Profile
+  /api/profile/privacy:
+    put:
+      consumes:
+      - application/json
+      description: Sets the profile to private (1) or public (0). Private profiles
+        require follow requests.
+      parameters:
+      - description: Privacy setting
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profile privacy updated
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update profile privacy
+      tags:
+      - Profile
+  /api/profile/update:
+    put:
+      consumes:
+      - multipart/form-data
+      description: Updates the logged-in user's nickname, about me section, and optional
+        avatar image.
+      parameters:
+      - description: New nickname
+        in: formData
+        name: nickname
+        type: string
+      - description: New about me text
+        in: formData
+        name: aboutme
+        type: string
+      - description: New avatar image
+        in: formData
+        name: avatar
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profile updated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update own profile
+      tags:
+      - Profile
+  /api/register:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Creates a new user account with multipart form data. Avatar upload
+        is optional.
+      parameters:
+      - description: First name
+        in: formData
+        name: firstname
+        required: true
+        type: string
+      - description: Last name
+        in: formData
+        name: lastname
+        required: true
+        type: string
+      - description: Email address
+        in: formData
+        name: email
+        required: true
+        type: string
+      - description: Password
+        in: formData
+        name: password
+        required: true
+        type: string
+      - description: Birth date
+        in: formData
+        name: birthDate
+        required: true
+        type: string
+      - description: Nickname/username
+        in: formData
+        name: nickname
+        type: string
+      - description: About me bio
+        in: formData
+        name: aboutme
+        type: string
+      - description: Avatar image (max 1MB)
+        in: formData
+        name: avatar
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Registration success
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Validation error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register new user
+      tags:
+      - Authentication
+  /api/search:
+    get:
+      description: Searches for both users/profiles and groups matching the given
+        text.
+      parameters:
+      - description: Search text
+        in: query
+        name: text
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Search results
+          schema:
+            $ref: '#/definitions/handlers.SearchResponse'
+      summary: Search users and groups
+      tags:
+      - Search
+  /api/session/validate:
+    get:
+      description: Lightweight endpoint to check if the session cookie is still valid.
+        Used by NextAuth for server-side session validation.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Session is valid
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Invalid or expired session
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Validate session
+      tags:
+      - Authentication
+  /api/users/{id}:
+    get:
+      description: Returns basic user info (id, nickname, firstname, lastname, avatar,
+        is_private).
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User data fetched
+          schema:
+            $ref: '#/definitions/handlers.userProfileResponse'
+        "400":
+          description: Invalid user ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: User not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get user by ID
+      tags:
+      - Profile
+  /api/users/groups:
+    get:
+      description: Returns all groups where the current user is a member.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: My groups fetched
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Not logged in
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get my groups
+      tags:
+      - Groups
+  /api/users/search:
+    get:
+      description: Searches for users by firstname, lastname, or nickname.
+      parameters:
+      - description: Search query string
+        in: query
+        name: q
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Users fetched
+          schema:
+            items:
+              $ref: '#/definitions/handlers.userSearchResult'
+            type: array
+      summary: Search users
+      tags:
+      - Search
+  /api/ws-ticket:
+    post:
+      description: Creates a one-time use ticket that can be exchanged for a WebSocket
+        connection. Tickets expire after a short time.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Ticket created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create WebSocket ticket
+      tags:
+      - WebSocket
+  /health:
+    get:
+      description: Returns the server health status.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Server is healthy
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - Health
+  /ws:
+    get:
+      description: Upgrades an HTTP connection to a WebSocket connection after ticket
+        verification. The ticket is obtained from /api/ws-ticket.
+      parameters:
+      - description: One-time WebSocket ticket
+        in: query
+        name: ticket
+        required: true
+        type: string
+      responses:
+        "101":
+          description: Switching Protocols
+          schema:
+            type: string
+        "401":
+          description: Invalid or missing ticket
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: WebSocket connection handler
+      tags:
+      - WebSocket
+securityDefinitions:
+  SessionCookie:
+    in: cookie
+    name: session_id
+    type: apiKey
+swagger: "2.0"

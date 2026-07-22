@@ -275,9 +275,26 @@ func RegisterRoutes() {
 		middlewares.CheckSessionCookie(handlers.MarkNotificationRead, true),
 	)
 
+	// delete single notification
+	http.HandleFunc(
+		"/api/notifications/delete",
+		middlewares.CheckSessionCookie(handlers.DeletNotif, true),
+	)
+
 	// mark notif as Read
 	http.HandleFunc(
 		"/api/notifications/deletAll",
 		middlewares.CheckSessionCookie(handlers.DeletAllNotif, true),
+	)
+
+	// Documentation
+	http.HandleFunc(
+		"/api/docs/swagger.json",
+		handlers.GetSwaggerJSON,
+	)
+
+	http.HandleFunc(
+		"/api/docs",
+		handlers.GetSwaggerUI,
 	)
 }

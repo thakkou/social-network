@@ -29,7 +29,16 @@ type userProfileResponse struct {
 	IsPrivate int    `json:"is_private"`
 }
 
-// get UserProfile
+// GetUsersById fetches a basic user profile by ID.
+// @Summary Get user by ID
+// @Description Returns basic user info (id, nickname, firstname, lastname, avatar, is_private).
+// @Tags Profile
+// @Produce json
+// @Param id path int true "User ID"
+// @Success 200 {object} userProfileResponse "User data fetched"
+// @Failure 400 {object} map[string]string "Invalid user ID"
+// @Failure 404 {object} map[string]string "User not found"
+// @Router /api/users/{id} [get]
 func GetUsersById(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	if len(parts) != 3 || parts[0] != "api" || parts[1] != "users" {
@@ -78,6 +87,14 @@ func GetUsersById(w http.ResponseWriter, r *http.Request) {
 	utilities.WriteJSON(w, http.StatusOK, "user data fetched", user)
 }
 
+// SearchUsers searches for users by name or nickname.
+// @Summary Search users
+// @Description Searches for users by firstname, lastname, or nickname.
+// @Tags Search
+// @Produce json
+// @Param q query string true "Search query string"
+// @Success 200 {array} userSearchResult "Users fetched"
+// @Router /api/users/search [get]
 func SearchUsers(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
@@ -119,8 +136,14 @@ func SearchUsers(w http.ResponseWriter, r *http.Request) {
 	utilities.WriteJSON(w, http.StatusOK, "users fetched", users)
 }
 
-// ValidateSession is a lightweight endpoint that simply validates the session cookie
-// and returns whether it's still valid. Used by NextAuth to check server-side sessions.
+// ValidateSession checks if the current session cookie is still valid.
+// @Summary Validate session
+// @Description Lightweight endpoint to check if the session cookie is still valid. Used by NextAuth for server-side session validation.
+// @Tags Authentication
+// @Produce json
+// @Success 200 {object} map[string]any "Session is valid"
+// @Failure 401 {object} map[string]string "Invalid or expired session"
+// @Router /api/session/validate [get]
 func ValidateSession(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
@@ -162,6 +185,14 @@ func ValidateSession(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// GetUsernameByToken returns the authenticated user's profile data.
+// @Summary Get current user info
+// @Description Returns profile data for the currently authenticated user based on session cookie.
+// @Tags Authentication
+// @Produce json
+// @Success 200 {object} map[string]any "Authenticated user data"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Router /api/me [get]
 func GetUsernameByToken(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session_id")
 	if err != nil || cookie.Value == "" {

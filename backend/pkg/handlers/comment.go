@@ -16,7 +16,21 @@ import (
 	"01social/pkg/ws"
 )
 
-// CreateComment
+// CreateComment adds a new comment to a post.
+// @Summary Create a comment
+// @Description Adds a comment to a post. Accepts JSON or multipart/form-data with optional image.
+// @Tags Comments
+// @Accept json
+// @Produce json
+// @Param postId body int false "Post ID (for JSON requests)"
+// @Param text body string false "Comment text"
+// @Param postId formData integer false "Post ID (for multipart requests)"
+// @Param text formData string false "Comment body"
+// @Param image formData file false "Optional comment image"
+// @Success 201 {object} map[string]any "Comment created successfully"
+// @Failure 400 {object} map[string]string "Validation error"
+// @Failure 401 {object} map[string]string "Not logged in"
+// @Router /api/comments/create [post]
 func CreateComment(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/api/comments/create" {
 		utilities.WriteJSON(w, http.StatusNotFound, "page not found", nil)
@@ -155,7 +169,15 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 	utilities.WriteJSON(w, http.StatusCreated, "comment created successfully", res)
 }
 
-// CommentResolver
+// CommentResolver handles comment reactions and deletion.
+// @Summary Comment operations
+// @Description Handles like/dislike on comments and comment deletion.
+// @Tags Comments
+// @Produce json
+// @Param id path int true "Comment ID"
+// @Router /api/comments/{id}/like [post]
+// @Router /api/comments/{id}/dislike [post]
+// @Router /api/comments/{id}/delete [delete]
 func CommentResolver(w http.ResponseWriter, r *http.Request) {
 	segments := getPathSegments(r)
 	if len(segments) < 3 || segments[0] != "api" || segments[1] != "comments" {

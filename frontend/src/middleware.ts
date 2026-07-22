@@ -7,7 +7,6 @@ const privateRoutes = ["/groups", "/messages", "/notifications", "/profile"]; //
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
-  console.log("user is loggedIn",isLoggedIn)
   const { pathname } = req.nextUrl;
 
   const isPublicRoute = publicRoutes.some(

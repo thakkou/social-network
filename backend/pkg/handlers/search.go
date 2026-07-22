@@ -13,6 +13,14 @@ type SearchResponse struct {
 	Groups   []repository.Group `json:"groups"`
 }
 
+// FindQuery searches for users and groups by text query.
+// @Summary Search users and groups
+// @Description Searches for both users/profiles and groups matching the given text.
+// @Tags Search
+// @Produce json
+// @Param text query string true "Search text"
+// @Success 200 {object} SearchResponse "Search results"
+// @Router /api/search [get]
 func FindQuery(w http.ResponseWriter, r *http.Request) {
 	text := r.URL.Query().Get("text")
 

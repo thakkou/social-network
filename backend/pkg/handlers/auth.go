@@ -17,7 +17,17 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Login
+// Login authenticates a user by email/username and password.
+// @Summary Login user
+// @Description Authenticate with email/username and password. Returns user data and sets a session cookie.
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param credentials body object true "Login credentials" SchemaExample({"identifier":"john@example.com","password":"secret123"})
+// @Success 200 {object} map[string]any "Login success with user data and token"
+// @Failure 400 {object} map[string]string "Bad request"
+// @Failure 401 {object} map[string]string "Invalid credentials"
+// @Router /api/login [post]
 func Login(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/api/login" {
 		utilities.WriteJSON(w, http.StatusNotFound, "path not found", nil)
@@ -118,6 +128,13 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Logout invalidates the current session.
+// @Summary Logout user
+// @Description Clears the session cookie and deletes the session from the database.
+// @Tags Authentication
+// @Produce json
+// @Success 201 {object} map[string]string "Logout success"
+// @Router /api/logout [post]
 func Logout(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/api/logout" {
 		utilities.WriteJSON(w, 404, `path not found`, nil)
@@ -152,6 +169,23 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	utilities.WriteJSON(w, 201, `log out succes`, nil)
 }
 
+// Register creates a new user account.
+// @Summary Register new user
+// @Description Creates a new user account with multipart form data. Avatar upload is optional.
+// @Tags Authentication
+// @Accept mpfd
+// @Produce json
+// @Param firstname formData string true "First name"
+// @Param lastname formData string true "Last name"
+// @Param email formData string true "Email address"
+// @Param password formData string true "Password"
+// @Param birthDate formData string true "Birth date"
+// @Param nickname formData string false "Nickname/username"
+// @Param aboutme formData string false "About me bio"
+// @Param avatar formData file false "Avatar image (max 1MB)"
+// @Success 200 {object} map[string]string "Registration success"
+// @Failure 400 {object} map[string]string "Validation error"
+// @Router /api/register [post]
 func Register(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("start registring")
 

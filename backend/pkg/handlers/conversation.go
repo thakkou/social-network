@@ -13,8 +13,6 @@ import (
 	"01social/pkg/ws"
 )
 
-// SendMessage handles sending a DM and triggering real-time WS notifications.
-
 type SendMessageRequest struct {
 	Type           string `json:"type"`            // "direct" | "group"
 	Text           string `json:"text"`            // Message body
@@ -23,7 +21,18 @@ type SendMessageRequest struct {
 	GroupID        int    `json:"group_id"`        // Required for group messages
 }
 
-// SendMessage handles sending both direct and group messages and dispatching WS notifications.
+// SendMessage sends a direct or group message and dispatches WebSocket notifications.
+// @Summary Send a message
+// @Description Sends a direct message to another user or a message to a group. Dispatches real-time WebSocket notification.
+// @Tags Conversations
+// @Accept json
+// @Produce json
+// @Param message body SendMessageRequest true "Message payload"
+// @Success 200 {object} map[string]any "Message sent successfully"
+// @Failure 400 {object} map[string]string "Invalid request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Failure 403 {object} map[string]string "Cannot message this user"
+// @Router /api/messages [post]
 func SendMessage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
@@ -217,7 +226,16 @@ type SendGroupMessageRequest struct {
 	Text    string `json:"text"`
 }
 
-// SendGroupMessage handles sending a group chat message and broadcasting via WebSockets.
+// SendGroupMessage sends a group message (legacy, use SendMessage with type=group).
+// @Summary Send a group message
+// @Description Sends a message to a group chat and broadcasts via WebSockets. This is a legacy helper; prefer using SendMessage with type=group.
+// @Tags Conversations
+// @Accept json
+// @Produce json
+// @Param message body SendGroupMessageRequest true "Group message payload"
+// @Success 200 {object} map[string]any "Group message sent successfully"
+// @Failure 400 {object} map[string]string "Invalid request"
+// @Failure 401 {object} map[string]string "Unauthorized"
 func SendGroupMessage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
@@ -307,7 +325,16 @@ func SendGroupMessage(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-// GetConversation fetches the active user's conversation feed.
+// GetConversation fetches the conversation feed for the current user.
+// @Summary Get conversation feed
+// @Description Returns the list of conversations (direct and group) for the logged-in user.
+// @Tags Conversations
+// @Produce json
+// @Param offset query int false "Pagination offset" minimum(0)
+// @Param limit query int false "Number of items (max 30)" minimum(1) maximum(30)
+// @Success 200 {object} map[string]any "Conversation feed with direct and group items"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Router /api/conversations [get]
 func GetConversation(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
@@ -341,7 +368,19 @@ func GetConversation(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GetConversationByID handles message retrieval for direct chats or group chats.
+// GetConversationByID retrieves messages for a specific conversation.
+// @Summary Get conversation messages
+// @Description Returns paginated messages for a direct or group conversation.
+// @Tags Conversations
+// @Produce json
+// @Param type path string true "Conversation type: direct or group" Enums(direct, group)
+// @Param id path int true "Conversation ID or Group ID"
+// @Param offset query int false "Pagination offset" minimum(0)
+// @Param limit query int false "Number of messages (max 50)" minimum(1) maximum(50)
+// @Success 200 {object} map[string]any "Messages fetched"
+// @Failure 400 {object} map[string]string "Invalid request"
+// @Failure 401 {object} map[string]string "Unauthorized"
+// @Router /api/conversation/{type}/{id} [get]
 func GetConversationByID(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)

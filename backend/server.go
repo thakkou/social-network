@@ -13,6 +13,68 @@ import (
 	"01social/pkg/utilities"
 )
 
+// @title Social Network API
+// @version 1.0
+// @description A social network API built with Go. Supports user authentication, posts, comments, reactions, groups, messaging, notifications, and real-time WebSocket events.
+// @termsOfService https://example.com/terms
+//
+// @contact.name API Support
+// @contact.url https://example.com/support
+// @contact.email support@example.com
+//
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+//
+// @host localhost:8080
+// @BasePath /
+//
+// @securityDefinitions.apikey SessionCookie
+// @in cookie
+// @name session_id
+//
+// @tag.name Authentication
+// @tag.description Login, Register, Logout, Session validation
+//
+// @tag.name Posts
+// @tag.description Create, read, filter, and manage posts
+//
+// @tag.name Comments
+// @tag.description Create and manage comments on posts
+//
+// @tag.name Reactions
+// @tag.description Like/dislike posts and comments
+//
+// @tag.name Follow
+// @tag.description Follow/unfollow users and manage follow requests
+//
+// @tag.name Profile
+// @tag.description View and update user profiles
+//
+// @tag.name Groups
+// @tag.description Create and manage groups, group posts, events, invites
+//
+// @tag.name Conversations
+// @tag.description Direct messaging and group chat
+//
+// @tag.name Notifications
+// @tag.description View and manage notifications
+//
+// @tag.name Search
+// @tag.description Search users and groups
+//
+// @tag.name Categories
+// @tag.description Post categories
+//
+// @tag.name WebSocket
+// @tag.description Real-time events via WebSocket connections
+
+// healthHandler responds with the server health status.
+// @Summary Health check
+// @Description Returns the server health status.
+// @Tags Health
+// @Produce json
+// @Success 200 {object} map[string]string "Server is healthy"
+// @Router /health [get]
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	utilities.WriteJSON(w, 200, "server is healty", nil)
 	fmt.Println("healt")
