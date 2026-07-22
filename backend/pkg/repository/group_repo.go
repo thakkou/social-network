@@ -237,6 +237,26 @@ func (r *GroupRepository) GetGroupCreatorID(groupID int) (int, error) {
 	return creatorID, err
 }
 
+// GetGroupInvitedUserIDs returns the IDs of users who have been invited to the group
+// (with pending or accepted status), excluding rejected invites.
+func (r *GroupRepository) GetGroupInvitedUserIDs(groupID int) ([]int, error) {
+	rows, err := r.DB.Query(`SELECT invited_user_id FROM GROUP_INVITES WHERE group_id = ? AND status != 'rejected'`, groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
 func (r *GroupRepository) GetGroupMemberIDs(groupID int) ([]int, error) {
 	rows, err := r.DB.Query(`SELECT user_id FROM GROUP_MEMBERS WHERE group_id = ?`, groupID)
 	if err != nil {

@@ -73,6 +73,14 @@ export async function fetchApi<T>(
     // 6. Handle Network/Backend Failure
     if (!res.ok) {
       const errorData = await res.json().catch(() => null);
+
+      // If the backend returns 401, the session has expired or was revoked on the server.
+      // Sign out (which invalidates the NextAuth session) and redirect to login.
+      if (res.status === 401) {
+        const { signOut } = await import("~/server/auth");
+        await signOut({ redirect: true, redirectTo: "/login" });
+      }
+
       return {
         success: false,
         error: errorData?.message ?? errorData?.error ?? `Request failed with status ${res.status}`,

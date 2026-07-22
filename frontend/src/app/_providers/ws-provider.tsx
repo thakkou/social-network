@@ -251,6 +251,16 @@ export function WSProvider({ children }: { children: ReactNode }) {
 
           console.log(`[WS] 📩 Received event: "${eventType}"`, data);
 
+          // Handle force_logout — session was revoked on the backend (e.g. new login)
+          if (eventType === "force_logout") {
+            console.log("[WS] 🚪 Force logout received — session was revoked on the backend");
+            // Dynamically import signOut to avoid circular deps
+            import("next-auth/react").then((mod) => {
+              mod.signOut({ callbackUrl: "/login" });
+            });
+            return;
+          }
+
           // Handle online status events — no early return so custom handlers still fire
           if (eventType === "init" && Array.isArray(data)) {
             console.log("[WS] 👥 Initialized online users list:", data);

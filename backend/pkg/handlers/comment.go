@@ -104,7 +104,7 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 	comment := &repository.Comment{
 		UserID:    userID,
 		PostID:    postID,
-		CreatedAt: time.Now(),
+		CreatedAt: time.Now().UTC(),
 		Text:      text,
 		Image:     imagePath,
 	}
@@ -258,9 +258,12 @@ func GetCommentsByPostWithPagination(postId, limit, lastID int) ([]dblayer.Comme
 
 	for rows.Next() {
 		var c dblayer.Comment
-		if err := rows.Scan(&c.Id, &c.UserId, &c.Created_at, &c.Text, &c.Image); err != nil {
+		var createdAtStr string
+		if err := rows.Scan(&c.Id, &c.UserId, &createdAtStr, &c.Text, &c.Image); err != nil {
 			return nil, fmt.Errorf("getCommentsByPost scan error: %v", err)
 		}
+
+		c.Created_at, _ = time.Parse("2006-01-02 15:04:05", createdAtStr)
 
 		// get username
 		if err := db.Database.QueryRow(

@@ -54,14 +54,22 @@ export async function getFeedPosts(params?: {
   liked_by_me?: boolean;
   posted_by_me?: boolean;
 }) {
+  const searchParams: Record<string, string | number | boolean | undefined> = {
+    limit: params?.limit ?? 20,
+    last_id: params?.last_id ?? 0,
+    ...(params?.liked_by_me ? { liked_by_me: true } : {}),
+    ...(params?.posted_by_me ? { posted_by_me: true } : {}),
+  };
+
+  // Pass categories as individual query params (backend reads r.Form["categories"])
+  if (params?.categories && params.categories.length > 0) {
+    // We'll pass them as a comma-separated string since fetchApi uses URLSearchParams
+    searchParams.categories = params.categories.join(",");
+  }
+
   const result = await fetchApi<GoApiResponse<FeedPost[]>>("/api/posts", {
     method: "GET",
-    searchParams: {
-      limit: params?.limit ?? 20,
-      last_id: params?.last_id ?? 0,
-      ...(params?.liked_by_me ? { liked_by_me: true } : {}),
-      ...(params?.posted_by_me ? { posted_by_me: true } : {}),
-    },
+    searchParams,
   });
 
   if (!result.success) return { error: result.error };

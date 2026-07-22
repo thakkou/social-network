@@ -32,14 +32,31 @@ export default function Home() {
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchPosts = useCallback(async () => {
+  // ── Category filter state ──
+  const [filterCategories, setFilterCategories] = useState<string[]>([]);
+
+  const fetchPosts = useCallback(async (selectedCategories?: string[]) => {
     setLoading(true);
-    const res = await getFeedPosts({ limit: 20 });
+    const cats = selectedCategories ?? filterCategories;
+    const res = await getFeedPosts({
+      limit: 20,
+      ...(cats.length > 0 ? { categories: cats } : {}),
+    });
     if (res.success) {
       setPosts(res.data);
     }
     setLoading(false);
-  }, []);
+  }, [filterCategories]);
+
+  const toggleFilterCategory = (cat: string) => {
+    setFilterCategories((prev) => {
+      const next = prev.includes(cat)
+        ? prev.filter((c) => c !== cat)
+        : [...prev, cat];
+      void fetchPosts(next);
+      return next;
+    });
+  };
 
   useEffect(() => {
     void fetchPosts();
@@ -320,6 +337,38 @@ export default function Home() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* ── Category Filter Bar ── */}
+      <div
+        className="card"
+        style={{
+          display: "flex",
+          gap: "4px",
+          flexWrap: "wrap",
+          padding: "8px 12px",
+        }}
+      >
+        <span
+          className={`tag ${filterCategories.length === 0 ? "tag-pink" : "tag-gray"}`}
+          style={{ cursor: "pointer", fontSize: "10px" }}
+          onClick={() => {
+            setFilterCategories([]);
+            void fetchPosts([]);
+          }}
+        >
+          all
+        </span>
+        {CATEGORIES.map((cat) => (
+          <span
+            key={cat}
+            className={`tag ${filterCategories.includes(cat) ? "tag-pink" : "tag-gray"}`}
+            style={{ cursor: "pointer", fontSize: "10px" }}
+            onClick={() => toggleFilterCategory(cat)}
+          >
+            {cat}
+          </span>
+        ))}
       </div>
 
       {loading ? (

@@ -107,10 +107,6 @@ export const authConfig = {
       return token;
     },
     session: ({ session, token }) => ({
-      // generated with ai :
-      // session.user.id = token.id as string;
-      // (session as any).accessToken = token.accessToken;
-      // return session;
       ...session,
       user: {
         ...session.user,
@@ -121,7 +117,7 @@ export const authConfig = {
         nickname: token.nickname,
         aboutme: token.aboutme,
         avatar: token.avatar,
-        session_id:token.accessToken
+        session_id: token.accessToken,
       },
     }),
   },

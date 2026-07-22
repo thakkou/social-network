@@ -684,6 +684,13 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Fetch sender profile for the WS nickname
+		senderProfile, _ := Repos.User.GetByID(userID)
+		senderNickname := ""
+		if senderProfile != nil {
+			senderNickname = senderProfile.Nickname
+		}
+
 		notifyGroupUsers(
 			groupID,
 			"group_message",
@@ -705,6 +712,7 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 					"group_id":   groupID,
 					"message_id": msg.ID,
 					"sender_id":  userID,
+					"nickname":   senderNickname,
 					"text":       payload.Text,
 				})
 			}
@@ -853,7 +861,7 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			Title:     title,
 			Text:      text,
 			Image:     imagePath,
-			CreatedAt: time.Now(),
+			CreatedAt: time.Now().UTC(),
 		}
 		if err := Repos.Group.CreateGroupPost(post); err != nil {
 			utilities.WriteJSON(w, http.StatusInternalServerError, "could not create group post", nil)
@@ -964,6 +972,96 @@ func GetMyGroups(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utilities.WriteJSON(w, http.StatusOK, "groups fetched", groups)
+}
+
+// GetInviteCandidates returns users the current user follows who are not yet members of the group.
+func GetInviteCandidates(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
+
+	userID, ok := middlewares.GetUserID(r)
+	if !ok {
+		utilities.WriteJSON(w, http.StatusUnauthorized, "not logged in", nil)
+		return
+	}
+
+	groupID, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil || groupID <= 0 {
+		utilities.WriteJSON(w, http.StatusBadRequest, "invalid group id", nil)
+		return
+	}
+
+	// Get users the current user follows (accepted follows)
+	following, err := Repos.Follow.GetFollowing(userID)
+	if err != nil {
+		utilities.WriteJSON(w, http.StatusInternalServerError, "could not fetch following", nil)
+		return
+	}
+
+	// Also get users who follow the current user
+	followers, err := Repos.Follow.GetFollowers(userID)
+	if err != nil {
+		utilities.WriteJSON(w, http.StatusInternalServerError, "could not fetch followers", nil)
+		return
+	}
+
+	// Merge both lists, deduplicating by ID
+	merged := make(map[int]repository.User)
+	for _, u := range following {
+		merged[u.ID] = u
+	}
+	for _, u := range followers {
+		merged[u.ID] = u
+	}
+
+	// Get existing member IDs to exclude them
+	memberIDs, err := Repos.Group.GetGroupMemberIDs(groupID)
+	if err != nil {
+		utilities.WriteJSON(w, http.StatusInternalServerError, "could not fetch members", nil)
+		return
+	}
+
+	memberSet := make(map[int]struct{}, len(memberIDs))
+	for _, id := range memberIDs {
+		memberSet[id] = struct{}{}
+	}
+
+	// Also add the current user to excluded set (can't invite yourself)
+	memberSet[userID] = struct{}{}
+
+	// Exclude already invited users
+	invitedIDs, err := Repos.Group.GetGroupInvitedUserIDs(groupID)
+	if err == nil {
+		for _, id := range invitedIDs {
+			memberSet[id] = struct{}{}
+		}
+	}
+
+	type candidate struct {
+		ID        int    `json:"id"`
+		Nickname  string `json:"nickname"`
+		Firstname string `json:"firstname"`
+		Lastname  string `json:"lastname"`
+		Avatar    string `json:"avatar"`
+	}
+
+	candidates := make([]candidate, 0, len(merged))
+	for _, u := range merged {
+		if _, excluded := memberSet[u.ID]; excluded {
+			continue
+		}
+		candidates = append(candidates, candidate{
+			ID:        u.ID,
+			Nickname:  u.Nickname,
+			Firstname: u.Firstname,
+			Lastname:  u.Lastname,
+			Avatar:    u.Avatar,
+		})
+	}
+
+	utilities.WriteJSON(w, http.StatusOK, "candidates fetched", candidates)
 }
 
 func GetGroupMembers(w http.ResponseWriter, r *http.Request) {

@@ -24,13 +24,13 @@ import {
   deleteGroupEvent,
   deleteGroupPostComment,
   kickMember,
+  getInviteCandidates,
   type GroupPublic,
   type GroupFeedItem,
   type GroupFeedComment,
   type PendingRequest,
   type FeedAuthor,
 } from "~/app/api/crud/groups";
-import { search } from "~/app/api/crud/search";
 
 type FeedFilter = "all" | "posts" | "events";
 
@@ -244,20 +244,16 @@ export default function GroupDetailPage() {
       setInviteResults([]);
       return;
     }
-    const res = await search(query);
+    if (!showInviteModal) return;
+
+    // Fetch followings who aren't already members, then filter by name
+    const res = await getInviteCandidates(groupId);
     if (res.success) {
-      // Exclude current user and already member users
-      setInviteResults(
-        res.data.profiles
-          .filter((u) => u.id !== currentUserId)
-          .map((u) => ({
-            id: u.id,
-            nickname: u.nickname || `${u.firstname} ${u.lastname}`.trim(),
-            firstname: u.firstname,
-            lastname: u.lastname,
-            avatar: u.avatar || "",
-          }))
-      );
+      const filtered = res.data.filter((u) => {
+        const name = `${u.firstname} ${u.lastname} ${u.nickname}`.toLowerCase();
+        return name.includes(query.toLowerCase());
+      });
+      setInviteResults(filtered);
     }
   };
 
@@ -498,7 +494,15 @@ export default function GroupDetailPage() {
                   </button>
                   <button
                     className="btn btn-g"
-                    onClick={() => setShowInviteModal(true)}
+                    onClick={async () => {
+                      setShowInviteModal(true);
+                      setInviteQuery("");
+                      setInviteResults([]);
+                      setInviteMsg(null);
+                      // Load followings immediately
+                      const res = await getInviteCandidates(groupId);
+                      if (res.success) setInviteResults(res.data);
+                    }}
                   >
                     <i className="ti ti-user-plus" /> invite
                   </button>

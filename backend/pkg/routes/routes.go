@@ -36,6 +36,12 @@ func RegisterRoutes() {
 		"/api/me",
 		middlewares.CheckSessionCookie(handlers.GetUsernameByToken, true),
 	)
+	// session validation (lightweight, used by NextAuth to verify server-side sessions)
+	http.HandleFunc(
+		"/api/session/validate",
+		middlewares.CheckSessionCookie(handlers.ValidateSession, false),
+	)
+
 	// this route is for finding gusers or groups
 	http.HandleFunc(
 		"/api/search",
@@ -175,6 +181,16 @@ func RegisterRoutes() {
 		"/api/groups/members/{id}",
 		middlewares.RateLimit(
 			middlewares.CheckSessionCookie(handlers.GetGroupMembers, true),
+			500*time.Millisecond,
+		),
+	)
+
+	// group invite candidates (users the current user follows who aren't members)
+	// GET /api/groups/invite-candidates/{id}
+	http.HandleFunc(
+		"/api/groups/invite-candidates/{id}",
+		middlewares.RateLimit(
+			middlewares.CheckSessionCookie(handlers.GetInviteCandidates, true),
 			500*time.Millisecond,
 		),
 	)

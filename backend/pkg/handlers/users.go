@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	db "01social/pkg/db/sqlite"
 	"01social/pkg/utilities"
@@ -116,6 +117,49 @@ func SearchUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utilities.WriteJSON(w, http.StatusOK, "users fetched", users)
+}
+
+// ValidateSession is a lightweight endpoint that simply validates the session cookie
+// and returns whether it's still valid. Used by NextAuth to check server-side sessions.
+func ValidateSession(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
+
+	cookie, err := r.Cookie("session_id")
+	if err != nil || cookie.Value == "" {
+		utilities.WriteJSON(w, http.StatusUnauthorized, "invalid session", nil)
+		return
+	}
+
+	var expiryTime time.Time
+	var userID int
+	err = db.Database.QueryRow(
+		"SELECT user_id, expires_at FROM SESSIONS WHERE id = ?",
+		cookie.Value,
+	).Scan(&userID, &expiryTime)
+
+	if err == sql.ErrNoRows {
+		utilities.WriteJSON(w, http.StatusUnauthorized, "session not found", nil)
+		return
+	}
+	if err != nil {
+		utilities.WriteJSON(w, http.StatusInternalServerError, "database error", nil)
+		return
+	}
+
+	if expiryTime.Before(time.Now()) {
+		utilities.DeleteSession(cookie.Value)
+		utilities.ClearSessionCookie(w)
+		utilities.WriteJSON(w, http.StatusUnauthorized, "session expired", nil)
+		return
+	}
+
+	utilities.WriteJSON(w, http.StatusOK, "valid session", map[string]any{
+		"valid":  true,
+		"user_id": userID,
+	})
 }
 
 func GetUsernameByToken(w http.ResponseWriter, r *http.Request) {

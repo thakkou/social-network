@@ -414,6 +414,19 @@ export async function inviteUserToGroup(groupId: string, userId: number) {
   return { success: true };
 }
 
+// ─── Get Invite Candidates (users the current user follows, not in the group) ───
+
+export async function getInviteCandidates(groupId: string) {
+  if (!groupId) return { error: "Group ID is required." };
+
+  const result = await fetchApi<GroupApiResponse<
+    { id: number; nickname: string; firstname: string; lastname: string; avatar: string }[]
+  >>(`/api/groups/invite-candidates/${groupId}`, { method: "GET" });
+
+  if (!result.success) return { error: result.error };
+  return { success: true, data: result.data.data };
+}
+
 // ─── Profile Update (server action) ───
 
 export async function updateProfileNickname(formData: FormData) {

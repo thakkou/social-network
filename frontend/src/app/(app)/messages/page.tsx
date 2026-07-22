@@ -146,18 +146,26 @@ export default function Chat() {
   useEffect(() => {
     const unsubs = [
       wsOn("new_message", (data: any) => {
-        // Skip messages we sent ourselves — they're already in the list via optimistic update
-        if (data.isMine) return;
         const incomingConvId = String(data.conversation_id);
         if (incomingConvId !== String(convId)) return;
 
         setMessages((prev) => {
+          // Check if this message was sent by us and is still being sent optimistically
+          // (the API response will replace the temp ID with the real ID later)
+          const isPendingOptimistic = prev.some(
+            (m) => m.senderId === currentUserId && m.isSending
+          );
+          if (isPendingOptimistic) return prev;
+
+          // Check if this message already exists (from API response or previous WS)
           if (prev.some((m) => m.id === data.message_id)) return prev;
+
+          const type = data.sender_id === currentUserId ? ("me" as const) : ("them" as const);
           return [
             ...prev,
             {
               id: data.message_id,
-              type: "them" as const,
+              type,
               text: data.text,
               senderId: data.sender_id,
               nickname: data.nickname || "unknown",
@@ -168,18 +176,25 @@ export default function Chat() {
         });
       }),
       wsOn("new_group_message", (data: any) => {
-        // Skip messages we sent ourselves — they're already in the list via optimistic update
-        if (data.isMine) return;
         const incomingGroupId = String(data.group_id);
         if (incomingGroupId !== String(convId)) return;
 
         setMessages((prev) => {
+          // Check if there's a pending optimistic update from us
+          const isPendingOptimistic = prev.some(
+            (m) => m.senderId === currentUserId && m.isSending
+          );
+          if (isPendingOptimistic) return prev;
+
+          // Check if this message already exists
           if (prev.some((m) => m.id === data.message_id)) return prev;
+
+          const type = data.sender_id === currentUserId ? ("me" as const) : ("them" as const);
           return [
             ...prev,
             {
               id: data.message_id,
-              type: "them" as const,
+              type,
               text: data.text,
               senderId: data.sender_id,
               nickname: data.nickname || "unknown",

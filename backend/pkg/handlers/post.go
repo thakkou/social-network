@@ -212,7 +212,7 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 
 	post := &repository.Post{
 		UserID:    userID,
-		CreatedAt: time.Now(),
+		CreatedAt: time.Now().UTC(),
 		Title:     title,
 		Text:      text,
 		Image:     imagePath,
@@ -354,7 +354,17 @@ func GetPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	categories := r.Form["categories"]
+	// Parse categories: supports both multiple values and comma-separated
+	rawCategories := r.Form["categories"]
+	var categories []string
+	for _, c := range rawCategories {
+		for _, part := range strings.Split(c, ",") {
+			part = strings.TrimSpace(part)
+			if part != "" {
+				categories = append(categories, part)
+			}
+		}
+	}
 	liked := r.FormValue("liked_by_me") == "true"
 	byMe := r.FormValue("posted_by_me") == "true"
 
