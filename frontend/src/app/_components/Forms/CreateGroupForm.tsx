@@ -2,8 +2,8 @@
 
 import { useState, useTransition, useEffect, useRef } from "react";
 import Image from "next/image";
-import { createGroup } from "~/app/api/crud/groups";
-import { search } from "~/app/api/crud/search";
+import { createGroup } from "~/app/_api/crud/groups";
+import { search } from "~/app/_api/crud/search";
 
 interface InviteUser {
   id: number;

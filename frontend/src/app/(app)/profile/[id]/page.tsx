@@ -6,9 +6,9 @@ import { useSession } from "next-auth/react";
 
 import ProfilePosts from "~/app/_components/ProfilePosts";
 import Followers from "~/app/_components/Followers";
-import { getProfileData } from "~/app/api/crud/getProfile";
+import { getProfileData } from "~/app/_api/crud/getProfile";
 import PrivateProfile from "~/app/_components/PrivateProfile";
-import { toggleFollow } from "~/app/api/crud/follow";
+import { toggleFollow } from "~/app/_api/crud/follow";
 import { useChat } from "~/app/_providers/chatProvider";
 interface TabItem {
     label: string;

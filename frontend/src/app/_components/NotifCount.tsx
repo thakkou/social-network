@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getNotifications } from "~/app/api/crud/notification";
+import { getNotifications } from "~/app/_api/crud/notification";
 import { useWS } from "~/app/_providers/ws-provider";
 
 const NOTIF_EVENTS = [

@@ -9,7 +9,7 @@ import {
   dislikePost,
   createPost,
   type FeedPost,
-} from "~/app/api/crud/post";
+} from "~/app/_api/crud/post";
 
 const CATEGORIES = [
   "General", "Lifestyle", "Health & Fitness", "Travel",

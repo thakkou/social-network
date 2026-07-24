@@ -31,7 +31,7 @@ import {
   type GroupFeedComment,
   type PendingRequest,
   type FeedAuthor,
-} from "~/app/api/crud/groups";
+} from "~/app/_api/crud/groups";
 
 type FeedFilter = "all" | "posts" | "events";
 
@@ -874,21 +874,57 @@ export default function GroupDetailPage() {
 
             {/* Response buttons */}
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <button
-                className="btn btn-t"
-                onClick={() => void handleEventResponse(item.id, "going")}
-              >
-                <i className="ti ti-check" /> (
-                {item.event_responses?.filter((r) => r.status === "going").length || 0} going)
-              </button>
-              <button
-                className="btn btn-g"
-                onClick={() => void handleEventResponse(item.id, "not_going")}
-              >
-                (
-                {item.event_responses?.filter((r) => r.status === "not_going").length || 0} not
-                going)
-              </button>
+              {(() => {
+                const userResponse = item.event_responses?.find((r) => r.user_id === currentUserId);
+                const userIsGoing = userResponse?.status === "going";
+                const userIsNotGoing = userResponse?.status === "not_going";
+                return (
+                  <>
+                    <button
+                      className="btn"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        fontSize: userIsGoing ? 13 : 11,
+                        fontWeight: userIsGoing ? 600 : 400,
+                        padding: userIsGoing ? "8px 14px" : "6px 10px",
+                        border: userIsGoing ? "2px solid #1D9E75" : "0.5px solid #3a3733",
+                        background: userIsGoing ? "#1a3a2e" : "transparent",
+                        color: userIsGoing ? "#5cd4a0" : "#a09c94",
+                        cursor: "pointer",
+                        borderRadius: "6px",
+                        transition: "all 0.15s ease",
+                      }}
+                      onClick={() => void handleEventResponse(item.id, "going")}
+                    >
+                      <i className="ti ti-check" style={{ fontSize: userIsGoing ? 14 : 12 }} />
+                      {item.event_responses?.filter((r) => r.status === "going").length || 0} going
+                    </button>
+                    <button
+                      className="btn"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        fontSize: userIsNotGoing ? 13 : 11,
+                        fontWeight: userIsNotGoing ? 600 : 400,
+                        padding: userIsNotGoing ? "8px 14px" : "6px 10px",
+                        border: userIsNotGoing ? "2px solid #D4537E" : "0.5px solid #3a3733",
+                        background: userIsNotGoing ? "#3a1e24" : "transparent",
+                        color: userIsNotGoing ? "#ff8a9d" : "#a09c94",
+                        cursor: "pointer",
+                        borderRadius: "6px",
+                        transition: "all 0.15s ease",
+                      }}
+                      onClick={() => void handleEventResponse(item.id, "not_going")}
+                    >
+                      <i className="ti ti-x" style={{ fontSize: userIsNotGoing ? 14 : 12 }} />
+                      {item.event_responses?.filter((r) => r.status === "not_going").length || 0} not going
+                    </button>
+                  </>
+                );
+              })()}
               {(item.user_id === currentUserId || isCreator) && (
                 <button
                   className="btn btn-red"

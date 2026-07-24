@@ -364,6 +364,31 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			utilities.WriteJSON(w, http.StatusOK, "reaction saved", nil)
 			return
 		}
+
+		// Handle comment deletion: /api/groups/{id}/posts/{postId}/comments/{commentId}/delete
+		if len(segments) >= 8 && segments[7] == "delete" {
+			if r.Method != http.MethodPost {
+				utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+				return
+			}
+			commentID, err := strconv.Atoi(segments[6])
+			if err != nil {
+				utilities.WriteJSON(w, http.StatusBadRequest, "invalid comment id", nil)
+				return
+			}
+			creatorID, err := Repos.Group.GetGroupCreatorID(groupID)
+			if err != nil {
+				utilities.WriteJSON(w, http.StatusNotFound, "group not found", nil)
+				return
+			}
+			if err := Repos.Group.DeleteGroupPostComment(commentID, userID, creatorID); err != nil {
+				utilities.WriteJSON(w, http.StatusForbidden, err.Error(), nil)
+				return
+			}
+			utilities.WriteJSON(w, http.StatusOK, "comment deleted", nil)
+			return
+		}
+
 		if r.Method == http.MethodGet {
 			comments, err := Repos.Group.ListGroupPostComments(postID)
 			if err != nil {
@@ -472,30 +497,6 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		utilities.WriteJSON(w, http.StatusOK, "event deleted", nil)
-		return
-	}
-
-	// Delete a group post comment: POST /api/groups/{groupId}/posts/{postId}/comments/{commentId}/delete
-	if len(segments) >= 8 && segments[3] == "posts" && segments[5] == "comments" && segments[7] == "delete" {
-		if r.Method != http.MethodPost {
-			utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
-			return
-		}
-		commentID, err := strconv.Atoi(segments[6])
-		if err != nil {
-			utilities.WriteJSON(w, http.StatusBadRequest, "invalid comment id", nil)
-			return
-		}
-		creatorID, err := Repos.Group.GetGroupCreatorID(groupID)
-		if err != nil {
-			utilities.WriteJSON(w, http.StatusNotFound, "group not found", nil)
-			return
-		}
-		if err := Repos.Group.DeleteGroupPostComment(commentID, userID, creatorID); err != nil {
-			utilities.WriteJSON(w, http.StatusForbidden, err.Error(), nil)
-			return
-		}
-		utilities.WriteJSON(w, http.StatusOK, "comment deleted", nil)
 		return
 	}
 

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import { likePost, dislikePost, deletePost } from "~/app/api/crud/post";
+import { likePost, dislikePost, deletePost } from "~/app/_api/crud/post";
 import ConfirmModal from "~/app/_components/ConfirmModal";
 
 interface Post {

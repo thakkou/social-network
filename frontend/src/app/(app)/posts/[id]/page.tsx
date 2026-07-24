@@ -15,7 +15,7 @@ import {
   deleteComment,
   type FeedPost,
   type PostComment,
-} from "~/app/api/crud/post";
+} from "~/app/_api/crud/post";
 
 export default function PostDetailPage() {
   const params = useParams();
@@ -33,6 +33,7 @@ export default function PostDetailPage() {
   const [commentImage, setCommentImage] = useState<File | null>(null);
   const [commentImagePreview, setCommentImagePreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -132,6 +133,7 @@ export default function PostDetailPage() {
   };
 
   const handleDeleteComment = async (commentId: number) => {
+    setDeleteError(null);
     const res = await deleteComment(commentId);
     if (res.success) {
       setPost((prev) =>
@@ -143,6 +145,8 @@ export default function PostDetailPage() {
             }
           : prev
       );
+    } else {
+      setDeleteError(res.error || "Could not delete comment");
     }
   };
 
@@ -557,6 +561,24 @@ export default function PostDetailPage() {
           </button>
         </div>
       </div>
+
+      {/* Delete error message */}
+      {deleteError && (
+        <div
+          className="card"
+          style={{
+            textAlign: "center",
+            padding: "10px",
+            border: "0.5px solid #7a2c2c",
+            background: "#2a1818",
+          }}
+        >
+          <p style={{ fontSize: "11px", color: "#e07070" }}>
+            <i className="ti ti-alert-circle" style={{ marginRight: 4 }} />
+            {deleteError}
+          </p>
+        </div>
+      )}
 
       {/* Comments */}
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>

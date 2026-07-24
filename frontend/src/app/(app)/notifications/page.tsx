@@ -1,10 +1,10 @@
 
 "use client"
 import Image from "next/image";
-import { getNotifications, markNotificationAsRead, markAllNotificationsRead, deleteAllNotifications } from "~/app/api/crud/notification";
+import { getNotifications, markNotificationAsRead, markAllNotificationsRead, deleteAllNotifications } from "~/app/_api/crud/notification";
 import { useState, useEffect, useRef, useCallback } from "react"
-import { acceptFollowRequest,rejectFollowRequest } from "~/app/api/crud/follow";
-import { acceptGroupInvite, rejectGroupInvite, acceptJoinRequest, rejectJoinRequest } from "~/app/api/crud/groups";
+import { acceptFollowRequest,rejectFollowRequest } from "~/app/_api/crud/follow";
+import { acceptGroupInvite, rejectGroupInvite, acceptJoinRequest, rejectJoinRequest } from "~/app/_api/crud/groups";
 import { useWS } from "~/app/_providers/ws-provider";
 import ConfirmModal from "~/app/_components/ConfirmModal";
 

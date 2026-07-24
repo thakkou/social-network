@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { getUserGroups, getGroupContent, type GroupPublic, type GroupFeedItem } from "~/app/api/crud/groups";
+import { getUserGroups, getGroupContent, type GroupPublic, type GroupFeedItem } from "~/app/_api/crud/groups";
 import SearchInput from "~/app/_components/SearchInput";
 import CreateGroupForm from "~/app/_components/Forms/CreateGroupForm";
 
