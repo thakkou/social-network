@@ -750,12 +750,6 @@ export default function Chat() {
         </div>
       </div>
 
-        {/* Desktop sidebar — only on desktop */}
-        {isDesktop && (
-          <aside className="msg-desktop-sidebar">
-            <MessagesSidebar onSelect={() => setShowUsers(false)} />
-          </aside>
-        )}
       </div>
     </main>
   );
