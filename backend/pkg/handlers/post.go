@@ -316,6 +316,12 @@ func PostResolver(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Check if the user has visibility to this post (privacy check)
+		if _, err := Repos.Post.GetVisiblePostByID(userID, postID); err != nil {
+			utilities.WriteJSON(w, http.StatusNotFound, "post not found or not visible", nil)
+			return
+		}
+
 		isLike := 1
 		if endpoint == "dislike" {
 			isLike = -1

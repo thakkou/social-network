@@ -1,0 +1,1181 @@
+{
+	"info": {
+		"name": "Social Network API",
+		"description": "Complete API collection for the Social Network project. Organized by endpoint groups.\n\nBase URL: http://localhost:8080\n\nAuthentication: Sessions are managed via cookies (set by /api/login). No manual token headers needed.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "social-network"
+	},
+	"auth": {
+		"type": "noauth"
+	},
+	"item": [
+		{
+			"name": "🔐 Authentication",
+			"description": "Register, login, logout, and session management endpoints.",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{ "key": "firstname", "value": "John", "type": "text" },
+								{ "key": "lastname", "value": "Doe", "type": "text" },
+								{ "key": "email", "value": "john@example.com", "type": "text" },
+								{ "key": "password", "value": "password123", "type": "text" },
+								{ "key": "birthDate", "value": "2000-01-01", "type": "text" },
+								{ "key": "nickname", "value": "johndoe", "type": "text" },
+								{ "key": "aboutme", "value": "Hello, I'm John!", "type": "text" }
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "register"]
+						}
+					}
+				},
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "login"]
+						}
+					}
+				},
+				{
+					"name": "Get Current User (Me)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/me",
+							"host": ["{{base_url}}"],
+							"path": ["api", "me"]
+						}
+					}
+				},
+				{
+					"name": "Validate Session",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/session/validate",
+							"host": ["{{base_url}}"],
+							"path": ["api", "session", "validate"]
+						}
+					}
+				},
+				{
+					"name": "Login as Jane (alt user)",
+					"request": {
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"jane@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "login"]
+						}
+					}
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/logout",
+							"host": ["{{base_url}}"],
+							"path": ["api", "logout"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📝 Posts",
+			"description": "Create, read, like/dislike, delete posts. Includes privacy-filtered feeds.",
+			"item": [
+				{
+					"name": "Get Posts Feed",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/posts?limit=10",
+							"host": ["{{base_url}}"],
+							"path": ["api", "posts"],
+							"query": [
+								{ "key": "limit", "value": "10" },
+								{ "key": "last_id", "value": "", "disabled": true },
+								{ "key": "categories", "value": "tech", "disabled": true },
+								{ "key": "liked_by_me", "value": "true", "disabled": true },
+								{ "key": "posted_by_me", "value": "true", "disabled": true }
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Post (Public)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{ "key": "title", "value": "My First Post", "type": "text" },
+								{ "key": "text", "value": "This is the content of my first post!", "type": "text" },
+								{ "key": "privacy", "value": "public", "type": "text" },
+								{ "key": "categories", "value": "tech", "type": "text" }
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/posts/create",
+							"host": ["{{base_url}}"],
+							"path": ["api", "posts", "create"]
+						}
+					}
+				},
+				{
+					"name": "Create Post (Almost Private)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{ "key": "title", "value": "Almost Private Post", "type": "text" },
+								{ "key": "text", "value": "Only followers can see this!", "type": "text" },
+								{ "key": "privacy", "value": "almost_private", "type": "text" },
+								{ "key": "categories", "value": "general", "type": "text" }
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/posts/create",
+							"host": ["{{base_url}}"],
+							"path": ["api", "posts", "create"]
+						}
+					}
+				},
+				{
+					"name": "Create Post (Private)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{ "key": "title", "value": "Private Post", "type": "text" },
+								{ "key": "text", "value": "Only allowed users can see this", "type": "text" },
+								{ "key": "privacy", "value": "private", "type": "text" },
+								{ "key": "categories", "value": "general", "type": "text" },
+								{ "key": "allowed_user_ids", "value": "2", "type": "text" }
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/posts/create",
+							"host": ["{{base_url}}"],
+							"path": ["api", "posts", "create"]
+						}
+					}
+				},
+				{
+					"name": "Get Post by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/posts/{{post_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "posts", "{{post_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Like Post",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/posts/{{post_id}}/like",
+							"host": ["{{base_url}}"],
+							"path": ["api", "posts", "{{post_id}}", "like"]
+						}
+					}
+				},
+				{
+					"name": "Dislike Post",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/posts/{{post_id}}/dislike",
+							"host": ["{{base_url}}"],
+							"path": ["api", "posts", "{{post_id}}", "dislike"]
+						}
+					}
+				},
+				{
+					"name": "Delete Post",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/posts/{{post_id}}/delete",
+							"host": ["{{base_url}}"],
+							"path": ["api", "posts", "{{post_id}}", "delete"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "💬 Comments",
+			"item": [
+				{
+					"name": "Create Comment",
+					"request": {
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"postId\": {{post_id}},\n  \"text\": \"Great post!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/comments/create",
+							"host": ["{{base_url}}"],
+							"path": ["api", "comments", "create"]
+						}
+					}
+				},
+				{
+					"name": "Like Comment",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/comments/{{comment_id}}/like",
+							"host": ["{{base_url}}"],
+							"path": ["api", "comments", "{{comment_id}}", "like"]
+						}
+					}
+				},
+				{
+					"name": "Dislike Comment",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/comments/{{comment_id}}/dislike",
+							"host": ["{{base_url}}"],
+							"path": ["api", "comments", "{{comment_id}}", "dislike"]
+						}
+					}
+				},
+				{
+					"name": "Delete Comment",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/comments/{{comment_id}}/delete",
+							"host": ["{{base_url}}"],
+							"path": ["api", "comments", "{{comment_id}}", "delete"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "👥 Follows",
+			"item": [
+				{
+					"name": "Follow User",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/follow/follow/{{target_user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "follow", "follow", "{{target_user_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Unfollow User",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/follow/unfollow/{{target_user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "follow", "unfollow", "{{target_user_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Accept Follow Request",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/follow/accept/{{requester_user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "follow", "accept", "{{requester_user_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Reject Follow Request",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/follow/reject/{{requester_user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "follow", "reject", "{{requester_user_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "👤 Profile",
+			"item": [
+				{
+					"name": "Get Profile by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/profile/{{user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "profile", "{{user_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{ "key": "nickname", "value": "new_nickname", "type": "text" },
+								{ "key": "aboutme", "value": "Updated bio text", "type": "text" }
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/profile/update",
+							"host": ["{{base_url}}"],
+							"path": ["api", "profile", "update"]
+						}
+					}
+				},
+				{
+					"name": "Update Profile Privacy",
+					"request": {
+						"method": "PUT",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"privacy\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/profile/privacy",
+							"host": ["{{base_url}}"],
+							"path": ["api", "profile", "privacy"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📁 Categories",
+			"item": [
+				{
+					"name": "Get All Categories",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/categories",
+							"host": ["{{base_url}}"],
+							"path": ["api", "categories"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "👥 Groups",
+			"description": "Group CRUD, membership management, posts, events, messages, invites, and join requests.",
+			"item": [
+				{
+					"name": "List All Groups",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/groups",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups"]
+						}
+					}
+				},
+				{
+					"name": "Create Group",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{ "key": "title", "value": "My Awesome Group", "type": "text" },
+								{ "key": "description", "value": "A group for awesome people", "type": "text" }
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/groups/create",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "create"]
+						}
+					}
+				},
+				{
+					"name": "Get My Groups",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/users/groups",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "groups"]
+						}
+					}
+				},
+				{
+					"name": "Get Public Group Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/groups/public/{{group_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "public", "{{group_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Get Group Members",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/groups/members/{{group_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "members", "{{group_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Get Group Content Feed",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/groups/content/{{group_id}}?limit=20",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "content", "{{group_id}}"],
+							"query": [
+								{ "key": "limit", "value": "20" },
+								{ "key": "last_id", "value": "", "disabled": true }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Invite Candidates",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/groups/invite-candidates/{{group_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "invite-candidates", "{{group_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Group",
+					"request": {
+						"method": "PUT",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Updated Group Title\",\n  \"description\": \"Updated description\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/update",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "update"]
+						}
+					}
+				},
+				{
+					"name": "Request to Join Group",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/join",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "join"]
+						}
+					}
+				},
+				{
+					"name": "Leave Group",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/leave",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "leave"]
+						}
+					}
+				},
+				{
+					"name": "Invite User to Group",
+					"request": {
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user_id\": {{target_user_id}}\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/invite",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "invite"]
+						}
+					}
+				},
+				{
+					"name": "Accept Group Invite",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/invites/accept",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "invites", "accept"]
+						}
+					}
+				},
+				{
+					"name": "Reject Group Invite",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/invites/reject",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "invites", "reject"]
+						}
+					}
+				},
+				{
+					"name": "List Pending Join Requests",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/requests",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "requests"]
+						}
+					}
+				},
+				{
+					"name": "Accept Join Request",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/requests/{{requester_user_id}}/accept",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "requests", "{{requester_user_id}}", "accept"]
+						}
+					}
+				},
+				{
+					"name": "Reject Join Request",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/requests/{{requester_user_id}}/reject",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "requests", "{{requester_user_id}}", "reject"]
+						}
+					}
+				},
+				{
+					"name": "Kick Member",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/members/{{member_user_id}}/kick",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "members", "{{member_user_id}}", "kick"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📄 Group Posts",
+			"item": [
+				{
+					"name": "List Group Posts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/posts",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "posts"]
+						}
+					}
+				},
+				{
+					"name": "Create Group Post",
+					"request": {
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Group Post Title\",\n  \"text\": \"Group post content here\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/posts",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "posts"]
+						}
+					}
+				},
+				{
+					"name": "React to Group Post (Like/Dislike)",
+					"request": {
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"is_like\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/posts/{{group_post_id}}/reaction",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "posts", "{{group_post_id}}", "reaction"]
+						}
+					}
+				},
+				{
+					"name": "Delete Group Post",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/posts/{{group_post_id}}/delete",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "posts", "{{group_post_id}}", "delete"]
+						}
+					}
+				},
+				{
+					"name": "Create Group Post Comment",
+					"request": {
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"text\": \"Great group post!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/posts/{{group_post_id}}/comments",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "posts", "{{group_post_id}}", "comments"]
+						}
+					}
+				},
+				{
+					"name": "List Group Post Comments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/posts/{{group_post_id}}/comments",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "posts", "{{group_post_id}}", "comments"]
+						}
+					}
+				},
+				{
+					"name": "React to Group Post Comment",
+					"request": {
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"is_like\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/posts/{{group_post_id}}/comments/{{comment_id}}/reaction",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "posts", "{{group_post_id}}", "comments", "{{comment_id}}", "reaction"]
+						}
+					}
+				},
+				{
+					"name": "Delete Group Post Comment",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/posts/{{group_post_id}}/comments/{{comment_id}}/delete",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "posts", "{{group_post_id}}", "comments", "{{comment_id}}", "delete"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "📅 Group Events",
+			"item": [
+				{
+					"name": "List Group Events",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/events",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "events"]
+						}
+					}
+				},
+				{
+					"name": "Create Group Event",
+					"request": {
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Group Meetup\",\n  \"description\": \"Monthly meetup\",\n  \"event_time\": \"2026-08-15 18:00:00\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/events",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "events"]
+						}
+					}
+				},
+				{
+					"name": "Respond to Event",
+					"request": {
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"going\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/events/{{event_id}}/respond",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "events", "{{event_id}}", "respond"]
+						}
+					}
+				},
+				{
+					"name": "Delete Group Event",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/events/{{event_id}}/delete",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "events", "{{event_id}}", "delete"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "💬 Group Messages",
+			"item": [
+				{
+					"name": "List Group Messages",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/messages?limit=20",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "messages"],
+							"query": [
+								{ "key": "limit", "value": "20" },
+								{ "key": "offset", "value": "0", "disabled": true }
+							]
+						}
+					}
+				},
+				{
+					"name": "Send Group Message",
+					"request": {
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"text\": \"Hello everyone!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/groups/{{group_id}}/messages",
+							"host": ["{{base_url}}"],
+							"path": ["api", "groups", "{{group_id}}", "messages"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "💬 Conversations (Direct Messages)",
+			"item": [
+				{
+					"name": "Get Conversations Feed",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/conversations?limit=20",
+							"host": ["{{base_url}}"],
+							"path": ["api", "conversations"],
+							"query": [
+								{ "key": "limit", "value": "20" },
+								{ "key": "offset", "value": "0", "disabled": true }
+							]
+						}
+					}
+				},
+				{
+					"name": "Send Direct Message",
+					"request": {
+						"method": "POST",
+						"header": [{
+							"key": "Content-Type",
+							"value": "application/json"
+						}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"receiver_id\": {{target_user_id}},\n  \"text\": \"Hey, how are you?\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/messages",
+							"host": ["{{base_url}}"],
+							"path": ["api", "messages"]
+						}
+					}
+				},
+				{
+					"name": "Get Direct Conversation Messages",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/conversation/direct/{{conversation_id}}?limit=30",
+							"host": ["{{base_url}}"],
+							"path": ["api", "conversation", "direct", "{{conversation_id}}"],
+							"query": [
+								{ "key": "limit", "value": "30" },
+								{ "key": "offset", "value": "0", "disabled": true }
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🔔 Notifications",
+			"item": [
+				{
+					"name": "Get Notifications",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/notifications?type=all",
+							"host": ["{{base_url}}"],
+							"path": ["api", "notifications"],
+							"query": [
+								{ "key": "type", "value": "all" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Unread Notifications",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/notifications?type=unread",
+							"host": ["{{base_url}}"],
+							"path": ["api", "notifications"],
+							"query": [
+								{ "key": "type", "value": "unread" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Mark Notification as Read",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/notifications/read?id={{notification_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "notifications", "read"],
+							"query": [
+								{ "key": "id", "value": "{{notification_id}}" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Mark All Notifications as Read",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/notifications/readAll",
+							"host": ["{{base_url}}"],
+							"path": ["api", "notifications", "readAll"]
+						}
+					}
+				},
+				{
+					"name": "Delete Notification",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/notifications/delete?id={{notification_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "notifications", "delete"],
+							"query": [
+								{ "key": "id", "value": "{{notification_id}}" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete All Notifications",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/notifications/deletAll",
+							"host": ["{{base_url}}"],
+							"path": ["api", "notifications", "deletAll"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🔍 Search",
+			"item": [
+				{
+					"name": "Search Users & Groups",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/search?text=john",
+							"host": ["{{base_url}}"],
+							"path": ["api", "search"],
+							"query": [
+								{ "key": "text", "value": "john" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Search Users Only",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/users/search?q=doe",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "search"],
+							"query": [
+								{ "key": "q", "value": "doe" }
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🔌 WebSocket & Online Users",
+			"item": [
+				{
+					"name": "Get Online Users",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/online-users",
+							"host": ["{{base_url}}"],
+							"path": ["api", "online-users"]
+						}
+					}
+				},
+				{
+					"name": "WebSocket Connection Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/ws-ticket",
+							"host": ["{{base_url}}"],
+							"path": ["api", "ws-ticket"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "post_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "comment_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "target_user_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "requester_user_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "member_user_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "group_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "group_post_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "event_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "conversation_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "notification_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

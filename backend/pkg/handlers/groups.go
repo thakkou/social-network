@@ -555,6 +555,14 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
 			return
 		}
+
+		// Only the group creator can accept/reject join requests
+		creatorID, err := Repos.Group.GetGroupCreatorID(groupID)
+		if err != nil || creatorID != userID {
+			utilities.WriteJSON(w, http.StatusForbidden, "only the group creator can manage requests", nil)
+			return
+		}
+
 		switch action {
 		case "accept":
 			if err := Repos.Group.AcceptGroupRequest(groupID, targetUserID); err != nil {
@@ -819,6 +827,14 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
 			return
 		}
+
+		// Only group members can invite others
+		member, err := Repos.Group.IsGroupMember(groupID, userID)
+		if err != nil || !member {
+			utilities.WriteJSON(w, http.StatusForbidden, "only group members can invite users", nil)
+			return
+		}
+
 		var payload struct {
 			UserID int `json:"user_id"`
 		}
