@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   getFeedPosts,
   likePost,
@@ -188,14 +189,20 @@ export default function Home() {
                   display: "inline-block",
                 }}
               >
-                <img
+                <Image
                   src={formImagePreview}
                   alt="preview"
+                  width={0}
+                  height={0}
+                  sizes="100px"
                   style={{
                     maxHeight: 100,
                     borderRadius: 4,
                     border: "0.5px solid #3a3733",
+                    width: "auto",
+                    height: "auto",
                   }}
+                  unoptimized
                 />
                 <button
                   className="btn btn-red"
@@ -425,14 +432,12 @@ export default function Home() {
                   }}
                 >
                   {post.avatar ? (
-                    <img
+                    <Image
                       src={post.avatar}
                       alt="avatar"
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                      }}
+                      width={30}
+                      height={30}
+                      style={{ objectFit: "cover" }}
                     />
                   ) : (
                     initials
@@ -514,14 +519,19 @@ export default function Home() {
                     border: "0.5px solid #3a3733",
                   }}
                 >
-                  <img
+                  <Image
                     src={post.image}
                     alt="post image"
+                    width={0}
+                    height={0}
+                    sizes="100vw"
                     style={{
                       width: "100%",
                       maxHeight: "300px",
                       objectFit: "cover",
+                      height: "auto",
                     }}
+                    unoptimized
                   />
                 </div>
               )}

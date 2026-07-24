@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 import { useChat } from "~/app/_providers/chatProvider";
 import { useWS } from "~/app/_providers/ws-provider";
 import { MessagesSidebar } from "~/app/_components/sideBars/message";
@@ -482,12 +483,12 @@ export default function Chat() {
           </button>
 
           {avatarUrl ? (
-            <img
+            <Image
               src={avatarUrl}
               alt={displayName}
+              width={28}
+              height={28}
               style={{
-                width: "28px",
-                height: "28px",
                 borderRadius: isGroup ? "6px" : "50%",
                 objectFit: "cover",
               }}

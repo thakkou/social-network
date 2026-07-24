@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 import { likePost, dislikePost, deletePost } from "~/app/api/crud/post";
 import ConfirmModal from "~/app/_components/ConfirmModal";
 
@@ -208,16 +209,16 @@ export default function ProfilePosts({ posts }: ProfilePostsProps) {
                 borderRadius: "6px",
                 overflow: "hidden",
                 border: "0.5px solid #3a3733",
+                position: "relative",
+                maxHeight: "300px",
+                minHeight: "100px",
               }}
             >
-              <img
+              <Image
                 src={post.image}
                 alt={post.title || "Post media"}
-                style={{
-                  width: "100%",
-                  maxHeight: "300px",
-                  objectFit: "cover",
-                }}
+                fill
+                style={{ objectFit: "cover" }}
               />
             </div>
           )}

@@ -2,56 +2,70 @@ package utilities
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
-
-	db "01social/pkg/db/sqlite"
 )
 
-const ticketTTL = 30 * time.Second
+// ── In-memory ticket store ──
+
+type wsTicket struct {
+	userID  int
+	expires time.Time
+}
+
+var (
+	ticketMu    sync.RWMutex
+	tickets     = make(map[string]wsTicket)
+	ticketTTL   = 30 * time.Second
+	cleanupOnce sync.Once
+)
+
+func startTicketCleanup() {
+	go func() {
+		ticker := time.NewTicker(15 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			ticketMu.Lock()
+			now := time.Now()
+			for key, t := range tickets {
+				if now.After(t.expires) {
+					delete(tickets, key)
+				}
+			}
+			ticketMu.Unlock()
+		}
+	}()
+}
 
 func CreateTicket(userID int) (string, error) {
+	cleanupOnce.Do(startTicketCleanup)
+
 	ticket := uuid.New().String()
-	_, err := db.Database.Exec(
-		"INSERT INTO WS_TICKETS (ticket, user_id) VALUES (?, ?)",
-		ticket, userID,
-	)
-	if err != nil {
-		return "", fmt.Errorf("failed to create ws ticket: %w", err)
+	ticketMu.Lock()
+	tickets[ticket] = wsTicket{
+		userID:  userID,
+		expires: time.Now().Add(ticketTTL),
 	}
+	ticketMu.Unlock()
 
-	fmt.Println("Inserted ticket:", ticket)
-
-	rows, _ := db.Database.Query("SELECT ticket, user_id, created_at FROM WS_TICKETS")
-	defer rows.Close()
-
-	for rows.Next() {
-		var t string
-		var id int
-		var created string
-		rows.Scan(&t, &id, &created)
-		fmt.Println("DB:", t, id, created)
-	}
 	return ticket, nil
 }
 
 func RedeemTicket(ticket string) (int, error) {
-	var userID int
+	ticketMu.Lock()
+	defer ticketMu.Unlock()
 
-	err := db.Database.QueryRow(
-		"SELECT user_id FROM WS_TICKETS WHERE ticket = ?",
-		ticket,
-	).Scan(&userID)
-	if err != nil {
-		fmt.Println("RedeemTicket:", err)
-		return 0, err
+	t, ok := tickets[ticket]
+	if !ok {
+		return 0, fmt.Errorf("ticket not found")
+	}
+	if time.Now().After(t.expires) {
+		delete(tickets, ticket)
+		return 0, fmt.Errorf("ticket expired")
 	}
 
-	_, _ = db.Database.Exec(
-		"DELETE FROM WS_TICKETS WHERE ticket = ?",
-		ticket,
-	)
-
-	return userID, nil
+	delete(tickets, ticket)
+	return t.userID, nil
 }

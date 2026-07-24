@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 
 interface PrivateProfileProps {
     userId: string | number;
@@ -43,17 +44,15 @@ const buttonLabel = isLoading
                         color: "#534AB7",
                         fontSize: "16px",
                         overflow: "hidden",
+                        position: "relative",
                     }}
                 >
                     {profile.avatar ? (
-                        <img
+                        <Image
                             src={profile.avatar}
                             alt={profile.nickname ?? "avatar"}
-                            style={{
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "cover",
-                            }}
+                            fill
+                            style={{ objectFit: "cover" }}
                         />
                     ) : (
                         `${profile?.firstname?.[0] ?? ""}${profile?.lastname?.[0] ?? ""}`

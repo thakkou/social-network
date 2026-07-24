@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import LogoutBtn from "./LogoutBtn";
 import SearchInput from "./SearchInput";
 import NotifCount from "./NotifCount";
@@ -25,7 +26,7 @@ export default async function Header() {
         <NotifCount />
         <Link className="av" href="/profile" style={{ width: 28, height: 28, borderRadius: '50%', background: avatar ? 'transparent' : '#EEEDFE', overflow: 'hidden', textDecoration: 'none' }}>
           {avatar ? (
-            <img src={avatar} width={28} height={28} alt="Avatar" style={{ objectFit: 'cover' }} />
+            <Image src={avatar} width={28} height={28} alt="Avatar" style={{ objectFit: 'cover' }} />
           ) : (
             <span style={{ color: '#534AB7', fontSize: 11, fontWeight: 600 }}>
               {session?.user?.nickname?.[0]?.toUpperCase() || session?.user?.firstname?.[0]?.toUpperCase() || '?'}

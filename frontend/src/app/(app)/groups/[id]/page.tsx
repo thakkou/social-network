@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -718,15 +719,20 @@ export default function GroupDetailPage() {
           {/* Image preview */}
           {newPostPreview && (
             <div style={{ position: "relative", marginTop: 8 }}>
-              <img
+              <Image
                 src={newPostPreview}
                 alt="Preview"
+                width={0}
+                height={0}
+                sizes="100vw"
                 style={{
                   width: "100%",
                   maxHeight: 200,
                   objectFit: "cover",
                   border: "0.5px solid #3a3733",
+                  height: "auto",
                 }}
+                unoptimized
               />
               <button
                 onClick={() => {
@@ -973,16 +979,21 @@ export default function GroupDetailPage() {
             )}
 
             {item.image && (
-              <img
+              <Image
                 src={item.image}
                 alt="Post image"
+                width={0}
+                height={0}
+                sizes="100vw"
                 style={{
                   width: "100%",
                   maxHeight: 300,
                   objectFit: "cover",
                   marginTop: 10,
                   border: "0.5px solid #3a3733",
+                  height: "auto",
                 }}
+                unoptimized
               />
             )}
 

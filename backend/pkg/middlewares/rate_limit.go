@@ -1,14 +1,29 @@
 package middlewares
 
 import (
-	"database/sql"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
-	db "01social/pkg/db/sqlite"
 	"01social/pkg/utilities"
 )
+
+// ── In-memory rate limiter ──
+
+type rateEntry struct {
+	lastRequest time.Time
+}
+
+var (
+	rateMu    sync.Mutex
+	rateStore = make(map[string]*rateEntry)
+)
+
+// rateKey builds a "ip:route" key for the in-memory store.
+func rateKey(ip, route string) string {
+	return ip + ":" + route
+}
 
 func RateLimit(handler http.HandlerFunc, minInterval time.Duration) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -19,49 +34,30 @@ func RateLimit(handler http.HandlerFunc, minInterval time.Duration) http.Handler
 
 		ip, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
-			utilities.WriteJSON(w, 500, "invalid Ip adress", nil)
+			utilities.WriteJSON(w, 500, "invalid Ip address", nil)
 			return
 		}
 
-		var lastRequest time.Time
+		key := rateKey(ip, r.URL.Path)
 
-		err = db.Database.QueryRow(
-			"SELECT last_request FROM rate_limits WHERE ip = ? AND route = ?", ip, r.URL.Path,
-		).Scan(&lastRequest)
-
-		if err == sql.ErrNoRows {
-			_, err = db.Database.Exec(
-				"INSERT INTO rate_limits (ip, route, last_request) VALUES (?, ?, ?)",
-				ip, r.URL.Path, time.Now(),
-			)
-			if err != nil {
-				utilities.WriteJSON(w, 500, "Internal Server Error", nil)
-
-				return
-			}
+		rateMu.Lock()
+		entry, exists := rateStore[key]
+		if !exists {
+			// First request – create entry
+			rateStore[key] = &rateEntry{lastRequest: time.Now()}
+			rateMu.Unlock()
 			handler(w, r)
 			return
-		} else if err != nil {
-			utilities.WriteJSON(w, 500, "Internal Server Error", nil)
+		}
 
+		if time.Since(entry.lastRequest) < minInterval {
+			rateMu.Unlock()
+			utilities.WriteJSON(w, 429, "Please wait before sending another request.", nil)
 			return
 		}
 
-		if time.Since(lastRequest) < minInterval {
-			utilities.WriteJSON(w, 500, "Please wait before sending another request.", nil)
-
-			return
-		}
-
-		_, err = db.Database.Exec(
-			"UPDATE rate_limits SET last_request = ? WHERE ip = ? AND route = ?",
-			time.Now(), ip, r.URL.Path,
-		)
-		if err != nil {
-			utilities.WriteJSON(w, 500, "Internal Server Error", nil)
-
-			return
-		}
+		entry.lastRequest = time.Now()
+		rateMu.Unlock()
 
 		handler(w, r)
 	}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useSession } from "next-auth/react";
 import {
   getPostById,
@@ -282,10 +283,12 @@ export default function PostDetailPage() {
             }}
           >
             {post.avatar ? (
-              <img
+              <Image
                 src={post.avatar}
                 alt="avatar"
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                width={36}
+                height={36}
+                style={{ objectFit: "cover", borderRadius: "50%" }}
               />
             ) : (
               initials
@@ -375,14 +378,19 @@ export default function PostDetailPage() {
               border: "0.5px solid #3a3733",
             }}
           >
-            <img
+            <Image
               src={post.image}
               alt="post image"
+              width={0}
+              height={0}
+              sizes="100vw"
               style={{
                 width: "100%",
                 maxHeight: "400px",
                 objectFit: "cover",
+                height: "auto",
               }}
+              unoptimized
             />
           </div>
         )}
@@ -472,14 +480,20 @@ export default function PostDetailPage() {
               display: "inline-block",
             }}
           >
-            <img
+            <Image
               src={commentImagePreview}
               alt="preview"
+              width={0}
+              height={0}
+              sizes="100px"
               style={{
                 maxHeight: 100,
                 borderRadius: 4,
                 border: "0.5px solid #3a3733",
+                width: "auto",
+                height: "auto",
               }}
+              unoptimized
             />
             <button
               className="btn btn-red"
@@ -635,15 +649,21 @@ export default function PostDetailPage() {
                     </div>
                     <p>{comment.text}</p>
                     {comment.image && (
-                      <img
+                      <Image
                         src={comment.image}
                         alt="comment image"
+                        width={0}
+                        height={0}
+                        sizes="120px"
                         style={{
                           maxHeight: 120,
                           borderRadius: 4,
                           marginTop: 6,
                           border: "0.5px solid #3a3733",
+                          width: "auto",
+                          height: "auto",
                         }}
+                        unoptimized
                       />
                     )}
                   </div>

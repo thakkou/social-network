@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 import { getConversations } from "~/app/api/crud/conversations";
 import type { ConversationFeedItem } from "~/app/api/crud/conversations";
 import { getProfileData } from "~/app/api/crud/getProfile";
@@ -407,12 +408,12 @@ export const MessagesSidebar: React.ComponentType<MessagesSidebarProps> = ({
                 }}
               >
                 {group.avatar ? (
-                  <img
+                  <Image
                     src={group.avatar}
                     alt={group.display_name}
+                    width={20}
+                    height={20}
                     style={{
-                      width: "20px",
-                      height: "20px",
                       borderRadius: "4px",
                       objectFit: "cover",
                       flexShrink: 0,

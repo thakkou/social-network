@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 import { registerUser } from "./actions";
 
@@ -207,10 +208,12 @@ export default function Register() {
               marginBottom: 6,
             }}
           >
-            <img
+            <Image
               src={preview}
               alt="Avatar preview"
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              width={56}
+              height={56}
+              style={{ objectFit: "cover" }}
             />
           </div>
         )}

@@ -1,5 +1,6 @@
 
 "use client"
+import Image from "next/image";
 import { getNotifications, markNotificationAsRead, markAllNotificationsRead, deleteAllNotifications } from "~/app/api/crud/notification";
 import { useState, useEffect, useRef, useCallback } from "react"
 import { acceptFollowRequest,rejectFollowRequest } from "~/app/api/crud/follow";
@@ -107,7 +108,7 @@ const NotificationCard = ({
         {data.actor && (
           <div className="av" style={{ width: '28px', height: '28px', background: '#FBEAF0', color: '#993556', fontSize: '11px', flexShrink: 0, overflow: 'hidden' }}>
             {data.actor.avatar ? (
-              <img src={data.actor.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <Image src={data.actor.avatar} alt="avatar" width={28} height={28} style={{ objectFit: 'cover' }} />
             ) : (
               getInitials()
             )}

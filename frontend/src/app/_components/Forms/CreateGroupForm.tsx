@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect, useRef } from "react";
+import Image from "next/image";
 import { createGroup } from "~/app/api/crud/groups";
 import { search } from "~/app/api/crud/search";
 
@@ -232,12 +233,12 @@ export default function CreateGroupForm() {
               />
               {logoPreview && (
                 <div style={{ marginTop: "8px", position: "relative", width: "fit-content" }}>
-                  <img
+                  <Image
                     src={logoPreview}
                     alt="Logo preview"
+                    width={48}
+                    height={48}
                     style={{
-                      width: "48px",
-                      height: "48px",
                       objectFit: "cover",
                       borderRadius: "6px",
                       border: "1px solid var(--color-border, #ccc)",
@@ -278,9 +279,12 @@ export default function CreateGroupForm() {
               />
               {backgroundPreview && (
                 <div style={{ marginTop: "8px", position: "relative", width: "100%" }}>
-                  <img
+                  <Image
                     src={backgroundPreview}
                     alt="Banner preview"
+                    width={0}
+                    height={80}
+                    sizes="100vw"
                     style={{
                       width: "100%",
                       height: "80px",
@@ -288,6 +292,7 @@ export default function CreateGroupForm() {
                       borderRadius: "6px",
                       border: "1px solid var(--color-border, #ccc)",
                     }}
+                    unoptimized
                   />
                   <button
                     type="button"
