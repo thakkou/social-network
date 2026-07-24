@@ -3,7 +3,7 @@
 import { fetchApi } from "../helper/fetch";
 
 // 1. Define the structural types matching your Go API response
-interface ProfileUserMinimal {
+type ProfileUserMinimal = {
   id: number;
   firstname: string;
   lastname: string;
@@ -11,7 +11,7 @@ interface ProfileUserMinimal {
   avatar: string;
 }
 
-interface ProfilePost {
+type ProfilePost = {
   id: number;
   user_id: number;
   nickname: string;
@@ -29,7 +29,7 @@ interface ProfilePost {
   comments: unknown[] | null;
 }
 
-interface ProfileDetails {
+type ProfileDetails = {
   id: number;
   firstname: string;
   lastname: string;
@@ -45,7 +45,7 @@ interface ProfileDetails {
 }
 
 // The top-level envelope returned by your Go backend
-interface ProfileApiResponse {
+type ProfileApiResponse = {
   status_code: number;
   message: string;
   data: ProfileDetails;

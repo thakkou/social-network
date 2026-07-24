@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-interface FollowerUser {
+type FollowerUser = {
   id: number;
   nickname?: string;
   firstname?: string;

@@ -13,7 +13,7 @@ import {
 
 export type ToastType = "info" | "success" | "error" | "warning";
 
-export interface Toast {
+export type Toast = {
   id: string;
   type: ToastType;
   title: string;
@@ -21,7 +21,7 @@ export interface Toast {
   duration?: number; // ms, default 4000
 }
 
-interface ToastContextValue {
+type ToastContextValue = {
   toasts: Toast[];
   addToast: (t: Omit<Toast, "id">) => string;
   removeToast: (id: string) => void;

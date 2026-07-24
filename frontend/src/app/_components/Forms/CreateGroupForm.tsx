@@ -5,7 +5,7 @@ import Image from "next/image";
 import { createGroup } from "~/app/_api/crud/groups";
 import { search } from "~/app/_api/crud/search";
 
-interface InviteUser {
+type InviteUser = {
   id: number;
   nickname: string;
   firstname: string;

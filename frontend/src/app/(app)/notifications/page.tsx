@@ -9,7 +9,7 @@ import { useWS } from "~/app/_providers/ws-provider";
 import ConfirmModal from "~/app/_components/ConfirmModal";
 
 // 1. Exact Interface mapping to your JSON response
-interface NotificationActor {
+type NotificationActor = {
   user_id: number;
   nickname: string;
   avatar: string;
@@ -17,7 +17,7 @@ interface NotificationActor {
   lastname: string;
 }
 
-interface NotificationPayload {
+type NotificationPayload = {
   post_id?: number;
   post_title?: string;
   reaction?: string;
@@ -29,7 +29,7 @@ interface NotificationPayload {
   follow_request_id?: number;
 }
 
-interface NotificationItem {
+type NotificationItem = {
   id: string | number;
   type: "new_follower" | "follow_request" | "follow_accepted" | "group_invite" | "group_join_request" | "post_reaction" | "comment" | "group_event";
   object_type: string;

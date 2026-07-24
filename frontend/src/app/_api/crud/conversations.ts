@@ -4,7 +4,7 @@ import { fetchApi } from "../helper/fetch";
 
 export type ConversationType = "direct" | "group";
 
-export interface ConversationFeedItem {
+export type ConversationFeedItem = {
   type: ConversationType;
   id: number;
   display_name: string;
@@ -17,7 +17,7 @@ export interface ConversationFeedItem {
   member_count?: number; // group only
 }
 
-export interface ConversationMessage {
+export type ConversationMessage = {
   id: number;
   sender_id: number;
   text: string;
@@ -25,7 +25,7 @@ export interface ConversationMessage {
   nickname: string;
 }
 
-interface GetConversationsResponse {
+type GetConversationsResponse = {
   status_code: number;
   message: string;
   data: {
@@ -34,7 +34,7 @@ interface GetConversationsResponse {
   };
 }
 
-interface GetConversationByIdResponse {
+type GetConversationByIdResponse = {
   status_code: number;
   message: string;
   data: {
@@ -44,7 +44,7 @@ interface GetConversationByIdResponse {
   };
 }
 
-export interface SendMessageRequest {
+export type SendMessageRequest = {
   type: ConversationType;
   text: string;
   receiver_id?: number;
@@ -52,7 +52,7 @@ export interface SendMessageRequest {
   group_id?: number;
 }
 
-interface SendMessageResponse {
+type SendMessageResponse = {
   status_code: number;
   message: string;
   data: {

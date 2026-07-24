@@ -1,6 +1,6 @@
 "use client";
 
-interface ConfirmModalProps {
+type ConfirmModalProps = {
   open: boolean;
   title: string;
   message: string;

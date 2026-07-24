@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 
-interface PrivateProfileProps {
+type PrivateProfileProps = {
     userId: string | number;
     profile: {
         firstname?: string;

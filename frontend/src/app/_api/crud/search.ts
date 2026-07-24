@@ -2,7 +2,7 @@
 
 import { fetchApi } from "../helper/fetch";
 
-interface SearchProfile {
+type SearchProfile = {
   id: number;
   firstname: string;
   lastname: string;
@@ -11,14 +11,14 @@ interface SearchProfile {
   is_private?: number;
 }
 
-interface SearchGroup {
+type SearchGroup = {
   id: number;
   title: string;
   description?: string;
   logo?: string;
 }
 
-interface SearchResponse {
+type SearchResponse = {
   status_code: number;
   message: string;
   data: {

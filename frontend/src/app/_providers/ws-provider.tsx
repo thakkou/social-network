@@ -12,10 +12,9 @@ import {
 import { useSession, signOut } from "next-auth/react";
 import { useToast } from "~/app/_components/Toast";
 
-// ─── Types & Context Setup ───
 type WSEventHandler = (data: any) => void;
 
-interface WSContextType {
+type WSContextType = {
   socket: WebSocket | null;
   connected: boolean;
   onlineUsers: string[];

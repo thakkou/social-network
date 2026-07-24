@@ -5,10 +5,10 @@ type ApiResult<T> =
   | { success: true; data: T; error?: never }
   | { success: false; error: string; data?: never };
 
-interface FetchApiOptions extends Omit<RequestInit, "body"> {
+type FetchApiOptions = Omit<RequestInit, "body"> & {
   body?: unknown; // Allow passing objects or FormData directly
   searchParams?: Record<string, string | number | boolean | undefined>;
-}
+};
 
 export async function fetchApi<T>(
   endpoint: string,

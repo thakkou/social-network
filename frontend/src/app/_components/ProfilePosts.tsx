@@ -7,7 +7,7 @@ import Image from "next/image";
 import { likePost, dislikePost, deletePost } from "~/app/_api/crud/post";
 import ConfirmModal from "~/app/_components/ConfirmModal";
 
-interface Post {
+type Post = {
   id: number;
   user_id: number;
   nickname: string;
@@ -25,7 +25,7 @@ interface Post {
   comments: unknown[] | null;
 }
 
-interface ProfilePostsProps {
+type ProfilePostsProps = {
   posts: Post[];
 }
 

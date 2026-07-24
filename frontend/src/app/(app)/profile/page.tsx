@@ -8,7 +8,7 @@ import { getUserGroups } from "~/app/_api/crud/groups";
 import ProfilePosts from "~/app/_components/ProfilePosts";
 import Followers from "~/app/_components/Followers";
 
-interface GroupSummary {
+type GroupSummary = {
   id: number;
   title: string;
   description: string;

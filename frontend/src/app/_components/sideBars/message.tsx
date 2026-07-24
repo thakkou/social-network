@@ -56,7 +56,7 @@ function moveConversationToFront(
 
 type FollowUser = { id: number; nickname: string; firstname: string; lastname: string; avatar: string };
 
-interface MessagesSidebarProps {
+type MessagesSidebarProps = {
   onSelect?: (item: ConversationFeedItem) => void;
 }
 

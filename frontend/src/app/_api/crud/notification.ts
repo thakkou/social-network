@@ -6,7 +6,7 @@ import { fetchApi } from "../helper/fetch";
  * Types
  * ========================= */
 
-export interface ActorInfo {
+export type ActorInfo = {
   user_id: number;
   nickname: string;
   avatar: string;
@@ -14,7 +14,7 @@ export interface ActorInfo {
   lastname: string;
 }
 
-export interface Notification {
+export type Notification = {
   id: number;
   type:
     | "post_reaction"
@@ -30,7 +30,7 @@ export interface Notification {
   payload: any;
 }
 
-interface NotificationResponse {
+type NotificationResponse = {
   status_code: number;
   message: string;
   data: Notification[];

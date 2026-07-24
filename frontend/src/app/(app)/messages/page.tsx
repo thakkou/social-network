@@ -47,7 +47,7 @@ function timeAgo(dateStr: string): string {
   return date.toLocaleDateString();
 }
 
-interface DisplayMessage {
+type DisplayMessage = {
   id: number;
   type: "me" | "them";
   text: string;

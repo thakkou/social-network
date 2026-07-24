@@ -4,7 +4,7 @@ import { fetchApi } from "../helper/fetch";
 
 type FollowStatus = "none" | "pending" | "accepted";
 
-interface FollowActionResponse {
+type FollowActionResponse = {
   status_code: number;
   message: string;
   data: {

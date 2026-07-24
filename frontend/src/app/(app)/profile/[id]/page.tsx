@@ -10,7 +10,7 @@ import { getProfileData } from "~/app/_api/crud/getProfile";
 import PrivateProfile from "~/app/_components/PrivateProfile";
 import { toggleFollow } from "~/app/_api/crud/follow";
 import { useChat } from "~/app/_providers/chatProvider";
-interface TabItem {
+type TabItem = {
     label: string;
     Component: React.ComponentType<any>;
     props: any;

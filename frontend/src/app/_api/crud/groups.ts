@@ -2,7 +2,7 @@
 
 import { fetchApi } from "../helper/fetch";
 
-interface CreateGroupResponse {
+type CreateGroupResponse = {
   status_code: number;
   message: string;
   data: {
@@ -11,14 +11,14 @@ interface CreateGroupResponse {
   };
 }
 
-interface GroupApiResponse<T> {
+type GroupApiResponse<T> = {
   status_code: number;
   message: string;
   data: T;
 }
 
 // ─── Types for Group Public Details ───
-export interface GroupPublic {
+export type GroupPublic = {
   id: number;
   creator_id: number;
   title: string;
@@ -28,7 +28,7 @@ export interface GroupPublic {
   created_at: string;
 }
 
-interface GroupPublicResponse {
+type GroupPublicResponse = {
   status_code: number;
   message: string;
   data: {
@@ -38,7 +38,7 @@ interface GroupPublicResponse {
 }
 
 // ─── Types for Feed Items (Posts & Events) ───
-export interface FeedAuthor {
+export type FeedAuthor = {
   id: number;
   nickname: string;
   firstname: string;
@@ -46,7 +46,7 @@ export interface FeedAuthor {
   avatar: string;
 }
 
-export interface EventResponder {
+export type EventResponder = {
   user_id: number;
   status: string;
   nickname: string;
@@ -55,7 +55,7 @@ export interface EventResponder {
   avatar: string;
 }
 
-export interface GroupFeedComment {
+export type GroupFeedComment = {
   id: number;
   user_id: number;
   text: string;
@@ -69,7 +69,7 @@ export interface GroupFeedComment {
   is_liked: number;
 }
 
-export interface GroupFeedItem {
+export type GroupFeedItem = {
   id: number;
   type: "post" | "event";
   group_id: number;
@@ -281,7 +281,7 @@ export async function requestToJoinGroup(groupId: string) {
 }
 
 // ─── Pending Requests ───
-export interface PendingRequest {
+export type PendingRequest = {
   id: number;
   user_id: number;
   nickname: string;

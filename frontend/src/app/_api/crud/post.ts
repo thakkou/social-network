@@ -4,7 +4,7 @@ import { fetchApi } from "../helper/fetch";
 
 // ─── Types ───
 
-export interface PostComment {
+export type PostComment = {
   id: number;
   user_id: number;
   nickname: string;
@@ -17,7 +17,7 @@ export interface PostComment {
   is_liked: number; // 1=liked, 0=none, -1=disliked
 }
 
-export interface FeedPost {
+export type FeedPost = {
   id: number;
   user_id: number;
   nickname: string;
@@ -38,7 +38,7 @@ export interface FeedPost {
   categories: string[];
 }
 
-interface GoApiResponse<T> {
+type GoApiResponse<T> = {
   status_code: number;
   message: string;
   data: T;
@@ -196,7 +196,7 @@ export async function deletePost(postId: number) {
 
 // ─── Create Post (for feed) ───
 
-interface CreatePostResponse {
+type CreatePostResponse = {
   status_code: number;
   message: string;
   data: {

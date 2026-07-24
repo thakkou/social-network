@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { search } from "../_api/crud/search";
 import Image from "next/image";
 import Link from "next/link";
-interface SearchInputProps {
+type SearchInputProps = {
   typeSearch?: "all" | "users" | "groups";
   placeholder?: string;
   style?: React.CSSProperties;
