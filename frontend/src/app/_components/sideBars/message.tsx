@@ -4,9 +4,9 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import { getConversations } from "~/app/_api/crud/conversations";
-import type { ConversationFeedItem } from "~/app/_api/crud/conversations";
-import { getProfileData } from "~/app/_api/crud/getProfile";
+import { getConversations } from "~/app/_services/crud/conversations";
+import type { ConversationFeedItem } from "~/app/_services/crud/conversations";
+import { getProfileData } from "~/app/_services/crud/getProfile";
 import { useChat } from "~/app/_providers/chatProvider";
 import { useWS } from "~/app/_providers/ws-provider";
 

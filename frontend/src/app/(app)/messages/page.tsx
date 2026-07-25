@@ -12,7 +12,7 @@ import {
   sendMessage,
   type ConversationType,
   type ConversationMessage,
-} from "~/app/_api/crud/conversations";
+} from "~/app/_services/crud/conversations";
 
 const AVATAR_COLORS = ["#FBEAF0", "#EAF3FB", "#EAFBEF", "#FFF3E8", "#F3EAFB"];
 const GROUP_COLORS = ["#D4537E", "#1D9E75", "#3B82F6", "#F59E0B", "#8B5CF6"];

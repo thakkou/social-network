@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { getUserGroups } from "~/app/_api/crud/groups";
-import { getProfileData } from "~/app/_api/crud/getProfile";
+import { getUserGroups } from "~/app/_services/crud/groups";
+import { getProfileData } from "~/app/_services/crud/getProfile";
 
 const links = [
   { href: '/', label: 'feed', icon: 'ti-home' },

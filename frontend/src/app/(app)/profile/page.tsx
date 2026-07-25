@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { getProfileData } from "~/app/_api/crud/getProfile";
-import { getUserGroups } from "~/app/_api/crud/groups";
+import { getProfileData } from "~/app/_services/crud/getProfile";
+import { getUserGroups } from "~/app/_services/crud/groups";
 import ProfilePosts from "~/app/_components/ProfilePosts";
 import Followers from "~/app/_components/Followers";
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { getProfileData } from "~/app/_api/crud/getProfile";
+import { getProfileData } from "~/app/_services/crud/getProfile";
 import {
   getUserGroups,
   updateProfilePrivacy,
@@ -11,8 +11,8 @@ import {
   updateGroup,
   inviteUserToGroup,
   getGroupMembers,
-} from "~/app/_api/crud/groups";
-import { search } from "~/app/_api/crud/search";
+} from "~/app/_services/crud/groups";
+import { search } from "~/app/_services/crud/search";
 
 interface GroupSummary {
   id: number;

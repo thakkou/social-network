@@ -15,7 +15,7 @@ import {
   deleteComment,
   type FeedPost,
   type PostComment,
-} from "~/app/_api/crud/post";
+} from "~/app/_services/crud/post";
 
 function formatCommentTime(createdAt: string): string {
   // Always compute time-ago from the timestamp locally rather than trusting

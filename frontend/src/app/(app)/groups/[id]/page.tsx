@@ -31,7 +31,7 @@ import {
   type GroupFeedComment,
   type PendingRequest,
   type FeedAuthor,
-} from "~/app/_api/crud/groups";
+} from "~/app/_services/crud/groups";
 
 type FeedFilter = "all" | "posts" | "events";
 

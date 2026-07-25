@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { search } from "../_api/crud/search";
+import { search } from "../_services/crud/search";
 import Image from "next/image";
 import Link from "next/link";
 type SearchInputProps = {
