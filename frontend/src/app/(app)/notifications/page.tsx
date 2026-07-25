@@ -1,10 +1,10 @@
-
 "use client"
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { getNotifications, markNotificationAsRead, markAllNotificationsRead, deleteAllNotifications } from "~/app/_api/crud/notification";
 import { useState, useEffect, useRef, useCallback } from "react"
 import { acceptFollowRequest,rejectFollowRequest } from "~/app/_api/crud/follow";
-import { acceptGroupInvite, rejectGroupInvite, acceptJoinRequest, rejectJoinRequest } from "~/app/_api/crud/groups";
+import { acceptGroupInvite, rejectGroupInvite, acceptJoinRequest, rejectJoinRequest, respondToEvent } from "~/app/_api/crud/groups";
 import { useWS } from "~/app/_providers/ws-provider";
 import ConfirmModal from "~/app/_components/ConfirmModal";
 
@@ -27,6 +27,7 @@ type NotificationPayload = {
   invitation_id?: number;
   follow_status?: string;
   follow_request_id?: number;
+  event_id?: number;
 }
 
 type NotificationItem = {
@@ -38,6 +39,7 @@ type NotificationItem = {
   actor: NotificationActor | null;
   payload: NotificationPayload | null;
 }
+
 const NotificationCard = ({
   data,
   onMarkRead,
@@ -47,6 +49,7 @@ const NotificationCard = ({
   onRejectGroupInvite,
   onAcceptJoinRequest,
   onRejectJoinRequest,
+  onRespondEvent,
 }: {
   data: NotificationItem;
   onMarkRead: (id: string | number) => void;
@@ -56,7 +59,10 @@ const NotificationCard = ({
   onRejectGroupInvite: (groupId: number, notificationId: string | number) => void;
   onAcceptJoinRequest: (userId: number, groupId: number, notificationId: string | number) => void;
   onRejectJoinRequest: (userId: number, groupId: number, notificationId: string | number) => void;
+  onRespondEvent: (groupId: number, eventId: number, status: string, notificationId: string | number) => void;
 }) => {
+  const router = useRouter();
+
   // Setup dynamic color styling and configurations based on notification type
   const typeStyles = {
     new_follower: { border: '#1D9E75', tagClass: 'tag-teal', label: 'new follower' },
@@ -85,16 +91,49 @@ const NotificationCard = ({
     return (data.actor.nickname ? data.actor.nickname.slice(0, 2) : "UN").toUpperCase();
   };
 
-  const hasAccept = ["follow_request", "group_invite", "group_join_request"].includes(data.type);
   const displayTime = data.created_at ? new Date(data.created_at).toLocaleDateString() : "just now";
+
+  // Navigation helpers
+  const navigateToPost = () => {
+    if (data.payload?.post_id) {
+      router.push(`/posts/${data.payload.post_id}`);
+    }
+  };
+
+  const navigateToProfile = () => {
+    if (data.actor?.user_id) {
+      router.push(`/profile/${data.actor.user_id}`);
+    }
+  };
+
+  const navigateToGroup = () => {
+    if (data.payload?.group_id) {
+      router.push(`/groups/${data.payload.group_id}`);
+    }
+  };
+
+  const handleCardClick = () => {
+    if (data.type === "post_reaction" || data.type === "comment") {
+      navigateToPost();
+    } else if (data.type === "new_follower" || data.type === "follow_request" || data.type === "follow_accepted") {
+      navigateToProfile();
+    } else if (data.type === "group_invite" || data.type === "group_join_request") {
+      navigateToGroup();
+    } else if (data.type === "group_event") {
+      navigateToGroup();
+    }
+  };
 
   return (
     <div 
       className="card" 
       style={{ 
         borderLeft: `2px solid ${typeStyles.border}`,
-        opacity: data.is_read ? 0.6 : 1 
+        opacity: data.is_read ? 0.6 : 1,
+        cursor: "pointer",
+        transition: "opacity 0.15s ease",
       }}
+      onClick={handleCardClick}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
         <span className={`tag ${typeStyles.tagClass}`}>{typeStyles.label}</span>
@@ -105,8 +144,25 @@ const NotificationCard = ({
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+        {/* Clickable avatar for profile navigation */}
         {data.actor && (
-          <div className="av" style={{ width: '28px', height: '28px', background: '#FBEAF0', color: '#993556', fontSize: '11px', flexShrink: 0, overflow: 'hidden' }}>
+          <div 
+            className="av" 
+            style={{ 
+              width: '28px', 
+              height: '28px', 
+              background: '#FBEAF0', 
+              color: '#993556', 
+              fontSize: '11px', 
+              flexShrink: 0, 
+              overflow: 'hidden',
+              cursor: 'pointer',
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigateToProfile();
+            }}
+          >
             {data.actor.avatar ? (
               <Image src={data.actor.avatar} alt="avatar" width={28} height={28} style={{ objectFit: 'cover' }} />
             ) : (
@@ -117,56 +173,116 @@ const NotificationCard = ({
         <p style={{ fontSize: '12px', color: 'var(--color-text-primary)' }}>
           {data.type === 'new_follower' && (
             <>
-              <span style={{ fontWeight: 500 }}>{getActorName()}</span> started following you
+              <span 
+                style={{ fontWeight: 500, cursor: 'pointer' }}
+                onClick={(e) => { e.stopPropagation(); navigateToProfile(); }}
+              >{getActorName()}</span> started following you
             </>
           )}
           {data.type === 'follow_request' && (
             <>
-              <span style={{ fontWeight: 500 }}>{getActorName()}</span> sent you a follow request
+              <span 
+                style={{ fontWeight: 500, cursor: 'pointer' }}
+                onClick={(e) => { e.stopPropagation(); navigateToProfile(); }}
+              >{getActorName()}</span> sent you a follow request
             </>
           )}
           {data.type === 'follow_accepted' && (
             <>
-              <span style={{ fontWeight: 500 }}>{getActorName()}</span> accepted your follow request
+              <span 
+                style={{ fontWeight: 500, cursor: 'pointer' }}
+                onClick={(e) => { e.stopPropagation(); navigateToProfile(); }}
+              >{getActorName()}</span> accepted your follow request
             </>
           )}
           {data.type === 'group_invite' && (
             <>
-              <span style={{ fontWeight: 500 }}>{getActorName()}</span> invited you to join the group <span style={{ fontWeight: 500, color: typeStyles.border }}>{data.payload?.group_name || "a group"}</span>
+              <span 
+                style={{ fontWeight: 500, cursor: 'pointer' }}
+                onClick={(e) => { e.stopPropagation(); navigateToProfile(); }}
+              >{getActorName()}</span> invited you to join{' '}
+              <span 
+                style={{ fontWeight: 500, color: typeStyles.border, cursor: 'pointer' }}
+                onClick={(e) => { e.stopPropagation(); navigateToGroup(); }}
+              >{data.payload?.group_name || "a group"}</span>
             </>
           )}
           {data.type === 'group_join_request' && (
             <>
-              <span style={{ fontWeight: 500 }}>{getActorName()}</span> requested to join your group
+              <span 
+                style={{ fontWeight: 500, cursor: 'pointer' }}
+                onClick={(e) => { e.stopPropagation(); navigateToProfile(); }}
+              >{getActorName()}</span> requested to join{' '}
+              <span 
+                style={{ fontWeight: 500, cursor: 'pointer' }}
+                onClick={(e) => { e.stopPropagation(); navigateToGroup(); }}
+              >your group</span>
             </>
           )}
           {data.type === 'post_reaction' && (
             <>
-              <span style={{ fontWeight: 500 }}>{getActorName()}</span> liked your post {data.payload?.post_title && <span style={{ fontStyle: 'italic' }}>"{data.payload.post_title}"</span>}
+              <span 
+                style={{ fontWeight: 500, cursor: 'pointer' }}
+                onClick={(e) => { e.stopPropagation(); navigateToProfile(); }}
+              >{getActorName()}</span> liked your post{' '}
+              {data.payload?.post_title && (
+                <span 
+                  style={{ fontStyle: 'italic', cursor: 'pointer' }}
+                  onClick={(e) => { e.stopPropagation(); navigateToPost(); }}
+                >"{data.payload.post_title}"</span>
+              )}
             </>
           )}
           {data.type === 'comment' && (
             <>
-              <span style={{ fontWeight: 500 }}>{getActorName()}</span> commented on your post
+              <span 
+                style={{ fontWeight: 500, cursor: 'pointer' }}
+                onClick={(e) => { e.stopPropagation(); navigateToProfile(); }}
+              >{getActorName()}</span> commented on{' '}
+              <span 
+                style={{ fontWeight: 500, cursor: 'pointer' }}
+                onClick={(e) => { e.stopPropagation(); navigateToPost(); }}
+              >your post</span>
             </>
           )}
           {data.type === 'group_event' && (
             <>
-              A new event was created inside your group. Do you want to join?
+              New event{data.payload?.group_name ? (
+                <> in <span 
+                  style={{ fontWeight: 500, cursor: 'pointer' }}
+                  onClick={(e) => { e.stopPropagation(); navigateToGroup(); }}
+                >{data.payload.group_name}</span></>
+              ) : ' in your group'} — would you like to join?
             </>
           )}
         </p>
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", gap: "6px" }}>
+        <div style={{ display: "flex", gap: "6px" }} onClick={(e) => e.stopPropagation()}>
     {data.type === "group_event" ? (
   <>
-    <button className="btn btn-t" style={{ fontSize: "11px" }}>
-      going
+    <button
+      className="btn btn-t"
+      style={{ fontSize: "11px", display: "flex", alignItems: "center", gap: 3 }}
+      onClick={() => {
+        const gid = data.payload?.group_id;
+        const eid = data.payload?.event_id;
+        if (gid && eid) onRespondEvent(gid, eid, "going", data.id);
+      }}
+    >
+      <i className="ti ti-check" /> going
     </button>
-    <button className="btn btn-g" style={{ fontSize: "11px" }}>
-      not going
+    <button
+      className="btn btn-g"
+      style={{ fontSize: "11px", display: "flex", alignItems: "center", gap: 3 }}
+      onClick={() => {
+        const gid = data.payload?.group_id;
+        const eid = data.payload?.event_id;
+        if (gid && eid) onRespondEvent(gid, eid, "not_going", data.id);
+      }}
+    >
+      <i className="ti ti-x" /> not going
     </button>
   </>
 ) : data.type === "follow_request" ? (
@@ -247,17 +363,22 @@ const NotificationCard = ({
   </>
 ) : (
             ["post_reaction", "comment"].includes(data.type) && (
-              <button className="btn btn-g" style={{ fontSize: "11px" }}>view post</button>
+              <button
+                className="btn btn-g"
+                style={{ fontSize: "11px", display: "flex", alignItems: "center", gap: 3 }}
+                onClick={() => navigateToPost()}
+              >
+                <i className="ti ti-arrow-right" /> view post
+              </button>
             )
           )}
         </div>
 
-        {/* Updated individual button to handle 'mark as read' state instead of flat out hard-deleting */}
         {!data.is_read && (
           <button
             className="btn btn-g"
             style={{ fontSize: "11px" }}
-            onClick={() => onMarkRead(data.id)}
+            onClick={(e) => { e.stopPropagation(); onMarkRead(data.id); }}
           >
             <i className="ti ti-check" /> mark read
           </button>
@@ -268,6 +389,7 @@ const NotificationCard = ({
 };
 
 export default function Notifications() {
+  const router = useRouter();
   const [filter, setFilter] = useState<"all" | "unread">("unread");
   const [loading, setLoading] = useState(true);
   const [notification, setNotifications] = useState<NotificationItem[]>([]);
@@ -334,10 +456,8 @@ export default function Notifications() {
 
     if (res.success) {
       if (filter === "unread") {
-        // If viewing only unread, filter it completely out of sight
         setNotifications(prev => prev.filter(n => n.id !== id));
       } else {
-        // Otherwise, visually change its inline read-status values
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
       }
     }
@@ -365,7 +485,6 @@ export default function Notifications() {
   if ("error" in res) {
     setActionError(res.error ?? "Failed to accept follow request");
   } else {
-    // remove the handled request
     setNotifications((prev) =>
       prev.filter((n) => n.id !== notificationId)
     );
@@ -382,7 +501,6 @@ const handleRejectFollow = async (
   if ("error" in res) {
     setActionError(res.error ?? "Failed to reject follow request");
   } else {
-    // remove the handled request
     setNotifications((prev) =>
       prev.filter((n) => n.id !== notificationId)
     );
@@ -443,6 +561,16 @@ const handleRejectFollow = async (
     }
   };
 
+  const handleRespondEvent = async (groupId: number, eventId: number, status: string, notificationId: string | number) => {
+    setActionError(null);
+    const res = await respondToEvent(String(groupId), eventId, status);
+    if ("error" in res) {
+      setActionError(res.error ?? "Failed to respond to event");
+    } else {
+      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+    }
+  };
+
   useEffect(() => {
     void loadNotifications(filter);
   }, []);
@@ -474,7 +602,6 @@ const handleRejectFollow = async (
           unread
         </button>
 
-        {/* Wired up to trigger the backend API delete-all route */}
         <button 
           className="btn btn-red" 
           style={{ fontSize: "10px", marginLeft: "auto" }}
@@ -530,10 +657,22 @@ const handleRejectFollow = async (
   onRejectGroupInvite={handleRejectGroupInvite}
   onAcceptJoinRequest={handleAcceptJoinRequest}
   onRejectJoinRequest={handleRejectJoinRequest}
+  onRespondEvent={handleRespondEvent}
 />
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        open={confirmDeleteOpen}
+        title="Delete all notifications?"
+        message="This will permanently delete all your notifications. Are you sure?"
+        onConfirm={handleDeleteAll}
+        onCancel={() => setConfirmDeleteOpen(false)}
+        confirmLabel="delete all"
+        cancelLabel="cancel"
+        confirmClass="btn-red"
+      />
     </main>
   );
 }

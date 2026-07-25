@@ -414,8 +414,7 @@ export default function GroupDetailPage() {
     <main className="main">
       <BackLink />
 
-      {/* ── HERO ── */}
-      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+      <div className="card" style={{ padding: 0, overflow: "hidden", flexShrink: 0 }}>
         <div
           style={{
             height: 120,
@@ -539,7 +538,6 @@ export default function GroupDetailPage() {
         </div>
       </div>
 
-      {/* ── FILTER + CREATE TOOLBAR (members only) ── */}
       {isMember && (
         <div
           className="card"

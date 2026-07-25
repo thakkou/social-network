@@ -63,7 +63,7 @@ body{font-family:'JetBrains Mono',monospace,'Courier New',monospace;background:#
 .nav{background:#211f1c;border-bottom:0.5px solid #3a3733;padding:0 1rem;display:flex;align-items:center;justify-content:space-between;height:44px;flex-shrink:0;position:relative;z-index:10}
 .logo{font-size:14px;font-weight:500;color:#D4537E;letter-spacing:-0.02em}
 .logo span{color:#e8e4dc}
-.layout{display:grid;grid-template-columns:160px minmax(0,1fr);height:calc(100vh - 44px);overflow:hidden}
+.layout{display:grid;grid-template-columns:160px minmax(0,1fr);grid-template-rows:1fr;height:calc(100vh - 44px);overflow:hidden}
 .sidebar{border-right:0.5px solid #3a3733;background:#211f1c;padding:0.75rem 0;overflow-y:auto}
 .sidebar2{border-left:0.5px solid #3a3733;background:#211f1c;padding:0.75rem;overflow-y:auto;display:none}
 .main{padding:1rem;background:#1a1917;display:flex;flex-direction:column;gap:0.75rem;overflow-y:auto}
@@ -148,9 +148,9 @@ select.inp{cursor:pointer}
 }
 
 /* ── Messages page layout ── */
-.msg-main{height:100%;position:relative;display:flex;flex-direction:column}
-.msg-content-wrapper{display:flex;flex:1;flex-direction:row;min-height:0;overflow:hidden}
-.msg-chat-col{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+.msg-main{height:100%;min-height:0;position:relative;display:flex;flex-direction:column}
+.msg-content-wrapper{display:flex;flex:1;flex-direction:row;min-height:0}
+.msg-chat-col{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
 .msg-desktop-sidebar{width:200px;border-left:0.5px solid #3a3733;background:#211f1c;padding:0.75rem;overflow-y:auto;flex-shrink:0;display:block}
 
 /* ── Desktop: show right sidebar (sidebar2) ── */
@@ -171,6 +171,7 @@ select.inp{cursor:pointer}
   .msgs-filter-btn{display:flex!important}
   .msgs-sidebar-overlay{display:none}
   .msgs-sidebar-overlay.active{display:block;position:fixed;top:44px;left:0;right:0;bottom:56px;z-index:50;overflow-y:auto;background:#1a1917;padding:8px}
+  .msgs-sidebar-overlay.active .sidebar2{display:block!important;border-left:none;background:transparent;padding:0}
 }
 .msgs-filter-btn{display:none}
 .msgs-sidebar-overlay{display:none}

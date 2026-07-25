@@ -64,6 +64,12 @@ type GroupJoinRequestPayload struct {
 	InvitationID int `json:"invitation_id"`
 }
 
+type GroupEventPayload struct {
+	GroupID   int    `json:"group_id"`
+	GroupName string `json:"group_name"`
+	EventID   int    `json:"event_id"`
+}
+
 // GetNotifications fetches the current user's notifications.
 // @Summary Get notifications
 // @Description Returns notifications for the logged-in user. Can filter by type (all or unread).
@@ -320,6 +326,21 @@ func buildNotifPayload(n repository.Notification) interface{} {
 			GroupID:      n.ObjectID,
 			SenderID:     n.ActorID,
 			InvitationID: groupdata.ID,
+		}
+
+	case "group_event":
+		event, err := Repos.Group.GetGroupEventByID(n.ObjectID)
+		if err != nil {
+			return nil
+		}
+		groupdata, err := Repos.Group.GetPublicGroupDetails(event.GroupID)
+		if err != nil {
+			return nil
+		}
+		return GroupEventPayload{
+			GroupID:   event.GroupID,
+			GroupName: groupdata.Title,
+			EventID:   event.ID,
 		}
 
 	default:

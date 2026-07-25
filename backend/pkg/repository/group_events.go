@@ -103,6 +103,23 @@ type EventResponder struct {
 // GetEventsResponses batch-fetches who responded to each event and how,
 // for a set of event IDs. Returns a map keyed by event ID; events with no
 // responses yet are simply absent from the map.
+// GetGroupEventByID returns a single event by its ID.
+func (r *GroupRepository) GetGroupEventByID(eventID int) (*GroupEvent, error) {
+	var e GroupEvent
+	var eventTime string
+	var createdAt string
+	err := r.DB.QueryRow(
+		`SELECT id, group_id, creator_id, title, description, event_time, created_at FROM GROUP_EVENTS WHERE id = ?`,
+		eventID,
+	).Scan(&e.ID, &e.GroupID, &e.CreatorID, &e.Title, &e.Description, &eventTime, &createdAt)
+	if err != nil {
+		return nil, err
+	}
+	e.EventTime, _ = time.Parse("2006-01-02 15:04:05", eventTime)
+	e.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
+	return &e, nil
+}
+
 func (r *GroupRepository) GetEventsResponses(eventIDs []int) (map[int][]EventResponder, error) {
 	responses := make(map[int][]EventResponder, len(eventIDs))
 	if len(eventIDs) == 0 {

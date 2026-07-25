@@ -241,13 +241,17 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if broadcaster, err := Repos.User.GetByID(userID); err == nil {
-		ws.BroadcastExcept(strconv.Itoa(userID), "new_posts", map[string]any{
-			"post_id":  post.ID,
-			"user_id":  userID,
-			"title":    title,
-			"nickname": broadcaster.Nickname,
-		})
+	// Broadcast new_posts for public and almost_private visibility — only
+	// skip private posts since those are restricted to specific users.
+	if privacy != "private" {
+		if broadcaster, err := Repos.User.GetByID(userID); err == nil {
+			ws.BroadcastExcept(strconv.Itoa(userID), "new_posts", map[string]any{
+				"post_id":  post.ID,
+				"user_id":  userID,
+				"title":    title,
+				"nickname": broadcaster.Nickname,
+			})
+		}
 	}
 
 	utilities.WriteJSON(w, http.StatusCreated, "post created successfully", map[string]any{
