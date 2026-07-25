@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -110,7 +111,25 @@ func (r *CommentRepository) getComments(postID, limit, lastID int) ([]Comment, e
 		if err := rows.Scan(&c.ID, &c.UserID, &c.PostID, &createdAt, &c.Text, &c.Image); err != nil {
 			return nil, err
 		}
-		c.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
+
+		// Try parsing the timestamp with the standard format first.
+		// If that fails, try alternative formats (e.g. RFC3339 from JSON round-trips).
+		var parsedTime time.Time
+		var parseErr error
+		parsedTime, parseErr = time.Parse("2006-01-02 15:04:05", createdAt)
+		if parseErr != nil {
+			parsedTime, parseErr = time.Parse(time.RFC3339, createdAt)
+		}
+		if parseErr != nil {
+			parsedTime, parseErr = time.Parse("2006-01-02 15:04:05.000", createdAt)
+		}
+		if parseErr != nil {
+			// Last resort: log and use current time (better than zero date)
+			log.Printf("[COMMENTS] failed to parse created_at %q for comment %d, using current time", createdAt, c.ID)
+			parsedTime = time.Now()
+		}
+
+		c.CreatedAt = parsedTime
 		comments = append(comments, c)
 	}
 

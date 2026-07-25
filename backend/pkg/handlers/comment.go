@@ -135,6 +135,7 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 		UserID    int       `json:"userId"`
 		CreatedAt time.Time `json:"createdAt"`
 		Nickname  string    `json:"nickname"`
+		Image     string    `json:"image"`
 	}
 
 	res := Res{
@@ -144,6 +145,7 @@ func CreateComment(w http.ResponseWriter, r *http.Request) {
 		UserID:    comment.UserID,
 		CreatedAt: comment.CreatedAt,
 		Nickname:  user.Nickname,
+		Image:     comment.Image,
 	}
 
 	// Notify the post author about the new comment via WS

@@ -17,6 +17,24 @@ import {
   type PostComment,
 } from "~/app/_api/crud/post";
 
+function formatCommentTime(createdAt: string): string {
+  // Always compute time-ago from the timestamp locally rather than trusting
+  // the backend's time_ago, which can produce wildly wrong values (e.g.
+  // "3558 months ago") when the timestamp parsing goes wrong.
+  if (!createdAt) return "";
+  const date = new Date(createdAt);
+  if (isNaN(date.getTime())) return "";
+  const diffMs = Date.now() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHrs = Math.floor(diffMin / 60);
+  if (diffHrs < 24) return `${diffHrs}h ago`;
+  const diffDays = Math.floor(diffHrs / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
 export default function PostDetailPage() {
   const params = useParams();
   const { data: session } = useSession();
@@ -167,7 +185,7 @@ export default function PostDetailPage() {
         created_at: res.data!.createdAt,
         time_ago: "just now",
         text: commentText.trim(),
-        image: "",
+        image: res.data!.image || "",
         like_count: 0,
         dislike_count: 0,
         is_liked: 0,
@@ -646,8 +664,7 @@ export default function PostDetailPage() {
                         <span
                           style={{ fontSize: "10px", color: "#6b6760" }}
                         >
-                          {comment.time_ago ||
-                            new Date(comment.created_at).toLocaleDateString()}
+                          {formatCommentTime(comment.created_at)}
                         </span>
                         {/* Delete button (own comments only) */}
                         {currentUserId &&

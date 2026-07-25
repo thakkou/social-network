@@ -140,6 +140,7 @@ export async function createComment(
     userId: number;
     createdAt: string;
     nickname: string;
+    image: string;
   }>>("/api/comments/create", { method: "POST", body });
 
   if (!result.success) return { error: result.error };
