@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
+import ConfirmModal from "~/app/_components/ConfirmModal";
 import ProfilePosts from "~/app/_components/ProfilePosts";
 import Followers from "~/app/_components/Followers";
 import { getProfileData } from "~/app/_services/crud/getProfile";
@@ -35,6 +36,7 @@ export default function Profile() {
     const [profileExists, setProfileExists] = useState(true);
     const [profile, setProfile] = useState<any>(null);
     const [isFollowLoading, setIsFollowLoading] = useState(false);
+    const [showUnfollowConfirm, setShowUnfollowConfirm] = useState(false);
     const { selectChat } = useChat();
 
     // `tabs` depends on `profile`, so it must be declared after the state above
@@ -111,33 +113,46 @@ const isPrivateBlocked =
             : "ti-user-plus";
 
     const handleFollowClick = async () => {
-        console.log("click")
+        if (!userId || isFollowLoading) return;
 
+        // Show confirmation before unfollowing
+        if (profile?.following_status === "accepted") {
+            setShowUnfollowConfirm(true);
+            return;
+        }
+
+        await executeFollow();
+    };
+
+    const executeFollow = async () => {
         if (!userId || isFollowLoading) return;
         setIsFollowLoading(true);
 
         try {
-            const res = await toggleFollow(userId,profile.following_status);
-console.log(res)
+            const res = await toggleFollow(userId, profile.following_status);
             if ("error" in res) {
                 console.error(res.error);
                 return;
             }
 
-          setProfile((prev: any) => {
-    console.log("previous", prev.following_status);
-    console.log("new", res.status);
-
-    return {
-        ...prev,
-        following_status: res.status,
-    };
-});
+            setProfile((prev: any) => ({
+                ...prev,
+                following_status: res.status,
+            }));
         } catch (err) {
             console.error(err);
         } finally {
             setIsFollowLoading(false);
+            setShowUnfollowConfirm(false);
         }
+    };
+
+    const confirmUnfollow = () => {
+        void executeFollow();
+    };
+
+    const cancelUnfollow = () => {
+        setShowUnfollowConfirm(false);
     };
 
 
@@ -192,8 +207,18 @@ if (isPrivateBlocked) {
     const avatarInitials = (profile?.firstname?.[0]?.toUpperCase() || '') + (profile?.lastname?.[0]?.toUpperCase() || '') || '?';
     const isFollowing = profile?.following_status === "accepted";
 
-    return (
-        <main className="main">
+    return (<>
+            <ConfirmModal
+                open={showUnfollowConfirm}
+                title="Unfollow user"
+                message={`Are you sure you want to unfollow ${displayName}?`}
+                confirmLabel="unfollow"
+                confirmClass="btn-red"
+                onConfirm={confirmUnfollow}
+                onCancel={cancelUnfollow}
+            />
+
+            <main className="main">
             <div className="card">
                 <div style={{ display: 'flex', alignItems:'flex-start', gap:'12px', marginBottom:'12px' }}>
                 <div
@@ -293,5 +318,5 @@ if (isPrivateBlocked) {
 
             {CurrentTab && <CurrentTab.Component {...CurrentTab.props} />}
         </main>
-    );
+    </>);
 }

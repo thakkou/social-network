@@ -5,12 +5,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	db "01social/pkg/db/sqlite"
 	"01social/pkg/handlers"
 	"01social/pkg/repository"
 	"01social/pkg/routes"
 	"01social/pkg/utilities"
+	"01social/pkg/ws"
 )
 
 // @title Social Network API
@@ -126,6 +128,20 @@ func main() {
 	// here init reposotory
 	repos := repository.NewRepositories(db.Database)
 	handlers.Init(repos)
+
+	// Set the WS session validator — periodically checks the DB for valid sessions
+	ws.ValidateSession = func(userID string) bool {
+		id, err := strconv.Atoi(userID)
+		if err != nil {
+			return false
+		}
+		var count int
+		err = db.Database.QueryRow(
+			"SELECT COUNT(*) FROM sessions WHERE user_id = ? AND expires_at > datetime('now')",
+			id,
+		).Scan(&count)
+		return err == nil && count > 0
+	}
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/assets/", handlers.Static)
 	http.HandleFunc("/uploads/", handlers.Static)

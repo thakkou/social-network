@@ -8,6 +8,13 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// SessionValidator is a callback that checks whether a user (by their ID)
+// still has a valid session. If nil or returns false, the client is disconnected.
+// Set this once at startup (e.g. from server.go).
+type SessionValidator func(userID string) bool
+
+var ValidateSession SessionValidator
+
 type WSMessage struct {
 	Type string          `json:"event_type"`
 	Data json.RawMessage `json:"data"`
@@ -19,9 +26,10 @@ type TypingData struct {
 }
 
 type Client struct {
-	conn   *websocket.Conn
-	isAuth bool
-	id     string
+	conn *websocket.Conn
+	id   string
+
+	writeMu sync.Mutex // guards concurrent writes to conn
 }
 type TypingState struct {
 	ConversationID int
@@ -54,7 +62,9 @@ func BroadcastExcept(senderID string, eventType string, data any) {
 		}
 
 		for client := range clients {
+			client.writeMu.Lock()
 			client.conn.WriteJSON(payload)
+			client.writeMu.Unlock()
 		}
 	}
 }
@@ -71,7 +81,9 @@ func NotifyUser(userID string, eventType string, data any) {
 	}
 
 	for client := range clients {
+		client.writeMu.Lock()
 		client.conn.WriteJSON(payload)
+		client.writeMu.Unlock()
 	}
 }
 

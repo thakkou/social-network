@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import ConfirmModal from "~/app/_components/ConfirmModal";
 import { getProfileData } from "~/app/_services/crud/getProfile";
 import {
   getUserGroups,
@@ -41,6 +42,8 @@ export default function Settings() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isPrivate, setIsPrivate] = useState(false);
+  const [showPrivacyConfirm, setShowPrivacyConfirm] = useState(false);
+  const [pendingPrivacyValue, setPendingPrivacyValue] = useState<boolean | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -93,9 +96,23 @@ export default function Settings() {
 
   const handleTogglePrivacy = async () => {
     const newVal = !isPrivate;
-    setIsPrivate(newVal);
-    const res = await updateProfilePrivacy(newVal);
-    if (!res.success) setIsPrivate(!newVal);
+    // Show confirmation before changing
+    setPendingPrivacyValue(newVal);
+    setShowPrivacyConfirm(true);
+  };
+
+  const confirmPrivacyChange = async () => {
+    if (pendingPrivacyValue === null) return;
+    setIsPrivate(pendingPrivacyValue);
+    const res = await updateProfilePrivacy(pendingPrivacyValue);
+    if (!res.success) setIsPrivate(!pendingPrivacyValue);
+    setShowPrivacyConfirm(false);
+    setPendingPrivacyValue(null);
+  };
+
+  const cancelPrivacyChange = () => {
+    setShowPrivacyConfirm(false);
+    setPendingPrivacyValue(null);
   };
 
   const initials = profile
@@ -224,7 +241,17 @@ export default function Settings() {
   }
 
   return (
-    <main className="main">
+    <>
+      <ConfirmModal
+        open={showPrivacyConfirm}
+        title="Change profile visibility"
+        message={`Are you sure you want to make your profile ${pendingPrivacyValue ? "private" : "public"}?`}
+        confirmLabel={`make ${pendingPrivacyValue ? "private" : "public"}`}
+        confirmClass="btn-p"
+        onConfirm={confirmPrivacyChange}
+        onCancel={cancelPrivacyChange}
+      />
+      <main className="main">
       {/* Profile Update */}
       <div className="card">
         <p
@@ -830,5 +857,6 @@ export default function Settings() {
         </div>
       )}
     </main>
+    </>
   );
 }
