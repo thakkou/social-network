@@ -517,20 +517,17 @@ export default function Home() {
                     borderRadius: "6px",
                     overflow: "hidden",
                     border: "0.5px solid #3a3733",
+                    position: "relative",
+                    height: "280px",
+                    background: "#2a2824",
                   }}
                 >
                   <Image
                     src={post.image}
                     alt="post image"
-                    width={0}
-                    height={0}
+                    fill
                     sizes="100vw"
-                    style={{
-                      width: "100%",
-                      maxHeight: "300px",
-                      objectFit: "cover",
-                      height: "auto",
-                    }}
+                    style={{ objectFit: "cover" }}
                     unoptimized
                   />
                 </div>

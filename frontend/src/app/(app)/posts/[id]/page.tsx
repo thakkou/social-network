@@ -95,7 +95,7 @@ export default function PostDetailPage() {
         if (!prev) return prev;
         return {
           ...prev,
-          comments: prev.comments.map((c) =>
+          comments: (prev.comments || []).map((c) =>
             c.id === comment.id
               ? {
                   ...c,
@@ -117,7 +117,7 @@ export default function PostDetailPage() {
         if (!prev) return prev;
         return {
           ...prev,
-          comments: prev.comments.map((c) =>
+          comments: (prev.comments || []).map((c) =>
             c.id === comment.id
               ? {
                   ...c,
@@ -140,7 +140,7 @@ export default function PostDetailPage() {
         prev
           ? {
               ...prev,
-              comments: prev.comments.filter((c) => c.id !== commentId),
+              comments: (prev.comments || []).filter((c) => c.id !== commentId),
               comment_count: Math.max(0, prev.comment_count - 1),
             }
           : prev
@@ -176,7 +176,7 @@ export default function PostDetailPage() {
         prev
           ? {
               ...prev,
-              comments: [...prev.comments, newComment],
+              comments: [...(prev.comments || []), newComment],
               comment_count: prev.comment_count + 1,
             }
           : prev
@@ -380,20 +380,17 @@ export default function PostDetailPage() {
               borderRadius: "6px",
               overflow: "hidden",
               border: "0.5px solid #3a3733",
+              position: "relative",
+              height: "360px",
+              background: "#2a2824",
             }}
           >
             <Image
               src={post.image}
               alt="post image"
-              width={0}
-              height={0}
+              fill
               sizes="100vw"
-              style={{
-                width: "100%",
-                maxHeight: "400px",
-                objectFit: "cover",
-                height: "auto",
-              }}
+              style={{ objectFit: "cover" }}
               unoptimized
             />
           </div>

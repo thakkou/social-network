@@ -210,14 +210,15 @@ export default function ProfilePosts({ posts }: ProfilePostsProps) {
                 overflow: "hidden",
                 border: "0.5px solid #3a3733",
                 position: "relative",
-                maxHeight: "300px",
-                minHeight: "100px",
+                height: "280px",
+                background: "#2a2824",
               }}
             >
               <Image
                 src={post.image}
                 alt={post.title || "Post media"}
                 fill
+                sizes="100vw"
                 style={{ objectFit: "cover" }}
               />
             </div>

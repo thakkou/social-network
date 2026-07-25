@@ -1013,22 +1013,26 @@ export default function GroupDetailPage() {
             )}
 
             {item.image && (
-              <Image
-                src={item.image}
-                alt="Post image"
-                width={0}
-                height={0}
-                sizes="100vw"
+              <div
                 style={{
-                  width: "100%",
-                  maxHeight: 300,
-                  objectFit: "cover",
                   marginTop: 10,
+                  borderRadius: "6px",
+                  overflow: "hidden",
                   border: "0.5px solid #3a3733",
-                  height: "auto",
+                  position: "relative",
+                  height: "280px",
+                  background: "#2a2824",
                 }}
-                unoptimized
-              />
+              >
+                <Image
+                  src={item.image}
+                  alt="Post image"
+                  fill
+                  sizes="100vw"
+                  style={{ objectFit: "cover" }}
+                  unoptimized
+                />
+              </div>
             )}
 
             {/* Action buttons */}

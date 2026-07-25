@@ -157,9 +157,21 @@ select.inp{cursor:pointer}
 @media(min-width:769px){
   .layout{
     grid-template-columns:160px minmax(0,1fr) 200px;
+    column-gap:60px;
   }
   .sidebar2{
     display:block;
+  }
+  .sidebar{
+    border-right:none;
+    border-radius:12px;
+  }
+  .sidebar2{
+    border-left:none;
+    border-radius:12px;
+  }
+  .main{
+    padding:1.25rem;
   }
 }
 
