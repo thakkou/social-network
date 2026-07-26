@@ -96,14 +96,14 @@ All migrations should be stored on a specific folder, as above. The sqlite.go sh
 This migration system can help you manage your time and testing, by filling your database.
 
 * Allowed Packages
-    The standard Go packages are allowed
-    Gorilla websocket
-    golang-migrate
-    sql-migration
-    migration
-    sqlite3
-    bcrypt
-    gofrs/uuid or google/uuid
+    - The [standard Go](https://golang.org/pkg/) packages are allowed
+    - [Gorilla websocket](https://pkg.go.dev/github.com/gorilla/websocket)
+    - [golang-migrate](https://github.com/golang-migrate/migrate/)
+    - [sql-migration](https://pkg.go.dev/github.com/rubenv/sql-migrate)
+    - [migration](https://pkg.go.dev/github.com/Boostport/migration)
+    - [sqlite3](https://github.com/mattn/go-sqlite3)
+    - [bcrypt](https://pkg.go.dev/golang.org/x/crypto/bcrypt)
+    - [gofrs/uuid](https://github.com/gofrs/uuid) or [google/uuid](https://github.com/google/uuid)
 
 
 ## docker
@@ -222,7 +222,7 @@ Every other notification created by you that isn't on the list is welcomed too.
 * This project will help you learn about:
     Authentication :
         Sessions and cookies
-    Using and setting up Docker
+    Using and [setting up Docker](https://docs.docker.com/get-started/)
         Containerizing an application
         Compatibility/Dependency
         Creating images

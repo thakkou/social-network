@@ -4,10 +4,14 @@ RUN apk add --no-cache gcc musl-dev
 
 WORKDIR /app
 
-COPY backend/go.mod backend/go.sum ./
-RUN go mod download
-
 COPY backend/ .
+# was after 'go mod download'
+
+# COPY backend/go.mod ./
+# backend/go.sum
+RUN go mod tidy
+# go mod download
+
 
 RUN CGO_ENABLED=1 go build -o server .
 
