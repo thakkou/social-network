@@ -56,26 +56,59 @@ export default function Home() {
 
   // ── Category filter state ──
   const [filterCategories, setFilterCategories] = useState<string[]>([]);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const fetchPosts = useCallback(async (selectedCategories?: string[]) => {
-    setLoading(true);
+  const fetchPosts = useCallback(async (selectedCategories?: string[], reset = true) => {
+    if (reset) {
+      setLoading(true);
+      setHasMore(true);
+    }
     const cats = selectedCategories ?? filterCategories;
+    const lastId = reset ? 0 : (posts.length > 0 ? posts[posts.length - 1]!.id : 0);
     const res = await getFeedPosts({
       limit: 20,
+      last_id: lastId,
       ...(cats.length > 0 ? { categories: cats } : {}),
     });
     if (res.success) {
-      setPosts(res.data);
+      if (reset) {
+        setPosts(res.data);
+      } else {
+        setPosts((prev) => [...prev, ...res.data]);
+      }
+      if (res.data.length < 20) {
+        setHasMore(false);
+      }
     }
-    setLoading(false);
-  }, [filterCategories]);
+    if (reset) setLoading(false);
+    setLoadingMore(false);
+  }, [filterCategories, posts.length]);
+
+  // ── Infinite scroll observer ──
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasMore && !loadingMore && !loading) {
+          setLoadingMore(true);
+          void fetchPosts(undefined, false);
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, loading, fetchPosts]);
 
   const toggleFilterCategory = (cat: string) => {
     setFilterCategories((prev) => {
       const next = prev.includes(cat)
         ? prev.filter((c) => c !== cat)
         : [...prev, cat];
-      void fetchPosts(next);
+      void fetchPosts(next, true);
       return next;
     });
   };
@@ -140,8 +173,9 @@ export default function Home() {
   };
 
   useEffect(() => {
-    void fetchPosts();
-  }, [fetchPosts]);
+    void fetchPosts(undefined, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCreatePost = async () => {
     if (!formTitle.trim() || !formText.trim()) return;
@@ -814,6 +848,21 @@ export default function Home() {
             </div>
           );
         })
+      )}
+
+      {/* Infinite scroll sentinel */}
+      <div ref={sentinelRef} />
+      {loadingMore && (
+        <div className="card" style={{ textAlign: "center", padding: "16px" }}>
+          <p style={{ fontSize: "11px", color: "#a09c94" }}>Loading more posts...</p>
+        </div>
+      )}
+      {!hasMore && posts.length > 0 && (
+        <div className="card" style={{ textAlign: "center", padding: "12px" }}>
+          <p style={{ fontSize: "10px", color: "#6b6760" }}>
+            — you've reached the end —
+          </p>
+        </div>
       )}
     </main>
   );

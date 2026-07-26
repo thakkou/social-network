@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
@@ -45,6 +45,9 @@ export default function GroupDetailPage() {
   const [group, setGroup] = useState<GroupPublic | null>(null);
   const [isMember, setIsMember] = useState(false);
   const [feed, setFeed] = useState<GroupFeedItem[]>([]);
+  const [hasMoreFeed, setHasMoreFeed] = useState(true);
+  const [loadingMoreFeed, setLoadingMoreFeed] = useState(false);
+  const feedSentinelRef = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState<FeedFilter>("all");
 
   // ── Create post state ──
@@ -107,11 +110,12 @@ export default function GroupDetailPage() {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
+      setHasMoreFeed(true);
 
       try {
         const [groupRes, contentRes] = await Promise.all([
           getGroupPublic(groupId),
-          getGroupContent(groupId),
+          getGroupContent(groupId, { limit: 20 }),
         ]);
 
         if (!groupRes.success) {
@@ -129,6 +133,9 @@ export default function GroupDetailPage() {
             return;
           }
           setFeed(contentRes.data);
+          if (contentRes.data.length < 20) {
+            setHasMoreFeed(false);
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load group");
@@ -141,11 +148,42 @@ export default function GroupDetailPage() {
   }, [groupId]);
 
   const refreshFeed = async () => {
-    const contentRes = await getGroupContent(groupId);
+    const contentRes = await getGroupContent(groupId, { limit: 20 });
     if (contentRes.success) {
       setFeed(contentRes.data);
+      setHasMoreFeed(contentRes.data.length >= 20);
     }
   };
+
+  const loadMoreFeed = async () => {
+    if (loadingMoreFeed || !hasMoreFeed || feed.length === 0) return;
+    setLoadingMoreFeed(true);
+    const lastId = feed[feed.length - 1]!.id;
+    const contentRes = await getGroupContent(groupId, { limit: 20, last_id: lastId });
+    if (contentRes.success) {
+      setFeed((prev) => [...prev, ...contentRes.data]);
+      if (contentRes.data.length < 20) {
+        setHasMoreFeed(false);
+      }
+    }
+    setLoadingMoreFeed(false);
+  };
+
+  // ── Infinite scroll observer for feed ──
+  useEffect(() => {
+    const sentinel = feedSentinelRef.current;
+    if (!sentinel || !isMember) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasMoreFeed && !loadingMoreFeed && !loading) {
+          void loadMoreFeed();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMoreFeed, loadingMoreFeed, loading, isMember, feed.length]);
 
   // ── Handlers ──
 
@@ -1250,6 +1288,21 @@ export default function GroupDetailPage() {
           </div>
         )
       )}
+      {/* ── Infinite scroll sentinel ── */}
+      {isMember && <div ref={feedSentinelRef} />}
+      {isMember && loadingMoreFeed && (
+        <div className="card" style={{ textAlign: "center", padding: "16px" }}>
+          <p style={{ fontSize: "11px", color: "#a09c94" }}>Loading more...</p>
+        </div>
+      )}
+      {isMember && !hasMoreFeed && feed.length > 0 && (
+        <div className="card" style={{ textAlign: "center", padding: "12px" }}>
+          <p style={{ fontSize: "10px", color: "#6b6760" }}>
+            — you've reached the end —
+          </p>
+        </div>
+      )}
+
       {/* ── INVITE MODAL ── */}
       {showInviteModal && (
         <div
