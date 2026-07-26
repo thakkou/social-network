@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   getFeedPosts,
   likePost,
@@ -10,12 +11,21 @@ import {
   createPost,
   type FeedPost,
 } from "~/app/_services/crud/post";
+import { getProfileData } from "~/app/_services/crud/getProfile";
 
 const CATEGORIES = [
   "General", "Lifestyle", "Health & Fitness", "Travel",
   "Food & Cooking", "Education", "Business", "Finance",
   "Entertainment", "Sports", "Personal Dev", "Culture", "News",
 ];
+
+type InviteUser = {
+  id: number;
+  nickname: string;
+  firstname: string;
+  lastname: string;
+  avatar: string;
+}
 
 export default function Home() {
   const router = useRouter();
@@ -32,6 +42,17 @@ export default function Home() {
   const [formImagePreview, setFormImagePreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id;
+
+  // ── Allowed users for private posts ──
+  const [selectedUsers, setSelectedUsers] = useState<InviteUser[]>([]);
+  const [inviteQuery, setInviteQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<InviteUser[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [connections, setConnections] = useState<InviteUser[]>([]);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // ── Category filter state ──
   const [filterCategories, setFilterCategories] = useState<string[]>([]);
@@ -59,12 +80,72 @@ export default function Home() {
     });
   };
 
+  // ── Fetch connections (followers + following) when form opens ──
+  useEffect(() => {
+    if (!showForm || !currentUserId) return;
+    const load = async () => {
+      const res = await getProfileData(currentUserId);
+      if (res.success) {
+        const merged = new Map<number, InviteUser>();
+        for (const u of [...(res.data.followers ?? []), ...(res.data.following ?? [])]) {
+          if (!merged.has(u.id)) {
+            merged.set(u.id, {
+              id: u.id,
+              nickname: u.nickname || `${u.firstname} ${u.lastname}`.trim(),
+              firstname: u.firstname,
+              lastname: u.lastname,
+              avatar: u.avatar || "",
+            });
+          }
+        }
+        setConnections(Array.from(merged.values()));
+      }
+    };
+    void load();
+  }, [showForm, currentUserId]);
+
+  // ── Filter connections by name (client-side, no API call) ──
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!inviteQuery.trim() || formPrivacy !== "private") {
+      setSearchResults([]);
+      setSearchOpen(false);
+      return;
+    }
+    const q = inviteQuery.trim().toLowerCase();
+    debounceRef.current = setTimeout(() => {
+      const filtered = connections.filter(
+        (u) =>
+          !selectedUsers.some((s) => s.id === u.id) &&
+          (u.nickname.toLowerCase().includes(q) ||
+            `${u.firstname} ${u.lastname}`.toLowerCase().includes(q))
+      );
+      setSearchResults(filtered);
+      setSearchOpen(filtered.length > 0);
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [inviteQuery, selectedUsers, formPrivacy, connections]);
+
+  const addUser = (user: InviteUser) => {
+    setSelectedUsers((prev) => [...prev, user]);
+    setInviteQuery("");
+    setSearchResults([]);
+    setSearchOpen(false);
+  };
+
+  const removeUser = (userId: number) => {
+    setSelectedUsers((prev) => prev.filter((u) => u.id !== userId));
+  };
+
   useEffect(() => {
     void fetchPosts();
   }, [fetchPosts]);
 
   const handleCreatePost = async () => {
     if (!formTitle.trim() || !formText.trim()) return;
+    if (formPrivacy === "private" && selectedUsers.length === 0) return;
     setSubmitting(true);
 
     const fd = new FormData();
@@ -73,6 +154,9 @@ export default function Home() {
     fd.set("privacy", formPrivacy);
     formCategories.forEach((cat) => fd.append("categories", cat));
     if (formImage) fd.set("image", formImage);
+    if (formPrivacy === "private" && selectedUsers.length > 0) {
+      fd.set("allowed_user_ids", selectedUsers.map((u) => u.id).join(","));
+    }
 
     const res = await createPost(fd);
     if (res.success) {
@@ -83,6 +167,8 @@ export default function Home() {
       setFormCategories(["General"]);
       setFormImage(null);
       setFormImagePreview(null);
+      setSelectedUsers([]);
+      setInviteQuery("");
       void fetchPosts();
     }
     setSubmitting(false);
@@ -258,12 +344,136 @@ export default function Home() {
                   key={p}
                   className={`btn ${formPrivacy === p ? "btn-t" : "btn-g"}`}
                   style={{ fontSize: "10px", padding: "3px 8px" }}
-                  onClick={() => setFormPrivacy(p)}
+                  onClick={() => {
+                    setFormPrivacy(p);
+                    if (p !== "private") {
+                      setSelectedUsers([]);
+                      setInviteQuery("");
+                    }
+                  }}
                 >
                   {p.replace("_", " ")}
                 </button>
               ))}
             </div>
+
+            {/* Allowed users selection for private posts */}
+            {formPrivacy === "private" && (
+              <div style={{ marginBottom: "10px" }}>
+                <p style={{ fontSize: "10px", color: "#a09c94", marginBottom: "6px", fontWeight: 500 }}>
+                  only these users can see this post
+                </p>
+
+                {/* Selected users chips */}
+                {selectedUsers.length > 0 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 6,
+                      marginBottom: 8,
+                    }}
+                  >
+                    {selectedUsers.map((u) => (
+                      <span
+                        key={u.id}
+                        className="tag tag-pink"
+                        style={{ fontSize: 10, cursor: "default", display: "flex", alignItems: "center", gap: 4 }}
+                      >
+                        {u.nickname || `${u.firstname} ${u.lastname}`.trim()}
+                        <span
+                          style={{ cursor: "pointer", marginLeft: 2 }}
+                          onClick={() => removeUser(u.id)}
+                        >
+                          ×
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ position: "relative" }}>
+                  <input
+                    className="inp"
+                    placeholder="search by name..."
+                    value={inviteQuery}
+                    onChange={(e) => setInviteQuery(e.target.value)}
+                    onFocus={() => searchResults.length > 0 && setSearchOpen(true)}
+                    style={{ fontSize: "11px" }}
+                  />
+
+                  {searchOpen && searchResults.length > 0 && (
+                    <div
+                      className="card"
+                      style={{
+                        position: "absolute",
+                        top: "calc(100% + 2px)",
+                        left: 0,
+                        right: 0,
+                        zIndex: 10,
+                        padding: "4px 0",
+                        maxHeight: 180,
+                        overflowY: "auto",
+                      }}
+                    >
+                      {searchResults.map((u) => (
+                        <div
+                          key={u.id}
+                          onClick={() => addUser(u)}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            padding: "6px 10px",
+                            cursor: "pointer",
+                            fontSize: 11,
+                          }}
+                          onMouseEnter={(e) => {
+                            (e.currentTarget as HTMLElement).style.background = "#2e2b27";
+                          }}
+                          onMouseLeave={(e) => {
+                            (e.currentTarget as HTMLElement).style.background = "transparent";
+                          }}
+                        >
+                          <div
+                            className="av"
+                            style={{
+                              width: 22,
+                              height: 22,
+                              borderRadius: "50%",
+                              background: u.avatar ? `url(${u.avatar}) center/cover` : "#2e1e24",
+                              color: "#D4537E",
+                              fontSize: 9,
+                            }}
+                          >
+                            {!u.avatar && (u.nickname?.[0]?.toUpperCase() || u.firstname?.[0]?.toUpperCase() || "?")}
+                          </div>
+                          <span>{u.nickname || `${u.firstname} ${u.lastname}`.trim()}</span>
+                          <span style={{ marginLeft: "auto", color: "#D4537E", fontSize: 10 }}>+ add</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {searchOpen && searchResults.length === 0 && connections.length > 0 && (
+                    <div
+                      className="card"
+                      style={{
+                        position: "absolute",
+                        top: "calc(100% + 2px)",
+                        left: 0,
+                        right: 0,
+                        zIndex: 10,
+                        padding: "6px 10px",
+                        fontSize: 10,
+                        color: "#6b6760",
+                      }}
+                    >
+                      no matching connections found
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             {/* Categories */}
             <div
               style={{
