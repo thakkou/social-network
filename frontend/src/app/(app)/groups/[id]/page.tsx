@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useChat } from "~/app/_providers/chatProvider";
 import {
   getGroupPublic,
   getGroupContent,
@@ -53,6 +54,8 @@ export default function GroupDetailPage() {
   const [newPostPreview, setNewPostPreview] = useState<string | null>(null);
   const { data: session } = useSession();
   const currentUserId = Number(session?.user?.id ?? 0);
+  const { selectChat } = useChat();
+  const router = useRouter();
 
   const [posting, setPosting] = useState(false);
 
@@ -489,7 +492,20 @@ export default function GroupDetailPage() {
                   >
                     <i className="ti ti-users" /> members
                   </button>
-                  <button className="btn btn-p">
+                  <button
+                    className="btn btn-p"
+                    onClick={() => {
+                      selectChat({
+                        id: groupId,
+                        type: "group",
+                        data: {
+                          display_name: group.title,
+                          avatar: group.logo || "",
+                        },
+                      });
+                      router.push("/messages");
+                    }}
+                  >
                     <i className="ti ti-message" /> chat
                   </button>
                   <button
