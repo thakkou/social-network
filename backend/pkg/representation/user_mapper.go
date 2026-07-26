@@ -18,6 +18,8 @@ func UserToProfileResponse(
 		Firstname:       user.Firstname,
 		Lastname:        user.Lastname,
 		Nickname:        user.Nickname,
+		Email:           user.Email,
+		Birthdate:       user.Birthdate,
 		Avatar:          user.Avatar,
 		AboutMe:         user.AboutMe,
 		IsPrivate:       user.IsPrivate,

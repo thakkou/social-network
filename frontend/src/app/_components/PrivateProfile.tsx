@@ -63,12 +63,6 @@ const buttonLabel = isLoading
                     <p style={{ fontSize: "14px", fontWeight: 500 }}>
                         {profile.firstname} {profile.lastname}
                     </p>
-
-                    {profile.nickname && (
-                        <span className="tag tag-teal">
-                            @{profile.nickname}
-                        </span>
-                    )}
                 </div>
             </div>
 

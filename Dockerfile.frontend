@@ -7,7 +7,7 @@ RUN npm ci
 
 COPY frontend/ .
 
-ENV NODE_ENV=development
+ENV NODE_ENV=production
 # RUN npx auth secret
 
 RUN npm run build
@@ -16,7 +16,7 @@ FROM node:20.20.2-alpine AS runner
 
 WORKDIR /app
 
-ENV NODE_ENV=development
+ENV NODE_ENV=production
 
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static

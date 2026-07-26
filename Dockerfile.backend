@@ -12,7 +12,6 @@ COPY backend/ .
 RUN go mod tidy
 # go mod download
 
-
 RUN CGO_ENABLED=1 go build -o server .
 
 FROM alpine:3.19
@@ -22,8 +21,10 @@ RUN apk add --no-cache ca-certificates sqlite
 WORKDIR /app
 
 COPY --from=builder /app/server .
+
 COPY --from=builder /app/pkg/db/migrations ./pkg/db/migrations
+COPY --from=builder /app/uploads ./uploads
 
 EXPOSE 8080
 
-CMD ["./server"]
+CMD ["./server", "-r"]

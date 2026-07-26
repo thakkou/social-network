@@ -269,10 +269,10 @@ if (isPrivateBlocked) {
                             <i className="ti ti-message" style={{ fontSize: '12px' }} aria-hidden="true"></i> message
                         </button>
                     </div>
-                    {/* Show email + birth only if following */}
-                    {isFollowing && (
+                    {/* Show email + birth unless profile is private and not followed */}
+                    {!isPrivateBlocked && (
                       <p style={{ fontSize:'11px', color:'var(--color-text-secondary)', marginBottom:'4px' }}>
-                        {profile?.birthdate ? `Born ${profile.birthdate}` : ''}{profile?.birthdate && profile?.email ? ' · ' : ''}{profile?.email || ''}
+                        {profile?.email || ''}{profile?.email && profile?.birthdate ? ' · ' : ''}{profile?.birthdate ? `Born ${profile.birthdate}` : ''}
                       </p>
                     )}
                     {profile?.aboutme && (

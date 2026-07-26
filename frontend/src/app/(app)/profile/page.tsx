@@ -4,9 +4,10 @@ import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { getProfileData } from "~/app/_services/crud/getProfile";
-import { getUserGroups } from "~/app/_services/crud/groups";
+import { getUserGroups, updateProfilePrivacy } from "~/app/_services/crud/groups";
 import ProfilePosts from "~/app/_components/ProfilePosts";
 import Followers from "~/app/_components/Followers";
+import ConfirmModal from "~/app/_components/ConfirmModal";
 
 type GroupSummary = {
   id: number;
@@ -24,6 +25,9 @@ export default function Profile() {
   const [groups, setGroups] = useState<GroupSummary[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"posts" | "groups" | "followers" | "following">("posts");
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [showPrivacyConfirm, setShowPrivacyConfirm] = useState(false);
+  const [pendingPrivacyValue, setPendingPrivacyValue] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -33,6 +37,7 @@ export default function Profile() {
       const res = await getProfileData(userId);
       if (res.success) {
         setProfile(res.data);
+        setIsPrivate(res.data.is_private === 1);
       }
       setLoading(false);
     };
@@ -55,6 +60,26 @@ export default function Profile() {
 
 
 
+  const handleTogglePrivacy = async () => {
+    const newVal = !isPrivate;
+    setPendingPrivacyValue(newVal);
+    setShowPrivacyConfirm(true);
+  };
+
+  const confirmPrivacyChange = async () => {
+    if (pendingPrivacyValue === null) return;
+    setIsPrivate(pendingPrivacyValue);
+    const res = await updateProfilePrivacy(pendingPrivacyValue);
+    if (!res.success) setIsPrivate(!pendingPrivacyValue);
+    setShowPrivacyConfirm(false);
+    setPendingPrivacyValue(null);
+  };
+
+  const cancelPrivacyChange = () => {
+    setShowPrivacyConfirm(false);
+    setPendingPrivacyValue(null);
+  };
+
   const initials =
     profile?.firstname?.[0]?.toUpperCase() +
       profile?.lastname?.[0]?.toUpperCase() || "—";
@@ -73,7 +98,17 @@ export default function Profile() {
   }
 
   return (
-    <main className="main">
+    <>
+      <ConfirmModal
+        open={showPrivacyConfirm}
+        title="Change profile visibility"
+        message={`Are you sure you want to make your profile ${pendingPrivacyValue ? "private" : "public"}?`}
+        confirmLabel={`make ${pendingPrivacyValue ? "private" : "public"}`}
+        confirmClass="btn-p"
+        onConfirm={confirmPrivacyChange}
+        onCancel={cancelPrivacyChange}
+      />
+      <main className="main">
       {/* Profile Card */}
       <div className="card">
         <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", marginBottom: "12px" }}>
@@ -107,13 +142,19 @@ export default function Profile() {
               {profile?.nickname && (
                 <span className="tag tag-teal">@{profile.nickname}</span>
               )}
+              <button
+                className={`btn ${isPrivate ? "btn-t" : "btn-g"}`}
+                style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '3px' }}
+                onClick={() => void handleTogglePrivacy()}
+              >
+                <i className={`ti ${isPrivate ? "ti-lock" : "ti-lock-open"}`} style={{ fontSize: '12px' }} aria-hidden="true"></i>
+                {isPrivate ? "private" : "public"}
+              </button>
             </div>
 
-            {profile?.birthdate && (
-              <p style={{ fontSize: "11px", color: "#a09c94", marginBottom: "4px" }}>
-                Born {profile.birthdate} · {profile?.email || ""}
-              </p>
-            )}
+            <p style={{ fontSize: "11px", color: "#a09c94", marginBottom: "4px" }}>
+              {profile?.email || ""}{profile?.birthdate ? ` · Born ${profile.birthdate}` : ""}
+            </p>
 
             {profile?.aboutme && (
               <p
@@ -251,5 +292,6 @@ export default function Profile() {
         </div>
       )}
     </main>
+    </>
   );
 }

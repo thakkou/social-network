@@ -46,6 +46,8 @@ type ProfileResponse struct {
 	Firstname string    `json:"firstname"`
 	Lastname  string    `json:"lastname"`
 	Nickname  string    `json:"nickname"`
+	Email     string    `json:"email"`
+	Birthdate string    `json:"birthdate"`
 	Avatar    string    `json:"avatar"`
 	AboutMe   string    `json:"aboutme"`
 	CreatedAt time.Time `json:"created_at"`

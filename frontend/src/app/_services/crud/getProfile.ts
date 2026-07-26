@@ -34,6 +34,8 @@ type ProfileDetails = {
   firstname: string;
   lastname: string;
   nickname: string;
+  email: string;
+  birthdate: string;
   avatar: string;
   aboutme: string;
   created_at: string;
