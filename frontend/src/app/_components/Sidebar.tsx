@@ -1,6 +1,7 @@
 'use client';
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
@@ -22,7 +23,7 @@ function colorFor(id: number) {
   return GROUP_COLORS[Math.abs(id) % GROUP_COLORS.length];
 }
 
-type MyGroup = { id: number; title: string };
+type MyGroup = { id: number; title: string; logo: string; background: string; };
 type FollowingUser = { id: number; nickname: string; firstname: string; lastname: string; avatar: string };
 
 export default function Sidebar() {
@@ -89,17 +90,79 @@ export default function Sidebar() {
       ) : (myGroups?.length ?? 0) === 0 ? (
         <div className="navlink" style={{ fontSize: '10px', color: '#6b6760' }}>no groups yet</div>
       ) : (
-        myGroups?.map(g => (
-          <Link
-            key={g?.id ?? 0}
-            href={`/groups/${g?.id ?? 0}`}
-            className="navlink"
-            style={{ fontSize: '11px', textDecoration: 'none' }}
-          >
-            <span style={{ width:'6px', height:'6px', background: colorFor(g?.id ?? 0), display: 'inline-block', flexShrink:0 }}></span>
-            {g?.title ?? ''}
-          </Link>
-        ))
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {myGroups?.map(g => (
+            <Link
+              key={g?.id ?? 0}
+              href={`/groups/${g?.id ?? 0}`}
+              className="navlink"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 8px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                textDecoration: 'none',
+                background: 'var(--color-background-secondary)',
+                border: '0.5px solid var(--color-border-tertiary)',
+                overflow: 'hidden',
+                position: 'relative',
+              }}
+            >
+              {/* Background banner */}
+              {g?.background ? (
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: '100%',
+                  background: `url(${g.background}) center/cover`,
+                  opacity: 0.12,
+                  pointerEvents: 'none',
+                }} />
+              ) : null}
+              {/* Logo / Avatar */}
+              {g?.logo ? (
+                <Image
+                  src={g.logo}
+                  alt={g.title ?? ''}
+                  width={22}
+                  height={22}
+                  style={{
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    flexShrink: 0,
+                    zIndex: 1,
+                  }}
+                />
+              ) : (
+                <div style={{
+                  width: '22px',
+                  height: '22px',
+                  borderRadius: '50%',
+                  background: colorFor(g?.id ?? 0),
+                  color: '#fff',
+                  fontSize: '9px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 600,
+                  flexShrink: 0,
+                  zIndex: 1,
+                }}>
+                  {g?.title
+                    ? g.title.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+                    : '?'}
+                </div>
+              )}
+              <span style={{ flex: 1, zIndex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {g?.title ?? ''}
+              </span>
+            </Link>
+          ))}
+        </div>
       )}
       <div style={{ padding:'6px 12px', marginTop:'4px' }}>
         <Link className="btn btn-g" style={{ width:'100%', fontSize:'11px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap:'4px' }} href="/groups">
@@ -116,22 +179,43 @@ export default function Sidebar() {
       ) : (following?.length ?? 0) === 0 ? (
         <div className="navlink" style={{ fontSize: '10px', color: '#6b6760' }}>not following anyone yet</div>
       ) : (
-        following?.map(u => (
-          <Link
-            key={u?.id ?? 0}
-            href={`/profile/${u?.id ?? 0}`}
-            className="navlink"
-            style={{ fontSize: '11px', textDecoration: 'none' }}
-          >
-            <div className="av" style={{ width:'20px', height:'20px', background: colorFor(u?.id ?? 0), color: '#fff', fontSize:'9px', display:'flex', alignItems:'center', justifyContent:'center', flexShrink: 0 }}>
-              {u?.nickname
-                ? (u.nickname[0]?.toUpperCase() ?? '?')
-                : (u?.firstname?.[0]?.toUpperCase() ?? '?')
-              }
-            </div>
-            {u?.nickname || `${u?.firstname ?? ''} ${u?.lastname ?? ''}`.trim()}
-          </Link>
-        ))
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {following?.map(u => {
+            const name = u?.nickname || `${u?.firstname ?? ''} ${u?.lastname ?? ''}`.trim();
+            return (
+              <Link
+                key={u?.id ?? 0}
+                href={`/profile/${u?.id ?? 0}`}
+                className="navlink"
+                style={{ fontSize: '11px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 8px', borderRadius: '4px' }}
+              >
+                {u?.avatar ? (
+                  <Image
+                    src={u.avatar}
+                    alt={name}
+                    width={20}
+                    height={20}
+                    style={{ borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                  />
+                ) : (
+                  <div style={{
+                    width: '20px', height: '20px',
+                    borderRadius: '50%',
+                    background: colorFor(u?.id ?? 0),
+                    color: '#fff', fontSize: '9px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 600, flexShrink: 0
+                  }}>
+                    {name ? name[0]?.toUpperCase() ?? '?' : '?'}
+                  </div>
+                )}
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {name}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       )}
 
       <div className="divider" style={{ margin: '0.5rem 0.75rem' }}></div>
@@ -143,22 +227,43 @@ export default function Sidebar() {
       ) : (followers?.length ?? 0) === 0 ? (
         <div className="navlink" style={{ fontSize: '10px', color: '#6b6760' }}>no followers yet</div>
       ) : (
-        followers?.map(u => (
-          <Link
-            key={u?.id ?? 0}
-            href={`/profile/${u?.id ?? 0}`}
-            className="navlink"
-            style={{ fontSize: '11px', textDecoration: 'none' }}
-          >
-            <div className="av" style={{ width:'20px', height:'20px', background: colorFor(u?.id ?? 0), color: '#fff', fontSize:'9px', display:'flex', alignItems:'center', justifyContent:'center', flexShrink: 0 }}>
-              {u?.nickname
-                ? (u.nickname[0]?.toUpperCase() ?? '?')
-                : (u?.firstname?.[0]?.toUpperCase() ?? '?')
-              }
-            </div>
-            {u?.nickname || `${u?.firstname ?? ''} ${u?.lastname ?? ''}`.trim()}
-          </Link>
-        ))
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {followers?.map(u => {
+            const name = u?.nickname || `${u?.firstname ?? ''} ${u?.lastname ?? ''}`.trim();
+            return (
+              <Link
+                key={u?.id ?? 0}
+                href={`/profile/${u?.id ?? 0}`}
+                className="navlink"
+                style={{ fontSize: '11px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 8px', borderRadius: '4px' }}
+              >
+                {u?.avatar ? (
+                  <Image
+                    src={u.avatar}
+                    alt={name}
+                    width={20}
+                    height={20}
+                    style={{ borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                  />
+                ) : (
+                  <div style={{
+                    width: '20px', height: '20px',
+                    borderRadius: '50%',
+                    background: colorFor(u?.id ?? 0),
+                    color: '#fff', fontSize: '9px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 600, flexShrink: 0
+                  }}>
+                    {name ? name[0]?.toUpperCase() ?? '?' : '?'}
+                  </div>
+                )}
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {name}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       )}
     </aside>
   );
