@@ -209,7 +209,7 @@ export const MessagesSidebar: React.ComponentType<MessagesSidebarProps> = ({
   };
 
   const handleStartConversation = (targetUser: { id: number; display_name: string; avatar: string }) => {
-    const item: ConversationFeedItem = {
+    const item: ConversationFeedItem & { isNewConversation?: boolean } = {
       type: "direct",
       id: targetUser.id,
       display_name: targetUser.display_name,
@@ -217,6 +217,7 @@ export const MessagesSidebar: React.ComponentType<MessagesSidebarProps> = ({
       unread_count: 0,
       rank: 0,
       other_user_id: targetUser.id,
+      isNewConversation: true,
     };
     handleSelect(item, "user");
   };

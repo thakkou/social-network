@@ -119,8 +119,8 @@ export default function Chat() {
       return;
     }
 
-    // If convId matches a user ID (new conversation from discover/profile), skip loading
-    const isNewConv = chatData.other_user_id && String(convId) === String(chatData.other_user_id);
+    // Check if this is a new conversation started from discover/profile (has the isNew flag)
+    const isNewConv = chatData.isNewConversation === true;
     if (isNewConv) {
       setMessages([]);
       setError(null);
@@ -342,7 +342,7 @@ export default function Chat() {
     setMessage("");
 
     // Determine if convId is a real conversation ID or a user ID (from discover/profile)
-    const isNewConversation = chatData.other_user_id && String(convId) === String(chatData.other_user_id);
+    const isNewConversation = chatData.isNewConversation === true;
 
     const payload =
       convType === "group"
@@ -379,6 +379,7 @@ export default function Chat() {
           type: "user",
           data: {
             ...chatData,
+            isNewConversation: false,
           },
         });
       }
