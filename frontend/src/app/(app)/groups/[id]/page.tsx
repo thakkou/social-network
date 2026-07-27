@@ -68,7 +68,10 @@ export default function GroupDetailPage() {
   const [eventDesc, setEventDesc] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [eventTime, setEventTime] = useState("");
+  const [eventImage, setEventImage] = useState<File | null>(null);
+  const [eventImagePreview, setEventImagePreview] = useState<string | null>(null);
   const [creatingEvent, setCreatingEvent] = useState(false);
+  const [eventError, setEventError] = useState<string | null>(null);
 
   // ── Comment state ──
   const [commentText, setCommentText] = useState<Record<number, string>>({});
@@ -233,19 +236,33 @@ export default function GroupDetailPage() {
 
   const handleCreateEvent = async () => {
     if (!eventTitle.trim() || !eventDate || !eventTime) return;
+
+    // Validate event_time is at least 2 hours from now
+    const formattedTime = eventDate + " " + eventTime + ":00";
+    const eventDateTime = new Date(formattedTime);
+    const now = new Date();
+    const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    if (eventDateTime <= twoHoursFromNow) {
+      setEventError("Event time must be at least 2 hours from now");
+      return;
+    }
+    setEventError(null);
+
     setCreatingEvent(true);
     try {
-      const formattedTime = eventDate + " " + eventTime + ":00";
       const res = await createGroupEvent(groupId, {
         title: eventTitle.trim(),
         description: eventDesc.trim() || undefined,
         event_time: formattedTime,
+        image: eventImage ?? undefined,
       });
       if (res.success) {
         setEventTitle("");
         setEventDesc("");
         setEventDate("");
         setEventTime("");
+        setEventImage(null);
+        setEventImagePreview(null);
         setShowEventForm(false);
         await refreshFeed();
       }
@@ -713,6 +730,71 @@ export default function GroupDetailPage() {
               style={{ resize: "none" }}
             />
           </div>
+
+          {/* Event image upload */}
+          <div className="form-row">
+            <label className="form-label">Image (optional)</label>
+            {eventImagePreview && (
+              <div style={{ position: "relative", marginBottom: 8 }}>
+                <Image
+                  src={eventImagePreview}
+                  alt="Event preview"
+                  width={0}
+                  height={0}
+                  sizes="100vw"
+                  style={{
+                    width: "100%",
+                    maxHeight: 180,
+                    objectFit: "cover",
+                    border: "0.5px solid #3a3733",
+                    borderRadius: 4,
+                    height: "auto",
+                  }}
+                  unoptimized
+                />
+                <button
+                  onClick={() => {
+                    setEventImage(null);
+                    setEventImagePreview(null);
+                  }}
+                  style={{
+                    position: "absolute",
+                    top: 4,
+                    right: 4,
+                    background: "#2a1818",
+                    border: "0.5px solid #7a2c2c",
+                    color: "#e07070",
+                    cursor: "pointer",
+                    width: 22,
+                    height: 22,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 12,
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            <label className="btn btn-g" style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, width: "fit-content" }}>
+              <i className="ti ti-photo" />
+              {eventImage ? "change" : "add image"}
+              <input
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setEventImage(file);
+                    setEventImagePreview(URL.createObjectURL(file));
+                  }
+                }}
+              />
+            </label>
+          </div>
+
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
             <div className="form-row" style={{ marginBottom: 0 }}>
               <label className="form-label">Date</label>
@@ -720,7 +802,7 @@ export default function GroupDetailPage() {
                 className="inp"
                 type="date"
                 value={eventDate}
-                onChange={(e) => setEventDate(e.target.value)}
+                onChange={(e) => { setEventDate(e.target.value); setEventError(null); }}
                 style={{ fontSize: "11px" }}
               />
             </div>
@@ -730,11 +812,16 @@ export default function GroupDetailPage() {
                 className="inp"
                 type="time"
                 value={eventTime}
-                onChange={(e) => setEventTime(e.target.value)}
+                onChange={(e) => { setEventTime(e.target.value); setEventError(null); }}
                 style={{ fontSize: "11px" }}
               />
             </div>
           </div>
+
+          {eventError && (
+            <p style={{ fontSize: 11, color: "#e07070", marginTop: 8 }}>{eventError}</p>
+          )}
+
           <button
             className="btn btn-p"
             disabled={creatingEvent || !eventTitle.trim() || !eventDate || !eventTime}
@@ -884,6 +971,29 @@ export default function GroupDetailPage() {
               <p style={{ marginBottom: 10, color: "#a09c94", lineHeight: 1.6 }}>
                 {item.description}
               </p>
+            )}
+
+            {item.image && (
+              <div
+                style={{
+                  marginBottom: 10,
+                  borderRadius: "6px",
+                  overflow: "hidden",
+                  border: "0.5px solid #3a3733",
+                  position: "relative",
+                  height: "200px",
+                  background: "#2a2824",
+                }}
+              >
+                <Image
+                  src={item.image}
+                  alt="Event image"
+                  fill
+                  sizes="100vw"
+                  style={{ objectFit: "cover" }}
+                  unoptimized
+                />
+              </div>
             )}
 
             {/* Event creator */}

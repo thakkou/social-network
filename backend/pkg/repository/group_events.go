@@ -14,12 +14,13 @@ type GroupEvent struct {
 	CreatorID   int       `json:"creator_id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
+	Image       string    `json:"image"`
 	EventTime   time.Time `json:"event_time"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
 func (r *GroupRepository) ListGroupEvents(groupID int) ([]GroupEvent, error) {
-	rows, err := r.DB.Query(`SELECT id, group_id, creator_id, title, description, event_time, created_at FROM GROUP_EVENTS WHERE group_id = ? ORDER BY event_time ASC`, groupID)
+	rows, err := r.DB.Query(`SELECT id, group_id, creator_id, title, description, COALESCE(image, ''), event_time, created_at FROM GROUP_EVENTS WHERE group_id = ? ORDER BY event_time ASC`, groupID)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +31,7 @@ func (r *GroupRepository) ListGroupEvents(groupID int) ([]GroupEvent, error) {
 		var e GroupEvent
 		var eventTime string
 		var createdAt string
-		if err := rows.Scan(&e.ID, &e.GroupID, &e.CreatorID, &e.Title, &e.Description, &eventTime, &createdAt); err != nil {
+		if err := rows.Scan(&e.ID, &e.GroupID, &e.CreatorID, &e.Title, &e.Description, &e.Image, &eventTime, &createdAt); err != nil {
 			return nil, err
 		}
 		e.EventTime, _ = time.Parse("2006-01-02 15:04:05", eventTime)
@@ -41,8 +42,8 @@ func (r *GroupRepository) ListGroupEvents(groupID int) ([]GroupEvent, error) {
 }
 
 func (r *GroupRepository) CreateEvent(e *GroupEvent) error {
-	query := `INSERT INTO GROUP_EVENTS (group_id, creator_id, title, description, event_time) VALUES (?, ?, ?, ?, ?)`
-	res, err := r.DB.Exec(query, e.GroupID, e.CreatorID, e.Title, e.Description, e.EventTime.Format("2006-01-02 15:04:05"))
+	query := `INSERT INTO GROUP_EVENTS (group_id, creator_id, title, description, image, event_time) VALUES (?, ?, ?, ?, ?, ?)`
+	res, err := r.DB.Exec(query, e.GroupID, e.CreatorID, e.Title, e.Description, e.Image, e.EventTime.Format("2006-01-02 15:04:05"))
 	if err != nil {
 		return err
 	}
@@ -109,9 +110,9 @@ func (r *GroupRepository) GetGroupEventByID(eventID int) (*GroupEvent, error) {
 	var eventTime string
 	var createdAt string
 	err := r.DB.QueryRow(
-		`SELECT id, group_id, creator_id, title, description, event_time, created_at FROM GROUP_EVENTS WHERE id = ?`,
+		`SELECT id, group_id, creator_id, title, description, COALESCE(image, ''), event_time, created_at FROM GROUP_EVENTS WHERE id = ?`,
 		eventID,
-	).Scan(&e.ID, &e.GroupID, &e.CreatorID, &e.Title, &e.Description, &eventTime, &createdAt)
+	).Scan(&e.ID, &e.GroupID, &e.CreatorID, &e.Title, &e.Description, &e.Image, &eventTime, &createdAt)
 	if err != nil {
 		return nil, err
 	}

@@ -18,10 +18,10 @@ func seedGroupEvents(db *sql.DB, groupIDs, u []int) ([]int, error) {
 		{groupIDs[2], u[7], "Museum Visit", "Visit the modern art museum together.", time.Now().Add(10 * 24 * time.Hour)},
 		{groupIDs[3], u[1], "Weekend Road Trip", "Two-day trip to the mountains.", time.Now().Add(14 * 24 * time.Hour)},
 	}
-	query := `INSERT INTO GROUP_EVENTS (group_id, creator_id, title, description, event_time) VALUES (?, ?, ?, ?, ?)`
+	query := `INSERT INTO GROUP_EVENTS (group_id, creator_id, title, description, image, event_time) VALUES (?, ?, ?, ?, ?, ?)`
 	ids := make([]int, 0, len(events))
 	for _, e := range events {
-		res, err := db.Exec(query, e.GroupID, e.CreatorID, e.Title, e.Description, e.EventTime.Format("2006-01-02 15:04:05"))
+		res, err := db.Exec(query, e.GroupID, e.CreatorID, e.Title, e.Description, "", e.EventTime.Format("2006-01-02 15:04:05"))
 		if err != nil {
 			return nil, err
 		}

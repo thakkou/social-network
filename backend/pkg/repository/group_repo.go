@@ -573,7 +573,7 @@ FROM (
 		creator_id AS user_id,
 		COALESCE(title, '') AS title,
 		'' AS text,
-		'' AS image,
+		COALESCE(image, '') AS image,
 		COALESCE(description, '') AS description,
 		event_time,
 		created_at

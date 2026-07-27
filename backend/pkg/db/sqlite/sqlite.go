@@ -43,6 +43,10 @@ func Init(refresh bool) error {
 		return fmt.Errorf("schema execution failed: %v", err)
 	}
 
+	// Run pending migrations (ignore errors if column already exists)
+	_, _ = Database.Exec(`ALTER TABLE GROUP_EVENTS ADD COLUMN is_finished INTEGER NOT NULL DEFAULT 0`)
+	_, _ = Database.Exec(`ALTER TABLE GROUP_EVENTS ADD COLUMN image TEXT DEFAULT ''`)
+
 	if refresh {
 		if err := seeder.Run(Database); err != nil {
 			return fmt.Errorf("seed failed: %v", err)

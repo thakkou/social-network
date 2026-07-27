@@ -254,13 +254,26 @@ export async function createGroupPostComment(
 // Create a group event
 export async function createGroupEvent(
   groupId: string,
-  payload: { title: string; description?: string; event_time: string }
+  payload: { title: string; description?: string; event_time: string; image?: File }
 ) {
   if (!groupId) return { error: "Group ID is required." };
 
+  let body: FormData | { title: string; description?: string; event_time: string };
+
+  if (payload.image) {
+    const formData = new FormData();
+    formData.set("title", payload.title);
+    if (payload.description) formData.set("description", payload.description);
+    formData.set("event_time", payload.event_time);
+    formData.set("image", payload.image);
+    body = formData;
+  } else {
+    body = { title: payload.title, description: payload.description, event_time: payload.event_time };
+  }
+
   const result = await fetchApi<GroupApiResponse<{ event_id: number }>>(
     `/api/groups/${groupId}/events`,
-    { method: "POST", body: payload }
+    { method: "POST", body }
   );
 
   if (!result.success) return { error: result.error };

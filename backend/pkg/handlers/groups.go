@@ -959,21 +959,70 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
 			return
 		}
-		var payload struct {
-			Title       string `json:"title"`
-			Description string `json:"description"`
-			EventTime   string `json:"event_time"`
+		// Parse multipart form if Content-Type is multipart (for image upload), otherwise use JSON
+		var eventTitle, eventDesc, eventImg, eventTimeStr string
+
+		contentType := r.Header.Get("Content-Type")
+		if strings.Contains(contentType, "multipart/form-data") {
+			if err := r.ParseMultipartForm(10 << 20); err != nil {
+				utilities.WriteJSON(w, http.StatusBadRequest, "failed to parse form", nil)
+				return
+			}
+			eventTitle = strings.TrimSpace(r.FormValue("title"))
+			eventDesc = strings.TrimSpace(r.FormValue("description"))
+			eventTimeStr = strings.TrimSpace(r.FormValue("event_time"))
+
+			if file, header, err := r.FormFile("image"); err == nil {
+				defer file.Close()
+				path, err := utilities.SaveImage(file, header, "uploads/events")
+				if err != nil {
+					utilities.WriteJSON(w, http.StatusBadRequest, err.Error(), nil)
+					return
+				}
+				eventImg = path
+			}
+		} else {
+			var payload struct {
+				Title       string `json:"title"`
+				Description string `json:"description"`
+				Image       string `json:"image"`
+				EventTime   string `json:"event_time"`
+			}
+			if err := utilities.ReadJSONRequestIntoStruct(r, &payload); err != nil {
+				utilities.WriteJSON(w, http.StatusBadRequest, "invalid request body", nil)
+				return
+			}
+			eventTitle = strings.TrimSpace(payload.Title)
+			eventDesc = strings.TrimSpace(payload.Description)
+			eventImg = strings.TrimSpace(payload.Image)
+			eventTimeStr = strings.TrimSpace(payload.EventTime)
 		}
-		if err := utilities.ReadJSONRequestIntoStruct(r, &payload); err != nil {
-			utilities.WriteJSON(w, http.StatusBadRequest, "invalid request body", nil)
+
+		if eventTitle == "" {
+			utilities.WriteJSON(w, http.StatusBadRequest, "title is required", nil)
 			return
 		}
-		parsedTime, err := time.Parse("2006-01-02 15:04:05", payload.EventTime)
+
+		parsedTime, err := time.Parse("2006-01-02 15:04:05", eventTimeStr)
 		if err != nil {
-			utilities.WriteJSON(w, http.StatusBadRequest, "invalid event_time", nil)
+			utilities.WriteJSON(w, http.StatusBadRequest, "invalid event_time, use format: YYYY-MM-DD HH:MM:SS", nil)
 			return
 		}
-		event := &repository.GroupEvent{GroupID: groupID, CreatorID: userID, Title: payload.Title, Description: payload.Description, EventTime: parsedTime}
+
+		// Event time must be at least 2 hours from now
+		if parsedTime.Before(time.Now().Add(2 * time.Hour)) {
+			utilities.WriteJSON(w, http.StatusBadRequest, "event_time must be at least 2 hours from now", nil)
+			return
+		}
+
+		event := &repository.GroupEvent{
+			GroupID:     groupID,
+			CreatorID:   userID,
+			Title:       eventTitle,
+			Description: eventDesc,
+			Image:       eventImg,
+			EventTime:   parsedTime,
+		}
 		if err := Repos.Group.CreateEvent(event); err != nil {
 			utilities.WriteJSON(w, http.StatusInternalServerError, "could not create event", nil)
 			return
