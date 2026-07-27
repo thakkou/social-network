@@ -22,6 +22,7 @@ import (
 // opened/assigned (e.g. right after sql.Open in main()). Building these at
 // package-var init time would risk capturing a nil *sql.DB if db.Database
 // isn't set until later.
+// db.Database has been changed to sqlie.DB()
 
 func getPathSegments(r *http.Request) []string {
 	path := strings.Trim(r.URL.Path, "/")
@@ -452,16 +453,16 @@ func GetPosts(w http.ResponseWriter, r *http.Request) {
 
 	enrichedPosts := make([]dblayer.Post, 0, len(posts))
 	for _, post := range posts {
-	dbPost := dblayer.Post{
-		Id:         post.ID,
-		UserId:     post.UserID,
-		Created_at: post.CreatedAt,
-		Title:      post.Title,
-		Text:       post.Text,
-		Image:      post.Image,
-		Privacy:    post.Privacy,
-	}
-	if err := enrichPost(&dbPost, userID); err != nil {
+		dbPost := dblayer.Post{
+			Id:         post.ID,
+			UserId:     post.UserID,
+			Created_at: post.CreatedAt,
+			Title:      post.Title,
+			Text:       post.Text,
+			Image:      post.Image,
+			Privacy:    post.Privacy,
+		}
+		if err := enrichPost(&dbPost, userID); err != nil {
 			utilities.WriteJSON(w, http.StatusInternalServerError, "failed to enrich posts", nil)
 			return
 		}

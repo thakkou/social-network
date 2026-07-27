@@ -4,79 +4,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"strconv"
 
-	db "01social/pkg/db/sqlite"
+	"01social/pkg/db/sqlite"
 	"01social/pkg/handlers"
 	"01social/pkg/repository"
 	"01social/pkg/routes"
 	"01social/pkg/utilities"
-	"01social/pkg/ws"
 )
 
-// @title Social Network API
-// @version 1.0
-// @description A social network API built with Go. Supports user authentication, posts, comments, reactions, groups, messaging, notifications, and real-time WebSocket events.
-// @termsOfService https://example.com/terms
-//
-// @contact.name API Support
-// @contact.url https://example.com/support
-// @contact.email support@example.com
-//
-// @license.name MIT
-// @license.url https://opensource.org/licenses/MIT
-//
-// @host localhost:8080
-// @BasePath /
-//
-// @securityDefinitions.apikey SessionCookie
-// @in cookie
-// @name session_id
-//
-// @tag.name Authentication
-// @tag.description Login, Register, Logout, Session validation
-//
-// @tag.name Posts
-// @tag.description Create, read, filter, and manage posts
-//
-// @tag.name Comments
-// @tag.description Create and manage comments on posts
-//
-// @tag.name Reactions
-// @tag.description Like/dislike posts and comments
-//
-// @tag.name Follow
-// @tag.description Follow/unfollow users and manage follow requests
-//
-// @tag.name Profile
-// @tag.description View and update user profiles
-//
-// @tag.name Groups
-// @tag.description Create and manage groups, group posts, events, invites
-//
-// @tag.name Conversations
-// @tag.description Direct messaging and group chat
-//
-// @tag.name Notifications
-// @tag.description View and manage notifications
-//
-// @tag.name Search
-// @tag.description Search users and groups
-//
-// @tag.name Categories
-// @tag.description Post categories
-//
-// @tag.name WebSocket
-// @tag.description Real-time events via WebSocket connections
-
-// healthHandler responds with the server health status.
-// @Summary Health check
-// @Description Returns the server health status.
-// @Tags Health
-// @Produce json
-// @Success 200 {object} map[string]string "Server is healthy"
-// @Router /health [get]
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	utilities.WriteJSON(w, 200, "server is healty", nil)
 	fmt.Println("healt")
@@ -120,28 +55,19 @@ func corsMiddleware(next http.Handler) http.Handler {
 
 func main() {
 	// Check for refresh command
-	refresh := len(os.Args) > 1 && (os.Args[1] == "refresh" || os.Args[1] == "-r")
+	// refresh := len(os.Args) > 1 && (os.Args[1] == "refresh" || os.Args[1] == "-r")
 
-	if err := db.Init(refresh); err != nil {
+	// if err := sqlite.Init(refresh); err != nil {
+	// 	log.Fatalf("Database initialization failed: %v", err)
+	// }
+	if err := sqlite.Init(); err != nil {
 		log.Fatalf("Database initialization failed: %v", err)
 	}
-	// here init reposotory
-	repos := repository.NewRepositories(db.Database)
-	handlers.Init(repos)
+	defer sqlite.Close()
 
-	// Set the WS session validator — periodically checks the DB for valid sessions
-	ws.ValidateSession = func(userID string) bool {
-		id, err := strconv.Atoi(userID)
-		if err != nil {
-			return false
-		}
-		var count int
-		err = db.Database.QueryRow(
-			"SELECT COUNT(*) FROM sessions WHERE user_id = ? AND expires_at > datetime('now')",
-			id,
-		).Scan(&count)
-		return err == nil && count > 0
-	}
+	// here init repository
+	repos := repository.NewRepositories(sqlite.DB())
+	handlers.Init(repos)
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/assets/", handlers.Static)
 	http.HandleFunc("/uploads/", handlers.Static)

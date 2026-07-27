@@ -1,45 +1,101 @@
+--group table 
 CREATE TABLE IF NOT EXISTS GROUPS (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     logo TEXT,
-    background TEXT,
+    background TEXT, 
     creator_id INTEGER NOT NULL,
+
     title TEXT NOT NULL,
     description TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (creator_id) REFERENCES USERS(id) ON DELETE CASCADE
-);
 
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (creator_id)
+        REFERENCES USERS(id)
+        ON DELETE CASCADE
+);
 CREATE TABLE IF NOT EXISTS GROUP_MEMBERS (
     group_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
+
     role TEXT DEFAULT 'member',
+    -- member | admin
+
     joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (group_id, user_id),
-    FOREIGN KEY (group_id) REFERENCES GROUPS(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES USERS(id) ON DELETE CASCADE
-);
 
+
+    PRIMARY KEY(group_id,user_id),
+
+
+    FOREIGN KEY(group_id)
+        REFERENCES GROUPS(id)
+        ON DELETE CASCADE,
+
+
+    FOREIGN KEY(user_id)
+        REFERENCES USERS(id)
+        ON DELETE CASCADE
+);
 CREATE TABLE IF NOT EXISTS GROUP_INVITES (
+
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+
     group_id INTEGER NOT NULL,
+
     inviter_id INTEGER NOT NULL,
+
     invited_user_id INTEGER NOT NULL,
+
+
     status TEXT DEFAULT 'pending',
+    -- pending accepted rejected
+
+
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (group_id) REFERENCES GROUPS(id) ON DELETE CASCADE,
-    FOREIGN KEY (inviter_id) REFERENCES USERS(id) ON DELETE CASCADE,
-    FOREIGN KEY (invited_user_id) REFERENCES USERS(id) ON DELETE CASCADE
+
+
+    FOREIGN KEY(group_id)
+        REFERENCES GROUPS(id)
+        ON DELETE CASCADE,
+
+
+    FOREIGN KEY(inviter_id)
+        REFERENCES USERS(id)
+        ON DELETE CASCADE,
+
+
+    FOREIGN KEY(invited_user_id)
+        REFERENCES USERS(id)
+        ON DELETE CASCADE
 );
 
+--group request
 CREATE TABLE IF NOT EXISTS GROUP_REQUESTS (
+
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+
     group_id INTEGER NOT NULL,
+
     user_id INTEGER NOT NULL,
+
+
     status TEXT DEFAULT 'pending',
+
+
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (group_id, user_id),
-    FOREIGN KEY (group_id) REFERENCES GROUPS(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES USERS(id) ON DELETE CASCADE
+
+
+    UNIQUE(group_id,user_id),
+
+
+    FOREIGN KEY(group_id)
+        REFERENCES GROUPS(id)
+        ON DELETE CASCADE,
+
+
+    FOREIGN KEY(user_id)
+        REFERENCES USERS(id)
+        ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS GROUP_POSTS (
@@ -54,10 +110,11 @@ CREATE TABLE IF NOT EXISTS GROUP_POSTS (
     FOREIGN KEY (user_id) REFERENCES USERS(id) ON DELETE CASCADE
 );
 
+-- GROUP POST REACTIONS
 CREATE TABLE IF NOT EXISTS GROUP_POST_REACTIONS (
     group_post_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
-    is_like INTEGER NOT NULL CHECK (is_like IN (-1, 1)),
+    is_like INTEGER NOT NULL CHECK (is_like IN (-1, 1)), -- 1 for like, -1 for dislike
     PRIMARY KEY (group_post_id, user_id),
     FOREIGN KEY (group_post_id) REFERENCES GROUP_POSTS(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES USERS(id) ON DELETE CASCADE
@@ -70,5 +127,15 @@ CREATE TABLE IF NOT EXISTS GROUP_POST_COMMENTS (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     text TEXT,
     FOREIGN KEY (group_post_id) REFERENCES GROUP_POSTS(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES USERS(id) ON DELETE CASCADE
+);
+
+-- GROUP POST COMMENT REACTIONS
+CREATE TABLE IF NOT EXISTS GROUP_POST_COMMENT_REACTIONS (
+    group_post_comment_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    is_like INTEGER NOT NULL CHECK (is_like IN (-1, 1)),
+    PRIMARY KEY (group_post_comment_id, user_id),
+    FOREIGN KEY (group_post_comment_id) REFERENCES GROUP_POST_COMMENTS(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES USERS(id) ON DELETE CASCADE
 );
