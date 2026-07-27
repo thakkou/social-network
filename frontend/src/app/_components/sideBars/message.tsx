@@ -229,23 +229,37 @@ export const MessagesSidebar: React.ComponentType<MessagesSidebarProps> = ({
                     fontWeight: sel ? 500 : "normal",
                   }}
                 >
-                  <div
-                    style={{
-                      width: "16px",
-                      height: "16px",
-                      borderRadius: "50%",
-                      background: colorFor(user.id, AVATAR_COLORS),
-                      color: "#993556",
-                      fontSize: "8px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontWeight: 600,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {getInitials(user.display_name)}
-                  </div>
+                  {user.avatar ? (
+                    <Image
+                      src={user.avatar}
+                      alt={user.display_name}
+                      width={16}
+                      height={16}
+                      style={{
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: "16px",
+                        height: "16px",
+                        borderRadius: "50%",
+                        background: colorFor(user.id, AVATAR_COLORS),
+                        color: "#993556",
+                        fontSize: "8px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontWeight: 600,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {getInitials(user.display_name)}
+                    </div>
+                  )}
                   <span style={{ color: "var(--color-text-primary)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {user.display_name}
                   </span>
@@ -286,23 +300,37 @@ export const MessagesSidebar: React.ComponentType<MessagesSidebarProps> = ({
                   border: "0.5px solid var(--color-border-tertiary)",
                 }}
               >
-                <div
-                  style={{
-                    width: "16px",
-                    height: "16px",
-                    borderRadius: "50%",
-                    background: colorFor(u.id, AVATAR_COLORS),
-                    color: "#993556",
-                    fontSize: "8px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 600,
-                    flexShrink: 0,
-                  }}
-                >
-                  {getInitials(u.display_name)}
-                </div>
+                {u.avatar ? (
+                  <Image
+                    src={u.avatar}
+                    alt={u.display_name}
+                    width={16}
+                    height={16}
+                    style={{
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                      flexShrink: 0,
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: "16px",
+                      height: "16px",
+                      borderRadius: "50%",
+                      background: colorFor(u.id, AVATAR_COLORS),
+                      color: "#993556",
+                      fontSize: "8px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: 600,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {getInitials(u.display_name)}
+                  </div>
+                )}
                 <span style={{ color: "var(--color-text-primary)", flex: 1 }}>
                   {u.display_name}
                 </span>
