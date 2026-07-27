@@ -42,7 +42,6 @@ function moveConversationToFront(
     id: old.id,
     display_name: old.display_name,
     avatar: old.avatar,
-    unread_count: old.unread_count,
     rank: old.rank,
     other_user_id: old.other_user_id,
     member_count: old.member_count,
@@ -111,57 +110,26 @@ export const MessagesSidebar: React.ComponentType<MessagesSidebarProps> = ({
     };
   }, [currentUserId]);
 
-  const isSelected = useCallback(
-    (convId: number, type: "user" | "group") => {
-      return selectedChat?.type === type && selectedChat?.id === String(convId);
-    },
-    [selectedChat]
-  );
-
   // Listen for live messages and update conversation list
   useEffect(() => {
     const unsubs = [
       on("new_message", (data: any) => {
         const convId = Number(data.conversation_id);
-        const selected = isSelected(convId, "user");
-        setUsers((prev) => {
-          const updated = moveConversationToFront(prev, convId, data.text);
-          return updated.map((c) =>
-            c.id === convId && !selected
-              ? { ...c, unread_count: (c.unread_count || 0) + 1 }
-              : c
-          );
-        });
+        setUsers((prev) => moveConversationToFront(prev, convId, data.text));
       }),
       on("new_group_message", (data: any) => {
         const groupId = Number(data.group_id);
-        const selected = isSelected(groupId, "group");
-        setGroups((prev) => {
-          const updated = moveConversationToFront(prev, groupId, data.text);
-          return updated.map((c) =>
-            c.id === groupId && !selected
-              ? { ...c, unread_count: (c.unread_count || 0) + 1 }
-              : c
-          );
-        });
+        setGroups((prev) => moveConversationToFront(prev, groupId, data.text));
       }),
       // Also handle 'group_message' event from groups.go endpoint
       on("group_message", (data: any) => {
         const groupId = Number(data.group_id);
-        const selected = isSelected(groupId, "group");
-        setGroups((prev) => {
-          const updated = moveConversationToFront(prev, groupId, data.text);
-          return updated.map((c) =>
-            c.id === groupId && !selected
-              ? { ...c, unread_count: (c.unread_count || 0) + 1 }
-              : c
-          );
-        });
+        setGroups((prev) => moveConversationToFront(prev, groupId, data.text));
       }),
     ];
 
     return () => unsubs.forEach((fn) => fn());
-  }, [on, isSelected]);
+  }, [on]);
 
   // Build merged user list: conversations first, then non-contacted following + followers
   const buildMergedUsers = useCallback(() => {
@@ -188,16 +156,6 @@ export const MessagesSidebar: React.ComponentType<MessagesSidebarProps> = ({
   }, [users, following, followers, currentUserId]);
 
   const handleSelect = (item: ConversationFeedItem, type: "user" | "group") => {
-    if (type === "user") {
-      setUsers((prev) =>
-        prev.map((c) => (c.id === item.id ? { ...c, unread_count: 0 } : c))
-      );
-    } else {
-      setGroups((prev) =>
-        prev.map((c) => (c.id === item.id ? { ...c, unread_count: 0 } : c))
-      );
-    }
-
     selectChat({
       id: String(item.id),
       type: type,
@@ -214,7 +172,6 @@ export const MessagesSidebar: React.ComponentType<MessagesSidebarProps> = ({
       id: targetUser.id,
       display_name: targetUser.display_name,
       avatar: targetUser.avatar,
-      unread_count: 0,
       rank: 0,
       other_user_id: targetUser.id,
       isNewConversation: true,
@@ -296,16 +253,6 @@ export const MessagesSidebar: React.ComponentType<MessagesSidebarProps> = ({
                     className={onlineUsers.includes(String(user.other_user_id ?? user.id)) ? "online-dot" : "offline-dot"}
                     style={{ flexShrink: 0 }}
                   />
-                  {user.unread_count > 0 && (
-                    <span
-                      style={{
-                        fontSize: "9px",
-                        color: "var(--color-text-secondary)",
-                      }}
-                    >
-                      {user.unread_count}
-                    </span>
-                  )}
                   {user.last_message && (
                     <span style={{ fontSize: "8px", color: "var(--color-text-tertiary)", maxWidth: "60px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {user.last_message.slice(0, 12)}
@@ -433,17 +380,6 @@ export const MessagesSidebar: React.ComponentType<MessagesSidebarProps> = ({
                 <span style={{ color: "var(--color-text-primary)" }}>
                   {group.display_name}
                 </span>
-                {group.unread_count > 0 && (
-                  <span
-                    style={{
-                      marginLeft: "auto",
-                      fontSize: "9px",
-                      color: "var(--color-text-secondary)",
-                    }}
-                  >
-                    {group.unread_count}
-                  </span>
-                )}
               </div>
             );
           })

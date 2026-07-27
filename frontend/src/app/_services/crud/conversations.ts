@@ -11,7 +11,6 @@ export type ConversationFeedItem = {
   avatar?: string;
   last_message?: string;
   last_message_at?: string;
-  unread_count: number;
   rank: number;
   other_user_id?: number; // direct only
   member_count?: number; // group only

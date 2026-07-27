@@ -21,7 +21,6 @@ type ConversationFeedItem struct {
 	Avatar        *string `json:"avatar,omitempty"`
 	LastMessage   *string `json:"last_message"`
 	LastMessageAt *string `json:"last_message_at"`
-	UnreadCount   int     `json:"unread_count"`
 	Rank          int     `json:"rank"`
 
 	OtherUserID *int `json:"other_user_id,omitempty"`
@@ -233,17 +232,10 @@ func (r *ConversationRepository) FetchConversationFeed(userID, limit, offset int
 				displayName = nickname.String
 			}
 
-			var unread int
-			_ = r.db.QueryRow(`
-				SELECT COUNT(*) FROM MESSAGES
-				WHERE conversation_id = ? AND sender_id != ? AND is_read = 0
-			`, convID, userID).Scan(&unread)
-
 			item := ConversationFeedItem{
 				Type:        "direct",
 				ID:          convID,
 				DisplayName: displayName,
-				UnreadCount: unread,
 				OtherUserID: &otherID,
 			}
 			if avatar.Valid {
@@ -300,22 +292,10 @@ func (r *ConversationRepository) FetchConversationFeed(userID, limit, offset int
 				return nil, nil, err
 			}
 
-			var unread int
-			_ = r.db.QueryRow(`
-				SELECT COUNT(*) FROM GROUP_MESSAGES gmsg
-				WHERE gmsg.group_id = ?
-				AND gmsg.sender_id != ?
-				AND gmsg.id > COALESCE(
-					(SELECT last_read_message_id FROM GROUP_MESSAGE_READS
-					 WHERE group_id = ? AND user_id = ?), 0
-				)
-			`, groupID, userID, groupID, userID).Scan(&unread)
-
 			item := ConversationFeedItem{
 				Type:        "group",
 				ID:          groupID,
 				DisplayName: title,
-				UnreadCount: unread,
 				MemberCount: &memberCount,
 			}
 			if lastMsg.Valid {
