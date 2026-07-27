@@ -27,3 +27,4 @@ COPY --from=builder /app/pkg/db/migrations ./pkg/db/migrations
 EXPOSE 8080
 
 CMD ["./server"]
+# removed "-r" for checking volumes, and needs to add a migration for seeding!
