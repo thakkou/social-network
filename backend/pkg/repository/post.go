@@ -229,6 +229,51 @@ func (r *PostRepository) GetPostByID(id int) (*Post, error) {
 	return &p, nil
 }
 
+// GetPostsUserIDVisible returns posts created by the given user that the viewer has permission to see.
+func (r *PostRepository) GetPostsUserIDVisible(viewerID, userID int) ([]Post, error) {
+	query := `
+		SELECT DISTINCT p.id, p.user_id, p.created_at, p.title, p.text, p.image, p.privacy
+		FROM POSTS p
+		LEFT JOIN FOLLOWS f 
+			ON p.user_id = f.following_id 
+			AND f.follower_id = ?
+			AND f.status = 'accepted'
+		LEFT JOIN POST_ALLOWED_USERS pau 
+			ON p.id = pau.post_id
+			AND pau.user_id = ?
+		WHERE p.user_id = ?
+		  AND (
+			p.privacy = 'public'
+			OR (p.privacy = 'almost_private' AND f.status = 'accepted')
+			OR (p.privacy = 'private' AND pau.user_id = ?)
+		)
+		ORDER BY p.created_at DESC
+	`
+
+	rows, err := r.DB.Query(query, viewerID, viewerID, userID, viewerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var posts []Post
+	for rows.Next() {
+		p, err := scanPostRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		// Enrich the post with metadata stats (using viewerID for correct reaction status)
+		if err := r.EnrichPostMetadata(viewerID, &p); err != nil {
+			fmt.Println("error enriching post")
+			return nil, err
+		}
+
+		posts = append(posts, p)
+	}
+
+	return posts, rows.Err()
+}
+
 // GetPostsUserID returns all posts created by the given user.
 func (r *PostRepository) GetPostsUserID(userID int) ([]Post, error) {
 	query := `

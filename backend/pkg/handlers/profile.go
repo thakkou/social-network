@@ -172,7 +172,7 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 			utilities.WriteJSON(w, http.StatusInternalServerError, "failed to get following", nil)
 			return
 		}
-		posts, err = Repos.Post.GetPostsUserID(profileID)
+		posts, err = Repos.Post.GetPostsUserIDVisible(userID, profileID)
 		if err != nil {
 			utilities.WriteJSON(w, http.StatusInternalServerError, "failed to get posts", nil)
 			return
