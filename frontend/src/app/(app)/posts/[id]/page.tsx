@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
+import { useToast } from "~/app/_components/Toast";
 import {
   getPostById,
   likePost,
@@ -52,6 +53,7 @@ export default function PostDetailPage() {
   const [commentImagePreview, setCommentImagePreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const { addToast } = useToast();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -202,6 +204,12 @@ export default function PostDetailPage() {
       setCommentText("");
       setCommentImage(null);
       setCommentImagePreview(null);
+    } else {
+      addToast({
+        type: "error",
+        title: "Comment failed",
+        message: res.error ?? "Could not create comment",
+      });
     }
     setSubmitting(false);
   };

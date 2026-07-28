@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useToast } from "~/app/_components/Toast";
 import { useChat } from "~/app/_providers/chatProvider";
 import {
   getGroupPublic,
@@ -61,6 +62,7 @@ export default function GroupDetailPage() {
   const router = useRouter();
 
   const [posting, setPosting] = useState(false);
+  const { addToast } = useToast();
 
   // ── Create event state ──
   const [showEventForm, setShowEventForm] = useState(false);
@@ -205,6 +207,12 @@ export default function GroupDetailPage() {
         setNewPostImage(null);
         setNewPostPreview(null);
         await refreshFeed();
+      } else {
+        addToast({
+          type: "error",
+          title: "Post failed",
+          message: res.error ?? "Could not create post",
+        });
       }
     } finally {
       setPosting(false);
@@ -265,6 +273,12 @@ export default function GroupDetailPage() {
         setEventImagePreview(null);
         setShowEventForm(false);
         await refreshFeed();
+      } else {
+        addToast({
+          type: "error",
+          title: "Event failed",
+          message: res.error ?? "Could not create event",
+        });
       }
     } finally {
       setCreatingEvent(false);

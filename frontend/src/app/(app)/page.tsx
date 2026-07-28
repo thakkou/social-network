@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useToast } from "~/app/_components/Toast";
 import {
   getFeedPosts,
   likePost,
@@ -42,6 +43,7 @@ export default function Home() {
   const [formImagePreview, setFormImagePreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { addToast } = useToast();
 
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
@@ -204,6 +206,12 @@ export default function Home() {
       setSelectedUsers([]);
       setInviteQuery("");
       void fetchPosts();
+    } else {
+      addToast({
+        type: "error",
+        title: "Post failed",
+        message: res.error ?? "Could not create post",
+      });
     }
     setSubmitting(false);
   };

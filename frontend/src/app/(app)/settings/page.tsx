@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import ConfirmModal from "~/app/_components/ConfirmModal";
+import { useToast } from "~/app/_components/Toast";
 import { getProfileData } from "~/app/_services/crud/getProfile";
 import {
   getUserGroups,
@@ -35,6 +36,8 @@ export default function Settings() {
   const [groupsLoading, setGroupsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  const { addToast } = useToast();
 
   // Form state
   const [nickname, setNickname] = useState("");
@@ -90,6 +93,12 @@ export default function Settings() {
     if (res.success) {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
+    } else {
+      addToast({
+        type: "error",
+        title: "Save failed",
+        message: res.error ?? "Could not save profile",
+      });
     }
     setSaving(false);
   };
