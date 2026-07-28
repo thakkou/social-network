@@ -1,51 +1,61 @@
 package ws
 
 import (
+	"sync"
 	"time"
 )
 
 func HandleClient(client *Client) {
-	// ── Periodic session validation ──
-	stopTicker := make(chan struct{})
-	defer close(stopTicker)
+	// ── Periodic session validation (goroutine + mutex, no channels) ──
+	var stopMu sync.Mutex
+	stopped := false
 
 	go func() {
-		ticker := time.NewTicker(30 * time.Second)
-		defer ticker.Stop()
-
 		for {
-			select {
-			case <-ticker.C:
-				if ValidateSession != nil && !ValidateSession(client.id) {
-					// Session no longer valid – send force_logout and disconnect
-					client.writeMu.Lock()
-					client.conn.WriteJSON(map[string]any{
-						"event_type": "force_logout",
-						"data": map[string]string{
-							"reason": "session expired",
-						},
-					})
-					client.writeMu.Unlock()
-					client.conn.Close()
-					return
-				}
-			case <-stopTicker:
+			stopMu.Lock()
+			if stopped {
+				stopMu.Unlock()
+				return
+			}
+			stopMu.Unlock()
+
+			time.Sleep(30 * time.Second)
+
+			stopMu.Lock()
+			if stopped {
+				stopMu.Unlock()
+				return
+			}
+			stopMu.Unlock()
+
+			if ValidateSession != nil && !ValidateSession(client.id) {
+				// Session no longer valid – send force_logout and disconnect
+				client.writeMu.Lock()
+				client.conn.WriteJSON(map[string]any{
+					"event_type": "force_logout",
+					"data": map[string]string{
+						"reason": "session expired",
+					},
+				})
+				client.writeMu.Unlock()
+				client.conn.Close()
 				return
 			}
 		}
 	}()
 
 	defer func() {
-		// 1. Use your existing RemoveClient function instead of deleting the whole user map
+		stopMu.Lock()
+		stopped = true
+		stopMu.Unlock()
+
 		RemoveClient(client.id, client)
 		client.conn.Close()
 
-		// 2. Only broadcast disconnect if the user has no more active tabs open
 		Mu.RLock()
 		_, stillOnline := Clients[client.id]
 		Mu.RUnlock()
 
-		// fmt.Println("handling client")
 		if !stillOnline {
 			BroadcastExcept(client.id, "client_disconnect", client.id)
 		}
@@ -54,7 +64,6 @@ func HandleClient(client *Client) {
 	for {
 		_, msg, err := client.conn.ReadMessage()
 		if err != nil {
-			// fmt.Println("client disconnected:", client.id)
 			return
 		}
 
