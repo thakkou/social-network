@@ -25,6 +25,7 @@ import (
 // @Failure 401 {object} map[string]string "Not logged in"
 // @Router /api/follow/{resolver}/{id} [put]
 func FollowResolver(w http.ResponseWriter, r *http.Request) {
+	// check users exists first
 	// Only allow PUT requests
 	if r.Method != http.MethodPut {
 		utilities.WriteJSON(

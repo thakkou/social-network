@@ -217,6 +217,9 @@ func UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var nickname, aboutme string
+	var avatarPath string
+
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		var payload struct {
 			Nickname string `json:"nickname"`
@@ -226,25 +229,30 @@ func UpdateProfile(w http.ResponseWriter, r *http.Request) {
 			utilities.WriteJSON(w, http.StatusBadRequest, "invalid request body", nil)
 			return
 		}
+		nickname = strings.TrimSpace(payload.Nickname)
+		aboutme = strings.TrimSpace(payload.AboutMe)
+	} else {
+		nickname = strings.TrimSpace(r.FormValue("nickname"))
+		aboutme = strings.TrimSpace(r.FormValue("aboutme"))
 
-		if err := Repos.User.UpdateProfile(userID, payload.Nickname, payload.AboutMe, ""); err != nil {
-			utilities.WriteJSON(w, http.StatusInternalServerError, "could not update profile", nil)
-			return
+		if file, header, err := r.FormFile("avatar"); err == nil {
+			defer file.Close()
+			if saved, saveErr := utilities.SaveImage(file, header, "uploads/avatars/"); saveErr == nil {
+				avatarPath = saved
+			}
 		}
+	}
 
-		utilities.WriteJSON(w, http.StatusOK, "profile updated", nil)
+	// ── Validate nickname ──
+	if nickname != "" && !utilities.IsValidName(nickname) {
+		utilities.WriteJSON(w, http.StatusBadRequest, "invalid nickname: use 2–50 characters, letters, numbers, underscores, hyphens, apostrophes, and periods only", nil)
 		return
 	}
 
-	nickname := strings.TrimSpace(r.FormValue("nickname"))
-	aboutme := strings.TrimSpace(r.FormValue("aboutme"))
-
-	var avatarPath string
-	if file, header, err := r.FormFile("avatar"); err == nil {
-		defer file.Close()
-		if saved, saveErr := utilities.SaveImage(file, header, "uploads/avatars/"); saveErr == nil {
-			avatarPath = saved
-		}
+	// ── Validate about me ──
+	if aboutme != "" && !utilities.IsValidDescription(aboutme) {
+		utilities.WriteJSON(w, http.StatusBadRequest, "invalid 'about me': must be 2048 characters or less", nil)
+		return
 	}
 
 	if err := Repos.User.UpdateProfile(userID, nickname, aboutme, avatarPath); err != nil {

@@ -115,6 +115,14 @@ export default function Settings() {
     setPendingPrivacyValue(null);
   };
 
+  const isNicknameValid =
+    nickname.length === 0 ||
+    (/^[a-zA-Z0-9_ \-'\.]+$/.test(nickname) &&
+      !nickname.includes("  ") &&
+      !nickname.startsWith(" "));
+
+  const canSave = isNicknameValid && aboutme.length <= 2048;
+
   const initials = profile
     ? (profile.firstname?.[0]?.toUpperCase() || "") +
       (profile.lastname?.[0]?.toUpperCase() || "")
@@ -333,13 +341,49 @@ export default function Settings() {
           >
             Nickname
           </label>
-          <input
-            className="inp"
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            placeholder="e.g. cool_user_42"
-            style={{ fontSize: "12px" }}
-          />
+          <div style={{ position: "relative" }}>
+            <input
+              className="inp"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder="e.g. cool_user_42"
+              maxLength={50}
+              style={{
+                fontSize: "12px",
+                paddingRight: "44px",
+                borderColor:
+                  !isNicknameValid ? "#D4537E" : undefined,
+              }}
+            />
+            <span
+              style={{
+                position: "absolute",
+                right: "10px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                fontSize: "10px",
+                color: nickname.length > 45 ? "#D4537E" : "#6b6760",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              {nickname.length}/50
+            </span>
+          </div>
+          {!isNicknameValid && nickname.length > 0 && (
+            <p
+              style={{
+                fontSize: "10px",
+                color: "#D4537E",
+                marginTop: "3px",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              <i className="ti ti-alert-triangle" style={{ fontSize: "10px" }} />
+              Only letters, numbers, underscores, hyphens, apostrophes, and periods allowed (no double spaces or leading spaces)
+            </p>
+          )}
         </div>
 
         {/* About Me */}
@@ -354,14 +398,39 @@ export default function Settings() {
           >
             About Me
           </label>
-          <textarea
-            className="inp"
-            rows={3}
-            value={aboutme}
-            onChange={(e) => setAboutme(e.target.value)}
-            placeholder="Tell the world about yourself..."
-            style={{ resize: "none", fontSize: "12px" }}
-          />
+          <div style={{ position: "relative" }}>
+            <textarea
+              className="inp"
+              rows={3}
+              value={aboutme}
+              onChange={(e) => setAboutme(e.target.value)}
+              placeholder="Tell the world about yourself..."
+              maxLength={2048}
+              style={{
+                resize: "none",
+                fontSize: "12px",
+                paddingBottom: "22px",
+                borderColor:
+                  aboutme.length >= 2000 ? "#D4537E" : undefined,
+              }}
+            />
+            <span
+              style={{
+                position: "absolute",
+                right: "8px",
+                bottom: "6px",
+                fontSize: "10px",
+                color: aboutme.length > 2000 ? "#D4537E" : "#6b6760",
+                fontVariantNumeric: "tabular-nums",
+                background: "#272420",
+                padding: "0 4px",
+                borderRadius: "3px",
+                lineHeight: "16px",
+              }}
+            >
+              {aboutme.length}/2048
+            </span>
+          </div>
         </div>
 
         {/* Privacy toggle */}
@@ -403,9 +472,9 @@ export default function Settings() {
               display: "flex",
               alignItems: "center",
               gap: 4,
-              opacity: saving ? 0.6 : 1,
+              opacity: saving || !canSave ? 0.6 : 1,
             }}
-            disabled={saving}
+            disabled={saving || !canSave}
             onClick={() => void handleSave()}
           >
             <i className="ti ti-device-floppy" style={{ fontSize: "12px" }} />{" "}
