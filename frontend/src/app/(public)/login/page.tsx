@@ -8,12 +8,12 @@ import Link from "next/link";
 const devMode = true;
 
 const testUsers = [
-  { label: "alice", identifier: "alice@example.com", password: "password123" },
-  { label: "bob", identifier: "bob@example.com", password: "password123" },
-  { label: "chloe", identifier: "chloe@example.com", password: "password123" },
-  { label: "farid", identifier: "farid@example.com", password: "password123" },
-  { label: "isabella", identifier: "isabella@example.com", password: "password123" },
-  { label: "jack", identifier: "jack@example.com", password: "password123" },
+  { label: "alice", identifier: "alice@example.com", password: "password" },
+  { label: "bob", identifier: "bob@example.com", password: "password" },
+  { label: "chloe", identifier: "chloe@example.com", password: "password" },
+  { label: "farid", identifier: "farid@example.com", password: "password" },
+  { label: "isabella", identifier: "isabella@example.com", password: "password" },
+  { label: "jack", identifier: "jack@example.com", password: "password" },
 ];
 
 export default function Login() {
