@@ -427,6 +427,13 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
 			return
 		}
+
+		member, err := Repos.Group.IsGroupMember(groupID, userID)
+		if err != nil || !member {
+			utilities.WriteJSON(w, http.StatusForbidden, "not a group member", nil)
+			return
+		}
+
 		eventID, err := strconv.Atoi(segments[4])
 		if err != nil {
 			utilities.WriteJSON(w, http.StatusBadRequest, "invalid event id", nil)
@@ -567,7 +574,11 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 		switch action {
 		case "accept":
 			if err := Repos.Group.AcceptGroupRequest(groupID, targetUserID); err != nil {
-				utilities.WriteJSON(w, http.StatusInternalServerError, "could not accept request", nil)
+				if err.Error() == "no pending request found" {
+					utilities.WriteJSON(w, http.StatusNotFound, "no pending request from this user", nil)
+				} else {
+					utilities.WriteJSON(w, http.StatusInternalServerError, "could not accept request", nil)
+				}
 				return
 			}
 			// Remove the join request notification for the creator
@@ -575,7 +586,11 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			utilities.WriteJSON(w, http.StatusOK, "join request accepted", nil)
 		case "reject":
 			if err := Repos.Group.RejectGroupRequest(groupID, targetUserID); err != nil {
-				utilities.WriteJSON(w, http.StatusInternalServerError, "could not reject request", nil)
+				if err.Error() == "no pending request found" {
+					utilities.WriteJSON(w, http.StatusNotFound, "no pending request from this user", nil)
+				} else {
+					utilities.WriteJSON(w, http.StatusInternalServerError, "could not reject request", nil)
+				}
 				return
 			}
 			// Remove the join request notification for the creator
@@ -596,7 +611,11 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 		switch action {
 		case "accept":
 			if err := Repos.Group.AcceptGroupInvite(groupID, userID); err != nil {
-				utilities.WriteJSON(w, http.StatusInternalServerError, "could not accept invite", nil)
+				if err.Error() == "no pending invite found" {
+					utilities.WriteJSON(w, http.StatusNotFound, "no pending invite for this group", nil)
+				} else {
+					utilities.WriteJSON(w, http.StatusInternalServerError, "could not accept invite", nil)
+				}
 				return
 			}
 			// Remove the group invite notification
@@ -604,7 +623,11 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			utilities.WriteJSON(w, http.StatusOK, "group invite accepted", nil)
 		case "reject":
 			if err := Repos.Group.RejectGroupInvite(groupID, userID); err != nil {
-				utilities.WriteJSON(w, http.StatusInternalServerError, "could not reject invite", nil)
+				if err.Error() == "no pending invite found" {
+					utilities.WriteJSON(w, http.StatusNotFound, "no pending invite for this group", nil)
+				} else {
+					utilities.WriteJSON(w, http.StatusInternalServerError, "could not reject invite", nil)
+				}
 				return
 			}
 			// Remove the group invite notification

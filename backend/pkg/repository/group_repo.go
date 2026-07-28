@@ -133,31 +133,53 @@ func (r *GroupRepository) InviteToGroup(groupID, inviterID, invitedUserID int) e
 }
 
 func (r *GroupRepository) AcceptGroupInvite(groupID, userID int) error {
-	_, err := r.DB.Exec(`UPDATE GROUP_INVITES SET status = 'accepted' WHERE group_id = ? AND invited_user_id = ? AND status = 'pending'`, groupID, userID)
+	res, err := r.DB.Exec(`UPDATE GROUP_INVITES SET status = 'accepted' WHERE group_id = ? AND invited_user_id = ? AND status = 'pending'`, groupID, userID)
 	if err != nil {
 		return err
+	}
+	affected, _ := res.RowsAffected()
+	if affected == 0 {
+		return fmt.Errorf("no pending invite found")
 	}
 	_, err = r.DB.Exec(`INSERT OR IGNORE INTO GROUP_MEMBERS (group_id, user_id, role) VALUES (?, ?, 'member')`, groupID, userID)
 	return err
 }
 
 func (r *GroupRepository) RejectGroupInvite(groupID, userID int) error {
-	_, err := r.DB.Exec(`UPDATE GROUP_INVITES SET status = 'rejected' WHERE group_id = ? AND invited_user_id = ? AND status = 'pending'`, groupID, userID)
-	return err
+	res, err := r.DB.Exec(`UPDATE GROUP_INVITES SET status = 'rejected' WHERE group_id = ? AND invited_user_id = ? AND status = 'pending'`, groupID, userID)
+	if err != nil {
+		return err
+	}
+	affected, _ := res.RowsAffected()
+	if affected == 0 {
+		return fmt.Errorf("no pending invite found")
+	}
+	return nil
 }
 
 func (r *GroupRepository) AcceptGroupRequest(groupID, userID int) error {
-	_, err := r.DB.Exec(`UPDATE GROUP_REQUESTS SET status = 'accepted' WHERE group_id = ? AND user_id = ? AND status = 'pending'`, groupID, userID)
+	res, err := r.DB.Exec(`UPDATE GROUP_REQUESTS SET status = 'accepted' WHERE group_id = ? AND user_id = ? AND status = 'pending'`, groupID, userID)
 	if err != nil {
 		return err
+	}
+	affected, _ := res.RowsAffected()
+	if affected == 0 {
+		return fmt.Errorf("no pending request found")
 	}
 	_, err = r.DB.Exec(`INSERT OR IGNORE INTO GROUP_MEMBERS (group_id, user_id, role) VALUES (?, ?, 'member')`, groupID, userID)
 	return err
 }
 
 func (r *GroupRepository) RejectGroupRequest(groupID, userID int) error {
-	_, err := r.DB.Exec(`UPDATE GROUP_REQUESTS SET status = 'rejected' WHERE group_id = ? AND user_id = ? AND status = 'pending'`, groupID, userID)
-	return err
+	res, err := r.DB.Exec(`UPDATE GROUP_REQUESTS SET status = 'rejected' WHERE group_id = ? AND user_id = ? AND status = 'pending'`, groupID, userID)
+	if err != nil {
+		return err
+	}
+	affected, _ := res.RowsAffected()
+	if affected == 0 {
+		return fmt.Errorf("no pending request found")
+	}
+	return nil
 }
 
 type PendingRequest struct {
