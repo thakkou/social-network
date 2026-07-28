@@ -300,6 +300,12 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		belongs, err := Repos.Group.DoesGroupPostBelongToGroup(groupID, postID)
+		if err != nil || !belongs {
+			utilities.WriteJSON(w, http.StatusNotFound, "post not found in this group", nil)
+			return
+		}
+
 		if r.Method != http.MethodPost {
 			utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
 			return
@@ -336,6 +342,12 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 		postID, err := strconv.Atoi(segments[4])
 		if err != nil {
 			utilities.WriteJSON(w, http.StatusBadRequest, "invalid post id", nil)
+			return
+		}
+
+		belongs, err := Repos.Group.DoesGroupPostBelongToGroup(groupID, postID)
+		if err != nil || !belongs {
+			utilities.WriteJSON(w, http.StatusNotFound, "post not found in this group", nil)
 			return
 		}
 
@@ -439,6 +451,13 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			utilities.WriteJSON(w, http.StatusBadRequest, "invalid event id", nil)
 			return
 		}
+
+		belongs, err := Repos.Group.DoesGroupEventBelongToGroup(groupID, eventID)
+		if err != nil || !belongs {
+			utilities.WriteJSON(w, http.StatusNotFound, "event not found in this group", nil)
+			return
+		}
+
 		var payload struct {
 			Status string `json:"status"`
 		}
@@ -470,6 +489,11 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			utilities.WriteJSON(w, http.StatusBadRequest, "invalid post id", nil)
 			return
 		}
+		belongs, err := Repos.Group.DoesGroupPostBelongToGroup(groupID, postID)
+		if err != nil || !belongs {
+			utilities.WriteJSON(w, http.StatusNotFound, "post not found in this group", nil)
+			return
+		}
 		creatorID, err := Repos.Group.GetGroupCreatorID(groupID)
 		if err != nil {
 			utilities.WriteJSON(w, http.StatusNotFound, "group not found", nil)
@@ -492,6 +516,11 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 		eventID, err := strconv.Atoi(segments[4])
 		if err != nil {
 			utilities.WriteJSON(w, http.StatusBadRequest, "invalid event id", nil)
+			return
+		}
+		belongs, err := Repos.Group.DoesGroupEventBelongToGroup(groupID, eventID)
+		if err != nil || !belongs {
+			utilities.WriteJSON(w, http.StatusNotFound, "event not found in this group", nil)
 			return
 		}
 		creatorID, err := Repos.Group.GetGroupCreatorID(groupID)
@@ -1306,6 +1335,12 @@ func GetGroupContent(w http.ResponseWriter, r *http.Request) {
 	groupID, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		utilities.WriteJSON(w, http.StatusNotFound, "not found", nil)
+		return
+	}
+
+	member, err := Repos.Group.IsGroupMember(groupID, userID)
+	if err != nil || !member {
+		utilities.WriteJSON(w, http.StatusForbidden, "not a group member", nil)
 		return
 	}
 

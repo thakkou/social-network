@@ -297,6 +297,30 @@ func (r *GroupRepository) GetGroupMemberIDs(groupID int) ([]int, error) {
 	return members, rows.Err()
 }
 
+func (r *GroupRepository) DoesGroupPostBelongToGroup(groupID, postID int) (bool, error) {
+	var exists int
+	err := r.DB.QueryRow(`SELECT 1 FROM GROUP_POSTS WHERE id = ? AND group_id = ?`, postID, groupID).Scan(&exists)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (r *GroupRepository) DoesGroupEventBelongToGroup(groupID, eventID int) (bool, error) {
+	var exists int
+	err := r.DB.QueryRow(`SELECT 1 FROM GROUP_EVENTS WHERE id = ? AND group_id = ?`, eventID, groupID).Scan(&exists)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func (r *GroupRepository) IsGroupMember(groupID, userID int) (bool, error) {
 	var exists int
 	err := r.DB.QueryRow(`SELECT 1 FROM GROUP_MEMBERS WHERE group_id = ? AND user_id = ?`, groupID, userID).Scan(&exists)
