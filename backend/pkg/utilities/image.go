@@ -5,8 +5,10 @@ import (
 	"io"
 	"math/rand"
 	"mime/multipart"
+	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -48,8 +50,8 @@ func OldSaveImage(file multipart.File, fileHeader *multipart.FileHeader, uploadD
 }
 
 func SaveImage(file multipart.File, fileHeader *multipart.FileHeader, uploadDir string) (string, error) {
+	// 1. check extension
 	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
-
 	allowedExtensions := map[string]bool{
 		".jpg":  true,
 		".jpeg": true,
@@ -57,11 +59,28 @@ func SaveImage(file multipart.File, fileHeader *multipart.FileHeader, uploadDir 
 		".gif":  true,
 		".webp": true,
 	}
-
 	if !allowedExtensions[ext] {
 		return "", fmt.Errorf("invalid file type: %s", ext)
 	}
 
+	// 2. check file type
+	buffer := make([]byte, 512)
+	file.Seek(0, 0) // without it, Read may give EOF error
+	_, err := file.Read(buffer)
+	if err != nil && err != io.EOF {
+		return "", fmt.Errorf("Could not save image")
+	}
+	// Reset file pointer so it can be read again later
+	if _, err := file.Seek(0, 0); err != nil {
+		return "", fmt.Errorf("Could not save image")
+	}
+	contentType := http.DetectContentType(buffer)
+	if !strings.HasPrefix(contentType, "image/") ||
+		!slices.Contains([]string{"image/jpeg", "image/png", "image/gif", "image/webp"}, contentType) { // svg not handled: complicated + unsafe xml
+		return "", fmt.Errorf("Invalid image type")
+	}
+
+	// 3. ...
 	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
 		return "", fmt.Errorf("create upload directory: %w", err)
 	}

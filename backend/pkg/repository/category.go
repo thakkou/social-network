@@ -121,6 +121,7 @@ func (r *CategoryRepository) GetByPost(postID int) ([]Category, error) {
 // GetNamesByPost returns just the category names for a post, ordered by name.
 // This replaces the old package-level GetCategoriesByPost helper that reached
 // into a global db.Database connection directly.
+// db.Database has been changed to sqlie.DB()
 func (r *CategoryRepository) GetNamesByPost(postID int) ([]string, error) {
 	rows, err := r.DB.Query(`
 		SELECT c.name

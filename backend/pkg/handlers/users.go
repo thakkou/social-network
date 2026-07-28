@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	db "01social/pkg/db/sqlite"
+	"01social/pkg/db/sqlite"
 	"01social/pkg/utilities"
 )
 
@@ -66,7 +66,7 @@ func GetUsersById(w http.ResponseWriter, r *http.Request) {
 	WHERE id = ?
 	`
 
-	err = db.Database.QueryRow(query, id).Scan(
+	err = sqlite.DB().QueryRow(query, id).Scan(
 		&user.ID,
 		&user.Nickname,
 		&user.Firstname,
@@ -108,7 +108,7 @@ func SearchUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	searchTerm := "%" + strings.ToLower(query) + "%"
-	rows, err := db.Database.Query(`
+	rows, err := sqlite.DB().Query(`
 		SELECT id, firstname, lastname, nickname, avatar, is_private
 		FROM USERS
 		WHERE LOWER(firstname) LIKE ?
@@ -158,7 +158,7 @@ func ValidateSession(w http.ResponseWriter, r *http.Request) {
 
 	var expiryTime time.Time
 	var userID int
-	err = db.Database.QueryRow(
+	err = sqlite.DB().QueryRow(
 		"SELECT user_id, expires_at FROM SESSIONS WHERE id = ?",
 		cookie.Value,
 	).Scan(&userID, &expiryTime)
@@ -180,7 +180,7 @@ func ValidateSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utilities.WriteJSON(w, http.StatusOK, "valid session", map[string]any{
-		"valid":  true,
+		"valid":   true,
 		"user_id": userID,
 	})
 }
@@ -201,7 +201,7 @@ func GetUsernameByToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var userID int
-	err = db.Database.QueryRow("SELECT user_id FROM SESSIONS WHERE id = ?", cookie.Value).Scan(&userID)
+	err = sqlite.DB().QueryRow("SELECT user_id FROM SESSIONS WHERE id = ?", cookie.Value).Scan(&userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			utilities.WriteJSON(w, http.StatusUnauthorized, "unauthorized", nil)
@@ -211,7 +211,7 @@ func GetUsernameByToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = db.Database.Exec("UPDATE USERS SET last_seen = CURRENT_TIMESTAMP WHERE id = ?", userID)
+	_, err = sqlite.DB().Exec("UPDATE USERS SET last_seen = CURRENT_TIMESTAMP WHERE id = ?", userID)
 	if err != nil {
 		utilities.WriteJSON(w, http.StatusInternalServerError, "could not update last seen", nil)
 		return
@@ -227,7 +227,7 @@ func GetUsernameByToken(w http.ResponseWriter, r *http.Request) {
 		isPrivate int
 	)
 
-	err = db.Database.QueryRow(`
+	err = sqlite.DB().QueryRow(`
 		SELECT firstname, lastname, nickname, aboutme, avatar, is_private, last_seen
 		FROM USERS
 		WHERE id = ?

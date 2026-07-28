@@ -1,38 +1,63 @@
 CREATE TABLE IF NOT EXISTS CONVERSATIONS (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+
     user1_id INTEGER NOT NULL,
     user2_id INTEGER NOT NULL,
+
     last_message TEXT,
     last_message_at DATETIME,
+
     user1_last_read_message_id INTEGER,
     user2_last_read_message_id INTEGER,
+
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (user1_id, user2_id),
+
+    UNIQUE(user1_id, user2_id),
+
     FOREIGN KEY (user1_id) REFERENCES USERS(id) ON DELETE CASCADE,
     FOREIGN KEY (user2_id) REFERENCES USERS(id) ON DELETE CASCADE
 );
 
+--this for private messages
 CREATE TABLE IF NOT EXISTS MESSAGES (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+
     conversation_id INTEGER NOT NULL,
+
     sender_id INTEGER NOT NULL,
+
     text TEXT NOT NULL,
-    created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now')),
+
+created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f', 'now')),
+
     is_read INTEGER NOT NULL DEFAULT 0,
+
     FOREIGN KEY (conversation_id) REFERENCES CONVERSATIONS(id) ON DELETE CASCADE,
+    
     FOREIGN KEY (sender_id) REFERENCES USERS(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS GROUP_MESSAGES (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    group_id INTEGER NOT NULL,
-    sender_id INTEGER NOT NULL,
-    text TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (group_id) REFERENCES GROUPS(id) ON DELETE CASCADE,
-    FOREIGN KEY (sender_id) REFERENCES USERS(id) ON DELETE CASCADE
-);
 
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    group_id INTEGER NOT NULL,
+
+    sender_id INTEGER NOT NULL,
+
+    text TEXT NOT NULL,
+
+    created_at DATETIME
+        DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY(group_id)
+        REFERENCES GROUPS(id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY(sender_id)
+        REFERENCES USERS(id)
+        ON DELETE CASCADE
+);
 CREATE TABLE IF NOT EXISTS GROUP_MESSAGE_READS (
     group_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
@@ -41,4 +66,13 @@ CREATE TABLE IF NOT EXISTS GROUP_MESSAGE_READS (
     FOREIGN KEY (group_id) REFERENCES GROUPS(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES USERS(id) ON DELETE CASCADE,
     FOREIGN KEY (last_read_message_id) REFERENCES GROUP_MESSAGES(id) ON DELETE SET NULL
+);
+
+-- WEBSOCKET TICKETS (short-lived, single-use)
+
+CREATE TABLE IF NOT EXISTS WS_TICKETS (
+    ticket TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

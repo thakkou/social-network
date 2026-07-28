@@ -1,15 +1,17 @@
+-- POSTS
 CREATE TABLE IF NOT EXISTS POSTS (
-    id INTEGER NOT NULL UNIQUE,
-    user_id INTEGER NOT NULL,
+    id         INTEGER  NOT NULL UNIQUE,
+    user_id    INTEGER  NOT NULL,
     created_at DATETIME NOT NULL,
-    title TEXT NULL,
-    text TEXT NULL,
-    image TEXT NULL,
-    privacy TEXT NOT NULL DEFAULT 'public' CHECK (privacy IN ('public', 'almost_private', 'private')),
+    title      TEXT     NULL,
+    text       TEXT     NULL,
+    image      TEXT     NULL,
+    privacy    TEXT     NOT NULL DEFAULT 'public' CHECK (privacy IN ('public', 'almost_private', 'private')),
     PRIMARY KEY (id AUTOINCREMENT),
     FOREIGN KEY (user_id) REFERENCES USERS (id) ON DELETE CASCADE
 );
 
+-- For custom private posts (specific followers allowed to see it)
 CREATE TABLE IF NOT EXISTS POST_ALLOWED_USERS (
     post_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
@@ -18,49 +20,68 @@ CREATE TABLE IF NOT EXISTS POST_ALLOWED_USERS (
     FOREIGN KEY (user_id) REFERENCES USERS(id) ON DELETE CASCADE
 );
 
+---CATEGORY 
 CREATE TABLE IF NOT EXISTS CATEGORY (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE
 );
 
 INSERT OR IGNORE INTO CATEGORY (name) VALUES 
-('General'), ('Lifestyle'), ('Health & Fitness'), ('Travel'),
-('Food & Cooking'), ('Education'), ('Business'), ('Finance'),
-('Entertainment'), ('Sports'), ('Personal Dev'), ('Culture'), ('News');
+('General'),
+('Lifestyle'),
+('Health & Fitness'),
+('Travel'),
+('Food & Cooking'),
+('Education'),
+('Business'),
+('Finance'),
+('Entertainment'),
+('Sports'),
+('Personal Dev'),
+('Culture'),
+('News');
 
+---category post 
 CREATE TABLE IF NOT EXISTS POST_CATEGORY (
     post_id INTEGER NOT NULL,
     category_id INTEGER NOT NULL,
+
     PRIMARY KEY (post_id, category_id),
+
     FOREIGN KEY (post_id) REFERENCES POSTS(id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES CATEGORY(id) ON DELETE CASCADE
 );
 
+-- COMMENTS
 CREATE TABLE IF NOT EXISTS COMMENTS (
-    id INTEGER NOT NULL UNIQUE,
-    user_id INTEGER NOT NULL,
-    post_id INTEGER NOT NULL,
+    id         INTEGER  NOT NULL UNIQUE,
+    user_id    INTEGER  NOT NULL,
+    post_id    INTEGER  NOT NULL,
     created_at DATETIME NOT NULL,
-    text TEXT NULL,
-    image TEXT,
+    text       TEXT     NULL,
+    image      TEXT     NULL,
     PRIMARY KEY (id AUTOINCREMENT),
     FOREIGN KEY (user_id) REFERENCES USERS (id) ON DELETE CASCADE,
     FOREIGN KEY (post_id) REFERENCES POSTS (id) ON DELETE CASCADE
 );
 
+-- POST REACTIONS
+-- Fix POST_REACTIONS
 CREATE TABLE IF NOT EXISTS POST_REACTIONS (
     user_id INTEGER NOT NULL,
     post_id INTEGER NOT NULL,
     is_like INTEGER NOT NULL CHECK (is_like IN (-1, 1)),
-    PRIMARY KEY (user_id, post_id),
+    PRIMARY KEY (user_id, post_id), -- <--- Add this
     FOREIGN KEY (user_id) REFERENCES USERS(id) ON DELETE CASCADE,
     FOREIGN KEY (post_id) REFERENCES POSTS(id) ON DELETE CASCADE
 );
+-- reactions are unique by combination of both user_id and post_id
 
+-- COMMENT REACTIONS
 CREATE TABLE IF NOT EXISTS COMMENT_REACTIONS (
     user_id INTEGER NOT NULL,
     comment_id INTEGER NOT NULL,
-    is_like INTEGER NOT NULL DEFAULT 1 CHECK (is_like IN (-1, 1)),
+    is_like INTEGER NOT NULL DEFAULT 1 CHECK (is_like IN (-1, 1)), -- 1 for like / -1 for dislike
     FOREIGN KEY (user_id) REFERENCES USERS (id) ON DELETE CASCADE,
     FOREIGN KEY (comment_id) REFERENCES COMMENTS (id) ON DELETE CASCADE
 );

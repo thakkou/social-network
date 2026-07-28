@@ -11,7 +11,7 @@ import (
 
 	dblayer "01social/pkg/models/db_layer"
 
-	db "01social/pkg/db/sqlite"
+	"01social/pkg/db/sqlite"
 )
 
 type TokenResponse struct {
@@ -154,16 +154,17 @@ func FetchGithubUserEmail(accessToken string) (string, error) {
 
 // DeleteSession
 func DeleteSession(sessionId string) error {
-	_, err := db.Database.Exec(
+	_, err := sqlite.DB().Exec(
 		"DELETE FROM sessions WHERE id = ?",
-		sessionId) // returns result
+		sessionId,
+	) // returns result
 	return err
 }
 
 // GetUserIDFromCookie
 func GetUserIDFromCookie(sessionID string) (int, error) {
 	var userID int
-	err := db.Database.QueryRow(`
+	err := sqlite.DB().QueryRow(`
 		SELECT user_id
 		FROM SESSIONS
 		WHERE id = ?

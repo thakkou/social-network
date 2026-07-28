@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	db "01social/pkg/db/sqlite"
+	"01social/pkg/db/sqlite"
 	"01social/pkg/middlewares"
 	"01social/pkg/utilities"
 	"01social/pkg/ws"
@@ -62,7 +62,7 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 		req.Type = "direct"
 	}
 
-	tx, err := db.Database.Begin()
+	tx, err := sqlite.DB().Begin()
 	if err != nil {
 		utilities.WriteJSON(w, http.StatusInternalServerError, "db error", nil)
 		return
@@ -260,7 +260,7 @@ func SendGroupMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tx, err := db.Database.Begin()
+	tx, err := sqlite.DB().Begin()
 	if err != nil {
 		utilities.WriteJSON(w, http.StatusInternalServerError, "db error", nil)
 		return
