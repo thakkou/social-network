@@ -851,6 +851,17 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			utilities.WriteJSON(w, http.StatusMethodNotAllowed, "method not allowed", nil)
 			return
 		}
+
+		member, err := Repos.Group.IsGroupMember(groupID, userID)
+		if err != nil {
+			utilities.WriteJSON(w, http.StatusInternalServerError, "could not check membership", nil)
+			return
+		}
+		if member {
+			utilities.WriteJSON(w, http.StatusBadRequest, "you are already a member of this group", nil)
+			return
+		}
+
 		if err := Repos.Group.RequestToJoin(groupID, userID); err != nil {
 			utilities.WriteJSON(w, http.StatusInternalServerError, "could not request to join", nil)
 			return
@@ -895,10 +906,30 @@ func GroupResolver(w http.ResponseWriter, r *http.Request) {
 			utilities.WriteJSON(w, http.StatusBadRequest, "invalid request body", nil)
 			return
 		}
+		if payload.UserID == userID {
+			utilities.WriteJSON(w, http.StatusBadRequest, "u can't sent to ur self", nil)
+			return
+		}
+
 		if payload.UserID <= 0 {
 			utilities.WriteJSON(w, http.StatusBadRequest, "invalid user id", nil)
 			return
 		}
+		if payload.UserID == userID {
+			utilities.WriteJSON(w, http.StatusBadRequest, "you cannot invite yourself", nil)
+			return
+		}
+
+		targetMember, err := Repos.Group.IsGroupMember(groupID, payload.UserID)
+		if err != nil {
+			utilities.WriteJSON(w, http.StatusInternalServerError, "could not verify user", nil)
+			return
+		}
+		if targetMember {
+			utilities.WriteJSON(w, http.StatusBadRequest, "this user is already a member", nil)
+			return
+		}
+
 		if err := Repos.Group.InviteToGroup(groupID, userID, payload.UserID); err != nil {
 			utilities.WriteJSON(w, http.StatusInternalServerError, "could not invite user", nil)
 			return
