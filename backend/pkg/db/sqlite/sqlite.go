@@ -21,6 +21,12 @@ var (
 	initErr  error
 )
 
+// SetDB sets the global database instance for testing purposes.
+// This allows tests to inject an in-memory database without going through Init().
+func SetDB(db *sql.DB) {
+	instance = db
+}
+
 // Init initializes the global database connection and runs migrations.
 // Call this once, early in main().
 func Init() error {

@@ -5,3 +5,4 @@ todo
 *.sh
 Dockerfile*
 docker-compose.yml
+tests
