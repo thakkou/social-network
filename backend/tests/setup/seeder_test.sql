@@ -1,16 +1,16 @@
 -- SEEDER MIGRATION
 
 INSERT INTO USERS (id, firstname, lastname, email, password, birthdate, nickname, aboutme, avatar, is_private) VALUES
-(1,  'Alice',   'Martin',     'alice@example.com',    '$2a$10$WKwmrHpemaSqsTWBATFNDO3VWX23TS9bEqA0FRkJVsYPS9OKRebV.', '1996-04-12', 'ali_m',   'Coffee & code.',                     '/uploads/seeder/avatars/avatar.jpeg', 0),
-(2,  'Bob',     'Nguyen',     'bob@example.com',      '$2a$10$WKwmrHpemaSqsTWBATFNDO3VWX23TS9bEqA0FRkJVsYPS9OKRebV.', '1994-08-23', NULL,      'Traveling the world.',               '/uploads/seeder/avatars/lofi.jpeg',   0),
-(3,  'Chloe',   'Dubois',     'chloe@example.com',    '$2a$10$WKwmrHpemaSqsTWBATFNDO3VWX23TS9bEqA0FRkJVsYPS9OKRebV.', '1999-01-05', 'Chloe',   NULL,                                 '/uploads/seeder/avatars/goat.jpg',    1),
-(4,  'David',   'Smith',      'david@example.com',    '$2a$10$WKwmrHpemaSqsTWBATFNDO3VWX23TS9bEqA0FRkJVsYPS9OKRebV.', '1990-11-30', 'david',   'Full-stack dev.',                    NULL,                                   0),
-(5,  'Emma',    'Wilson',     'emma@example.com',     '$2a$10$WKwmrHpemaSqsTWBATFNDO3VWX23TS9bEqA0FRkJVsYPS9OKRebV.', '1997-06-18', NULL,      'Photography enthusiast.',             NULL,                                   1),
-(6,  'Farid',   'El Amrani',  'farid@example.com',    '$2a$10$WKwmrHpemaSqsTWBATFNDO3VWX23TS9bEqA0FRkJVsYPS9OKRebV.', '1993-03-09', NULL,      'Backend > frontend, fight me.',       '/uploads/seeder/avatars/lofi.jpeg',   0),
-(7,  'Grace',   'Lee',        'grace@example.com',    '$2a$10$WKwmrHpemaSqsTWBATFNDO3VWX23TS9bEqA0FRkJVsYPS9OKRebV.', '2000-09-27', NULL,      NULL,                                 NULL,                                   0),
-(8,  'Hugo',    'Costa',      'hugo@example.com',     '$2a$10$WKwmrHpemaSqsTWBATFNDO3VWX23TS9bEqA0FRkJVsYPS9OKRebV.', '1995-12-14', 'costa77', 'Music producer.',                    NULL,                                   0),
-(9,  'Isabella','Rossi',      'isabella@example.com', '$2a$10$WKwmrHpemaSqsTWBATFNDO3VWX23TS9bEqA0FRkJVsYPS9OKRebV.', '1998-07-22', 'bella',   'Art & design lover.',                NULL,                                   0),
-(10, 'Jack',    'Thompson',   'jack@example.com',     '$2a$10$WKwmrHpemaSqsTWBATFNDO3VWX23TS9bEqA0FRkJVsYPS9OKRebV.', '1992-10-05', NULL,      'Open source contributor.',            NULL,                                   0);
+(1,  'Alice',   'Martin',     'alice@example.com',    '$2a$10$42V8YozCBZg6edd2LMF0O.7fW6HRS4cu2mDRFfY/1toTPnhkN5aN6', '1996-04-12', 'ali_m',   'Coffee & code.',                     '/uploads/seeder/avatars/avatar.jpeg', 0),
+(2,  'Bob',     'Nguyen',     'bob@example.com',      '$2a$10$42V8YozCBZg6edd2LMF0O.7fW6HRS4cu2mDRFfY/1toTPnhkN5aN6', '1994-08-23', NULL,      'Traveling the world.',               '/uploads/seeder/avatars/lofi.jpeg',   0),
+(3,  'Chloe',   'Dubois',     'chloe@example.com',    '$2a$10$42V8YozCBZg6edd2LMF0O.7fW6HRS4cu2mDRFfY/1toTPnhkN5aN6', '1999-01-05', 'Chloe',   NULL,                                 '/uploads/seeder/avatars/goat.jpg',    1),
+(4,  'David',   'Smith',      'david@example.com',    '$2a$10$42V8YozCBZg6edd2LMF0O.7fW6HRS4cu2mDRFfY/1toTPnhkN5aN6', '1990-11-30', 'david',   'Full-stack dev.',                    NULL,                                   0),
+(5,  'Emma',    'Wilson',     'emma@example.com',     '$2a$10$42V8YozCBZg6edd2LMF0O.7fW6HRS4cu2mDRFfY/1toTPnhkN5aN6', '1997-06-18', NULL,      'Photography enthusiast.',             NULL,                                   1),
+(6,  'Farid',   'El Amrani',  'farid@example.com',    '$2a$10$42V8YozCBZg6edd2LMF0O.7fW6HRS4cu2mDRFfY/1toTPnhkN5aN6', '1993-03-09', NULL,      'Backend > frontend, fight me.',       '/uploads/seeder/avatars/lofi.jpeg',   0),
+(7,  'Grace',   'Lee',        'grace@example.com',    '$2a$10$42V8YozCBZg6edd2LMF0O.7fW6HRS4cu2mDRFfY/1toTPnhkN5aN6', '2000-09-27', NULL,      NULL,                                 NULL,                                   0),
+(8,  'Hugo',    'Costa',      'hugo@example.com',     '$2a$10$42V8YozCBZg6edd2LMF0O.7fW6HRS4cu2mDRFfY/1toTPnhkN5aN6', '1995-12-14', 'costa77', 'Music producer.',                    NULL,                                   0),
+(9,  'Isabella','Rossi',      'isabella@example.com', '$2a$10$42V8YozCBZg6edd2LMF0O.7fW6HRS4cu2mDRFfY/1toTPnhkN5aN6', '1998-07-22', 'bella',   'Art & design lover.',                NULL,                                   0),
+(10, 'Jack',    'Thompson',   'jack@example.com',     '$2a$10$42V8YozCBZg6edd2LMF0O.7fW6HRS4cu2mDRFfY/1toTPnhkN5aN6', '1992-10-05', NULL,      'Open source contributor.',            NULL,                                   0);
 
 -- ============================================================
 -- FOLLOWS (14 follows)

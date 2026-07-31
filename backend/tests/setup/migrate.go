@@ -70,14 +70,91 @@ func RunMigrations(db *sql.DB) error {
 			return fmt.Errorf("reading migration %s: %w", fileName, err)
 		}
 
-		_, err = db.Exec(string(content))
-		if err != nil {
-			return fmt.Errorf("running migration %s: %w", fileName, err)
+		// For safety: execute the entire migration file as a single statement batch.
+		// The go-sqlite3 driver can handle multiple statements in one Exec call.
+		if _, err := db.Exec(string(content)); err != nil {
+			// If batch execution fails, try splitting into individual statements
+			log.Printf("[TEST] Batch exec failed for %s, trying individual statements: %v", fileName, err)
+			statements := splitSQLStatements(string(content))
+			for i, stmt := range statements {
+				stmt = strings.TrimSpace(stmt)
+				if stmt == "" || strings.HasPrefix(stmt, "--") {
+					continue
+				}
+				if _, err := db.Exec(stmt); err != nil {
+					return fmt.Errorf("running statement %d in %s: %w\nSQL: %s", i+1, fileName, err, stmt[:min(len(stmt), 200)])
+				}
+			}
 		}
 		log.Printf("[TEST] Ran migration: %s", fileName)
 	}
 
 	return nil
+}
+
+// splitSQLStatements splits a multi-statement SQL string into individual statements.
+func splitSQLStatements(sql string) []string {
+	var statements []string
+	var current strings.Builder
+	inString := false
+	stringChar := byte(0)
+	prevChar := byte(0)
+
+	for i := 0; i < len(sql); i++ {
+		ch := sql[i]
+
+		// Handle string literals
+		if inString {
+			current.WriteByte(ch)
+			if ch == stringChar && prevChar != '\\' {
+				inString = false
+			}
+			prevChar = ch
+			continue
+		}
+
+		if ch == '\'' || ch == '"' {
+			inString = true
+			stringChar = ch
+			current.WriteByte(ch)
+			prevChar = ch
+			continue
+		}
+
+		// Handle single-line comments
+		if ch == '-' && i+1 < len(sql) && sql[i+1] == '-' {
+			// Skip until end of line
+			for i < len(sql) && sql[i] != '\n' {
+				i++
+			}
+			continue
+		}
+
+		// Statement separator
+		if ch == ';' {
+			statements = append(statements, current.String())
+			current.Reset()
+			prevChar = ch
+			continue
+		}
+
+		current.WriteByte(ch)
+		prevChar = ch
+	}
+
+	// Last statement (no trailing semicolon)
+	if current.Len() > 0 {
+		statements = append(statements, current.String())
+	}
+
+	return statements
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // RunDownMigrations runs all .down.sql migration files in reverse order.

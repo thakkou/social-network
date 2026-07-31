@@ -252,7 +252,7 @@ func (r *PostRepository) GetPostsUserID(userID int) ([]Post, error) {
 		}
 		// Enrich the post with metadata stats
 		if err := r.EnrichPostMetadata(userID, &p); err != nil {
-			fmt.Println("error enrishing post")
+			fmt.Printf("error enriching post %d for user %d: %v\n", p.ID, userID, err)
 			return nil, err
 		}
 
